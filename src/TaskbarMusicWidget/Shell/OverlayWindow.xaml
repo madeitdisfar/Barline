@@ -1,6 +1,7 @@
 <Window x:Class="TaskbarMusicWidget.Shell.OverlayWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:ui="clr-namespace:TaskbarMusicWidget.Ui"
         x:ClassModifier="internal"
         Title="Taskbar Music Widget"
         WindowStyle="None"
@@ -12,36 +13,93 @@
         ShowActivated="False"
         UseLayoutRounding="True"
         SnapsToDevicePixels="True"
+        FontFamily="Segoe UI Variable Text, Segoe UI"
         TextOptions.TextFormattingMode="Ideal"
-        TextOptions.TextRenderingMode="ClearType"
-        Width="280" Height="48"
+        TextOptions.TextRenderingMode="Grayscale"
+        Width="300" Height="48"
         Left="-10000" Top="-10000">
 
     <!--
-        PHASE 1 PLACEHOLDER.
-        A translucent tinted panel, deliberately not the final design. It is
-        semi-transparent so the real taskbar material shows through, which makes
-        any misalignment against the taskbar edge immediately obvious. The
-        diagnostic text is the fastest way to verify DPI and rect tracking while
-        working through the Phase 1 gates.
+        TextRenderingMode is Grayscale on purpose. A layered window has no opaque
+        backdrop to blend subpixels against, so ClearType is unavailable here
+        anyway — and Windows 11's own XAML shell text is grayscale-antialiased,
+        so this matches the taskbar rather than fighting it.
     -->
-    <Border x:Name="Root"
-            CornerRadius="6"
-            Background="#5900A2FF"
-            BorderBrush="#CC00A2FF"
-            BorderThickness="1">
-        <StackPanel VerticalAlignment="Center" Margin="10,0">
-            <TextBlock x:Name="DiagPrimary"
-                       Foreground="White"
-                       FontFamily="Segoe UI Variable Text"
-                       FontSize="11"
+
+    <Window.Resources>
+        <!-- Soft edge fade for overflowing text. Windows tends to fade rather
+             than ellipsize in chrome like this, and it reads far less "app-like".
+             Harmless when the text is short: the gradient falls over empty space. -->
+        <LinearGradientBrush x:Key="EdgeFade" StartPoint="0,0" EndPoint="1,0">
+            <GradientStop Offset="0.86" Color="#FF000000" />
+            <GradientStop Offset="1.00" Color="#00000000" />
+        </LinearGradientBrush>
+    </Window.Resources>
+
+    <!-- No background of any kind: the real taskbar material shows through. -->
+    <Grid x:Name="Root" Margin="8,0,12,0">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="Auto" />
+        </Grid.ColumnDefinitions>
+
+        <!-- Album art. 32x32 with a 4px radius, matching Win11's small-control radius. -->
+        <Grid Grid.Column="0" Width="32" Height="32" VerticalAlignment="Center">
+            <Border x:Name="ArtPlaceholder" CornerRadius="4" />
+            <TextBlock x:Name="ArtFallbackGlyph"
+                       FontFamily="Segoe Fluent Icons"
+                       Text="&#xE8D6;"
+                       FontSize="14"
+                       HorizontalAlignment="Center"
+                       VerticalAlignment="Center" />
+            <Border x:Name="ArtLayer" CornerRadius="4" Visibility="Collapsed">
+                <Border.Background>
+                    <ImageBrush x:Name="ArtBrush"
+                                Stretch="UniformToFill"
+                                RenderOptions.BitmapScalingMode="HighQuality" />
+                </Border.Background>
+            </Border>
+        </Grid>
+
+        <!-- Title / artist. Line heights are pinned so the pair centres predictably
+             within the taskbar's height at any DPI. -->
+        <!-- The fade mask belongs on this panel, not on the TextBlocks. A vertical
+             StackPanel arranges an over-wide child at the child's own desired width,
+             so a mask on the TextBlock would scale to the full untruncated text and
+             land beyond the clip edge — fading nothing on exactly the long titles
+             that need it. On the panel it always spans the visible 150px. -->
+        <StackPanel Grid.Column="1"
+                    VerticalAlignment="Center"
+                    Margin="10,0,0,0"
+                    ClipToBounds="True"
+                    OpacityMask="{StaticResource EdgeFade}">
+            <TextBlock x:Name="TitleText"
+                       FontSize="12"
                        FontWeight="SemiBold"
-                       Text="Overlay attached" />
-            <TextBlock x:Name="DiagSecondary"
-                       Foreground="#C5FFFFFF"
-                       FontFamily="Segoe UI Variable Text"
-                       FontSize="10"
-                       Text="waiting for taskbar…" />
+                       LineHeight="16"
+                       LineStackingStrategy="BlockLineHeight"
+                       TextWrapping="NoWrap"
+                       Text="" />
+            <TextBlock x:Name="ArtistText"
+                       FontSize="11"
+                       FontWeight="Normal"
+                       LineHeight="14"
+                       LineStackingStrategy="BlockLineHeight"
+                       TextWrapping="NoWrap"
+                       Text="" />
         </StackPanel>
-    </Border>
+
+        <!-- Fixed-width right zone. The visualiser lives here now and the transport
+             controls will crossfade into the same space in Phase 5, so hovering
+             never reflows the art or the text. -->
+        <Grid Grid.Column="2" Width="88">
+            <!-- Centred, not right-aligned: the transport buttons will fill this
+                 same zone, so centring keeps the crossfade spatially coherent
+                 instead of having the bars sit where only the last button lands. -->
+            <ui:Visualizer x:Name="Bars"
+                           HorizontalAlignment="Center"
+                           VerticalAlignment="Center" />
+        </Grid>
+    </Grid>
 </Window>
