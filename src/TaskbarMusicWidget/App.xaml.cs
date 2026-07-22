@@ -1,4 +1,5 @@
 using System.Windows;
+using TaskbarMusicWidget.Audio;
 using TaskbarMusicWidget.Diagnostics;
 using TaskbarMusicWidget.Media;
 using TaskbarMusicWidget.Shell;
@@ -11,6 +12,7 @@ public partial class App : Application
     private TaskbarTracker? _tracker;
     private MediaSessionService? _media;
     private Theme? _theme;
+    private LoopbackAnalyzer? _analyzer;
     private OverlayWindow? _window;
 
     protected override void OnStartup(StartupEventArgs e)
@@ -20,12 +22,18 @@ public partial class App : Application
         _tracker = new TaskbarTracker();
         _media = new MediaSessionService(Dispatcher);
         _theme = new Theme();
-        _window = new OverlayWindow(_tracker, _media, _theme);
+        _analyzer = new LoopbackAnalyzer();
+        _window = new OverlayWindow(_tracker, _media, _theme, _analyzer);
 
         // Show first so the HWND exists and OnSourceInitialized can apply the
         // extended styles, then start tracking — the first Changed event places it.
         _window.Show();
         _tracker.Start();
+
+        // Left running for the app's lifetime: WASAPI raises no callbacks during
+        // silence, so an idle capture costs essentially nothing, and re-arming on
+        // every play/pause would add latency to the first beat.
+        _analyzer.Start();
 
         if (DemoContent.Enabled)
         {
@@ -51,6 +59,7 @@ public partial class App : Application
 
     protected override void OnExit(ExitEventArgs e)
     {
+        _analyzer?.Dispose();
         _media?.Dispose();
         _tracker?.Dispose();
         base.OnExit(e);

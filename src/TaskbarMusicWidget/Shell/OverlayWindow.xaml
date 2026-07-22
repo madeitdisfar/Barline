@@ -27,6 +27,15 @@
     -->
 
     <Window.Resources>
+        <!-- Theme brushes. Declared here so DynamicResource resolves at load, then
+             swapped wholesale by ApplyTheme when the system theme changes. -->
+        <SolidColorBrush x:Key="TextPrimaryBrush" Color="#FFFFFFFF" />
+        <SolidColorBrush x:Key="TextSecondaryBrush" Color="#C5FFFFFF" />
+        <SolidColorBrush x:Key="TextTertiaryBrush" Color="#87FFFFFF" />
+        <SolidColorBrush x:Key="SubtleHoverBrush" Color="#0FFFFFFF" />
+        <SolidColorBrush x:Key="SubtlePressedBrush" Color="#0AFFFFFF" />
+        <SolidColorBrush x:Key="ArtPlaceholderBrush" Color="#14FFFFFF" />
+
         <!-- Soft edge fade for overflowing text. Windows tends to fade rather
              than ellipsize in chrome like this, and it reads far less "app-like".
              Harmless when the text is short: the gradient falls over empty space. -->
@@ -34,10 +43,49 @@
             <GradientStop Offset="0.86" Color="#FF000000" />
             <GradientStop Offset="1.00" Color="#00000000" />
         </LinearGradientBrush>
+
+        <!-- Win11 subtle button: no chrome at rest, a faint rounded fill on hover,
+             slightly stronger when pressed. -->
+        <Style x:Key="TransportButton" TargetType="Button">
+            <Setter Property="Width" Value="28" />
+            <Setter Property="Height" Value="28" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Focusable" Value="False" />
+            <Setter Property="FontFamily" Value="Segoe Fluent Icons" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Fill"
+                                CornerRadius="4"
+                                Background="Transparent"
+                                SnapsToDevicePixels="True">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Fill" Property="Background"
+                                        Value="{DynamicResource SubtleHoverBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Fill" Property="Background"
+                                        Value="{DynamicResource SubtlePressedBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.36" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </Window.Resources>
 
-    <!-- No background of any kind: the real taskbar material shows through. -->
-    <Grid x:Name="Root" Margin="8,0,12,0">
+    <!-- No background of any kind: the real taskbar material shows through.
+         Transparent (rather than null) so the widget still receives mouse input. -->
+    <Grid x:Name="Root" Margin="8,0,12,0" Background="Transparent">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="Auto" />
             <ColumnDefinition Width="*" />
@@ -46,11 +94,14 @@
 
         <!-- Album art. 32x32 with a 4px radius, matching Win11's small-control radius. -->
         <Grid Grid.Column="0" Width="32" Height="32" VerticalAlignment="Center">
-            <Border x:Name="ArtPlaceholder" CornerRadius="4" />
+            <Border x:Name="ArtPlaceholder"
+                    CornerRadius="4"
+                    Background="{DynamicResource ArtPlaceholderBrush}" />
             <TextBlock x:Name="ArtFallbackGlyph"
                        FontFamily="Segoe Fluent Icons"
                        Text="&#xE8D6;"
                        FontSize="14"
+                       Foreground="{DynamicResource TextTertiaryBrush}"
                        HorizontalAlignment="Center"
                        VerticalAlignment="Center" />
             <Border x:Name="ArtLayer" CornerRadius="4" Visibility="Collapsed">
@@ -62,8 +113,6 @@
             </Border>
         </Grid>
 
-        <!-- Title / artist. Line heights are pinned so the pair centres predictably
-             within the taskbar's height at any DPI. -->
         <!-- The fade mask belongs on this panel, not on the TextBlocks. A vertical
              StackPanel arranges an over-wide child at the child's own desired width,
              so a mask on the TextBlock would scale to the full untruncated text and
@@ -80,6 +129,7 @@
                        LineHeight="16"
                        LineStackingStrategy="BlockLineHeight"
                        TextWrapping="NoWrap"
+                       Foreground="{DynamicResource TextPrimaryBrush}"
                        Text="" />
             <TextBlock x:Name="ArtistText"
                        FontSize="11"
@@ -87,19 +137,34 @@
                        LineHeight="14"
                        LineStackingStrategy="BlockLineHeight"
                        TextWrapping="NoWrap"
+                       Foreground="{DynamicResource TextSecondaryBrush}"
                        Text="" />
         </StackPanel>
 
-        <!-- Fixed-width right zone. The visualiser lives here now and the transport
-             controls will crossfade into the same space in Phase 5, so hovering
-             never reflows the art or the text. -->
+        <!-- Fixed-width right zone. The visualiser and the transport controls share
+             it and crossfade in place, so hovering never reflows the art or text —
+             layout shift on hover is the fastest way to look third-party. -->
         <Grid Grid.Column="2" Width="88">
-            <!-- Centred, not right-aligned: the transport buttons will fill this
-                 same zone, so centring keeps the crossfade spatially coherent
-                 instead of having the bars sit where only the last button lands. -->
             <ui:Visualizer x:Name="Bars"
                            HorizontalAlignment="Center"
                            VerticalAlignment="Center" />
+
+            <StackPanel x:Name="TransportPanel"
+                        Orientation="Horizontal"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        Opacity="0"
+                        IsHitTestVisible="False">
+                <Button x:Name="PreviousButton"
+                        Style="{StaticResource TransportButton}"
+                        Content="&#xE892;" />
+                <Button x:Name="PlayPauseButton"
+                        Style="{StaticResource TransportButton}"
+                        Content="&#xE768;" />
+                <Button x:Name="NextButton"
+                        Style="{StaticResource TransportButton}"
+                        Content="&#xE893;" />
+            </StackPanel>
         </Grid>
     </Grid>
 </Window>

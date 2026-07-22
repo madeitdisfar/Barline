@@ -1,5 +1,10 @@
 using System.Windows;
+using System.Windows.Input;
 using System.Windows.Interop;
+using System.Windows.Media;
+using System.Windows.Media.Animation;
+using System.Windows.Media.Media3D;
+using TaskbarMusicWidget.Audio;
 using TaskbarMusicWidget.Media;
 using TaskbarMusicWidget.Ui;
 using static TaskbarMusicWidget.Shell.NativeMethods;
@@ -24,6 +29,16 @@ internal partial class OverlayWindow : Window
     /// <summary>Gap between the taskbar's left edge and the widget, in logical pixels.</summary>
     private const double LeftInsetLogical = 0d;
 
+    private const int HoverFadeMs = 150;
+
+    // Segoe Fluent Icons — Windows 11's own icon font. Using the system glyphs
+    // rather than custom paths is a large part of why this reads as native.
+    private const string GlyphPlay = "";
+    private const string GlyphPause = "";
+
+    /// <summary>The Fluent "standard" easing curve, cubic-bezier(0.33, 0, 0.67, 1).</summary>
+    private static readonly KeySpline FluentStandard = CreateFluentSpline();
+
     private readonly TaskbarTracker _tracker;
     private readonly MediaSessionService _media;
     private readonly Theme _theme;
@@ -31,14 +46,27 @@ internal partial class OverlayWindow : Window
     private uint _taskbarCreatedMessage;
     private IntPtr _hwnd;
     private TrackInfo? _track;
+    private bool _hovered;
 
-    public OverlayWindow(TaskbarTracker tracker, MediaSessionService media, Theme theme)
+    public OverlayWindow(
+        TaskbarTracker tracker,
+        MediaSessionService media,
+        Theme theme,
+        LoopbackAnalyzer analyzer)
     {
         _tracker = tracker;
         _media = media;
         _theme = theme;
 
         InitializeComponent();
+
+        // Pull-based: the visualiser samples the latest spectrum once per frame.
+        // Returning false (no capture, or silence) drops it back to decorative motion.
+        Bars.LevelSource = levels => analyzer.TryGetLevels(levels);
+
+        PreviousButton.Click += (_, _) => _ = _media.SkipPreviousAsync();
+        PlayPauseButton.Click += (_, _) => _ = _media.TogglePlayPauseAsync();
+        NextButton.Click += (_, _) => _ = _media.SkipNextAsync();
 
         _tracker.Changed += (_, state) => Apply(state);
         _media.TrackChanged += (_, track) => SetTrack(track);
@@ -89,7 +117,77 @@ internal partial class OverlayWindow : Window
         return IntPtr.Zero;
     }
 
-    // ---- Content ----------------------------------------------------------
+    // ---- Hover -------------------------------------------------------------
+
+    protected override void OnMouseEnter(MouseEventArgs e)
+    {
+        base.OnMouseEnter(e);
+        SetHovered(true);
+    }
+
+    protected override void OnMouseLeave(MouseEventArgs e)
+    {
+        base.OnMouseLeave(e);
+        SetHovered(false);
+    }
+
+    /// <summary>
+    /// Crossfades the visualiser and the transport controls in place. Both live in
+    /// the same fixed-width zone, so nothing moves — only opacity changes.
+    /// </summary>
+    private void SetHovered(bool hovered)
+    {
+        if (_hovered == hovered) return;
+        _hovered = hovered;
+
+        TransportPanel.IsHitTestVisible = hovered;
+        Fade(TransportPanel, hovered ? 1d : 0d);
+        Fade(Bars, hovered ? 0d : 1d);
+    }
+
+    private static void Fade(UIElement element, double to)
+    {
+        var animation = new DoubleAnimationUsingKeyFrames();
+        animation.KeyFrames.Add(new SplineDoubleKeyFrame(
+            to,
+            KeyTime.FromTimeSpan(TimeSpan.FromMilliseconds(HoverFadeMs)),
+            FluentStandard));
+
+        element.BeginAnimation(OpacityProperty, animation);
+    }
+
+    private static KeySpline CreateFluentSpline()
+    {
+        var spline = new KeySpline(0.33, 0.0, 0.67, 1.0);
+        spline.Freeze();
+        return spline;
+    }
+
+    // ---- Click-to-focus ----------------------------------------------------
+
+    protected override void OnMouseLeftButtonUp(MouseButtonEventArgs e)
+    {
+        base.OnMouseLeftButtonUp(e);
+
+        // Transport buttons handle their own clicks; only the art/text area
+        // should bring the player forward.
+        if (IsWithinTransport(e.OriginalSource as DependencyObject))
+            return;
+
+        SourceAppActivator.TryActivate(_track?.SourceAppId);
+    }
+
+    private bool IsWithinTransport(DependencyObject? node)
+    {
+        while (node is not null)
+        {
+            if (ReferenceEquals(node, TransportPanel)) return true;
+            node = node is Visual or Visual3D ? VisualTreeHelper.GetParent(node) : null;
+        }
+        return false;
+    }
+
+    // ---- Content -----------------------------------------------------------
 
     /// <summary>Applies a track to the view. Also the injection point for demo mode.</summary>
     internal void SetTrack(TrackInfo? track)
@@ -104,7 +202,16 @@ internal partial class OverlayWindow : Window
         TitleText.Text = track?.Title ?? string.Empty;
         ArtistText.Text = track?.Artist ?? string.Empty;
 
-        Bars.IsActive = track?.IsPlaying == true;
+        bool playing = track?.IsPlaying == true;
+        Bars.IsActive = playing;
+        PlayPauseButton.Content = playing ? GlyphPause : GlyphPlay;
+
+        // Sources advertise different capabilities — a podcast app may offer no
+        // "previous", a radio stream neither. Drive the buttons from what the
+        // session actually reports rather than assuming.
+        PreviousButton.IsEnabled = track?.CanGoPrevious == true;
+        NextButton.IsEnabled = track?.CanGoNext == true;
+        PlayPauseButton.IsEnabled = track?.CanPlayPause == true;
 
         // Nothing playing means nothing to show. Hiding entirely is better than
         // an empty shell, and it gives the taskbar its space back.
@@ -113,14 +220,19 @@ internal partial class OverlayWindow : Window
 
     private void ApplyTheme()
     {
-        TitleText.Foreground = _theme.TextPrimary;
-        ArtistText.Foreground = _theme.TextSecondary;
-        ArtFallbackGlyph.Foreground = _theme.TextTertiary;
-        ArtPlaceholder.Background = _theme.ArtPlaceholder;
+        // Swapping the resources updates everything bound with DynamicResource,
+        // including the button template's hover and pressed fills.
+        Resources["TextPrimaryBrush"] = _theme.TextPrimary;
+        Resources["TextSecondaryBrush"] = _theme.TextSecondary;
+        Resources["TextTertiaryBrush"] = _theme.TextTertiary;
+        Resources["SubtleHoverBrush"] = _theme.SubtleHover;
+        Resources["SubtlePressedBrush"] = _theme.SubtlePressed;
+        Resources["ArtPlaceholderBrush"] = _theme.ArtPlaceholder;
+
         Bars.BarBrush = _theme.TextPrimary;
     }
 
-    // ---- Placement --------------------------------------------------------
+    // ---- Placement ---------------------------------------------------------
 
     private void Apply(TaskbarState state)
     {

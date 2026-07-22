@@ -51,7 +51,6 @@ internal sealed class Visualizer : FrameworkElement
     private TimeSpan _lastFrame;
     private double _elapsed;
     private bool _subscribed;
-    private bool _hasExternalLevels;
 
     public Visualizer()
     {
@@ -94,19 +93,15 @@ internal sealed class Visualizer : FrameworkElement
     }
 
     /// <summary>
-    /// Supplies externally computed band levels (0..1). Called by the audio
-    /// pipeline in Phase 4; until then the decorative motion drives the bars.
+    /// Optional source of real spectrum data. It fills the supplied array with
+    /// levels in 0..1 and returns true when it has data.
     /// </summary>
-    public void SetLevels(ReadOnlySpan<double> levels)
-    {
-        _hasExternalLevels = true;
-        int n = Math.Min(levels.Length, BarCount);
-        for (int i = 0; i < n; i++)
-            _target[i] = Math.Clamp(levels[i], 0d, 1d);
-    }
-
-    /// <summary>Reverts to the decorative loop, e.g. if audio capture drops out.</summary>
-    public void ClearExternalLevels() => _hasExternalLevels = false;
+    /// <remarks>
+    /// When this is absent or returns false the decorative motion takes over, so
+    /// the fallback is automatic if audio capture is unavailable or drops out
+    /// mid-track. Nothing else needs to know which source is driving the bars.
+    /// </remarks>
+    public Func<double[], bool>? LevelSource { get; set; }
 
     // ---- Frame loop -------------------------------------------------------
 
@@ -148,10 +143,19 @@ internal sealed class Visualizer : FrameworkElement
         dt = Math.Clamp(dt, 1d / 240d, 0.25d);
         _elapsed += dt;
 
-        if (IsActive && !_hasExternalLevels)
-            UpdateDecorativeTargets();
-        else if (!IsActive)
+        if (!IsActive)
+        {
             Array.Fill(_target, 0d);
+        }
+        else if (LevelSource is not null && LevelSource(_target))
+        {
+            for (int i = 0; i < BarCount; i++)
+                _target[i] = Math.Clamp(_target[i], 0d, 1d);
+        }
+        else
+        {
+            UpdateDecorativeTargets();
+        }
 
         bool settled = Advance(dt);
         InvalidateVisual();
