@@ -1,5 +1,6 @@
 using System.Runtime.InteropServices;
 using System.Windows.Threading;
+using TaskbarMusicWidget.Diagnostics;
 using static TaskbarMusicWidget.Shell.NativeMethods;
 
 namespace TaskbarMusicWidget.Shell;
@@ -112,6 +113,10 @@ internal sealed class TaskbarTracker : IDisposable
             EVENT_SYSTEM_FOREGROUND, EVENT_SYSTEM_FOREGROUND,
             IntPtr.Zero, _winEventProc, 0, 0,
             WINEVENT_OUTOFCONTEXT | WINEVENT_SKIPOWNPROCESS);
+
+        DebugLog.Write(
+            $"hooks installed: location=0x{_locationHook:X} foreground=0x{_foregroundHook:X} " +
+            $"explorerPid={_explorerPid} taskbar=0x{_taskbarHwnd:X}");
     }
 
     private void RemoveHooks()
@@ -152,6 +157,9 @@ internal sealed class TaskbarTracker : IDisposable
         var next = Probe();
         if (force || !next.Equals(Current))
         {
+            DebugLog.Write(
+                $"state change: available={next.IsAvailable} shouldShow={next.ShouldShow} " +
+                $"rect={next.Rect} dpi={next.Dpi} autoHide={next.IsAutoHide}");
             Current = next;
             Changed?.Invoke(this, next);
         }
@@ -215,8 +223,11 @@ internal sealed class TaskbarTracker : IDisposable
         if (!GetMonitorInfo(monitor, ref mi)) return false;
 
         var m = mi.rcMonitor;
-        return wr.Left <= m.Left && wr.Top <= m.Top
+        bool covers = wr.Left <= m.Left && wr.Top <= m.Top
             && wr.Right >= m.Right && wr.Bottom >= m.Bottom;
+
+        DebugLog.Write($"fullscreen probe: fg=0x{fg:X} cls={cls} rect={wr} mon={m} covers={covers}");
+        return covers;
     }
 
     public void Dispose()
