@@ -4,6 +4,7 @@ using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Media.Media3D;
+using System.Windows.Threading;
 using TaskbarMusicWidget.Audio;
 using TaskbarMusicWidget.Media;
 using TaskbarMusicWidget.Ui;
@@ -43,10 +44,25 @@ internal partial class OverlayWindow : Window
     private readonly MediaSessionService _media;
     private readonly Theme _theme;
 
+    /// <summary>
+    /// Delays hiding so brief taskbar transitions don't flash the widget.
+    /// </summary>
+    /// <remarks>
+    /// Explorer restarts and auto-hide state changes momentarily report the
+    /// taskbar as unavailable — measured at roughly 17ms — and track changes can
+    /// publish a null in the gap between songs. Hiding immediately turns each of
+    /// those into a visible blink. Showing is never delayed.
+    /// </remarks>
+    private readonly DispatcherTimer _hideDebounce;
+
     private uint _taskbarCreatedMessage;
     private IntPtr _hwnd;
     private TrackInfo? _track;
     private bool _hovered;
+    private bool _visualizerEnabled = true;
+
+    /// <summary>Raised on right-click, so the host can show the tray menu.</summary>
+    public event EventHandler? ContextMenuRequested;
 
     public OverlayWindow(
         TaskbarTracker tracker,
@@ -59,6 +75,16 @@ internal partial class OverlayWindow : Window
         _theme = theme;
 
         InitializeComponent();
+
+        _hideDebounce = new DispatcherTimer(DispatcherPriority.Normal)
+        {
+            Interval = TimeSpan.FromMilliseconds(150),
+        };
+        _hideDebounce.Tick += (_, _) =>
+        {
+            _hideDebounce.Stop();
+            HideNow();
+        };
 
         // Pull-based: the visualiser samples the latest spectrum once per frame.
         // Returning false (no capture, or silence) drops it back to decorative motion.
@@ -177,6 +203,31 @@ internal partial class OverlayWindow : Window
         SourceAppActivator.TryActivate(_track?.SourceAppId);
     }
 
+    protected override void OnMouseRightButtonUp(MouseButtonEventArgs e)
+    {
+        base.OnMouseRightButtonUp(e);
+        e.Handled = true;
+
+        // Right-clicking the widget opens the same menu as the tray icon — the
+        // widget has no other chrome to hang settings off.
+        ContextMenuRequested?.Invoke(this, EventArgs.Empty);
+    }
+
+    /// <summary>
+    /// Hides the bars while leaving hover controls intact, for users who want the
+    /// widget purely informational.
+    /// </summary>
+    public bool VisualizerEnabled
+    {
+        get => _visualizerEnabled;
+        set
+        {
+            if (_visualizerEnabled == value) return;
+            _visualizerEnabled = value;
+            Bars.Visibility = value ? Visibility.Visible : Visibility.Collapsed;
+        }
+    }
+
     private bool IsWithinTransport(DependencyObject? node)
     {
         while (node is not null)
@@ -242,10 +293,13 @@ internal partial class OverlayWindow : Window
 
         if (!state.IsAvailable || !state.ShouldShow || !hasContent)
         {
-            SetWindowPos(_hwnd, HWND_TOPMOST, 0, 0, 0, 0,
-                SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_HIDEWINDOW);
+            // Deferred — a transient unavailable state should not blink the widget.
+            if (!_hideDebounce.IsEnabled) _hideDebounce.Start();
             return;
         }
+
+        // Showing is immediate; cancel any pending hide.
+        _hideDebounce.Stop();
 
         double scale = state.Dpi / 96d;
 
@@ -259,5 +313,13 @@ internal partial class OverlayWindow : Window
         // being buried when other topmost windows come and go.
         SetWindowPos(_hwnd, HWND_TOPMOST, x, y, width, height,
             SWP_NOACTIVATE | SWP_SHOWWINDOW);
+    }
+
+    private void HideNow()
+    {
+        if (_hwnd == IntPtr.Zero) return;
+
+        SetWindowPos(_hwnd, HWND_TOPMOST, 0, 0, 0, 0,
+            SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_HIDEWINDOW);
     }
 }

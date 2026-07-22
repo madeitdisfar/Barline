@@ -20,10 +20,25 @@ internal static class DebugLog
 
     private static readonly object Gate = new();
 
+    /// <summary>Roll the file past this size rather than letting it grow forever.</summary>
+    private const long MaxBytes = 1_000_000;
+
     static DebugLog()
     {
         if (!Enabled) return;
-        try { File.WriteAllText(Path, $"=== session {DateTime.Now:HH:mm:ss} ==={Environment.NewLine}"); }
+        try
+        {
+            // Append rather than truncate. Instances share this file, and a second
+            // launch rejected by the single-instance guard would otherwise wipe the
+            // running instance's history before exiting — which is exactly when the
+            // log is most wanted.
+            if (File.Exists(Path) && new FileInfo(Path).Length > MaxBytes)
+                File.Delete(Path);
+
+            File.AppendAllText(
+                Path,
+                $"{Environment.NewLine}=== session {DateTime.Now:HH:mm:ss} (pid {Environment.ProcessId}) ==={Environment.NewLine}");
+        }
         catch { /* logging must never break the app */ }
     }
 

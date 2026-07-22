@@ -32,7 +32,7 @@ internal sealed class Visualizer : FrameworkElement
     /// rounded caps, a bar shorter than it is wide stops reading as a bar and turns
     /// into a dot.
     /// </summary>
-    private const double MinBarHeight = 5d;
+    private const double MinBarHeight = 6d;
     private const double MaxBarHeight = 18d;
 
     // Time constants, in seconds. Attack is quick enough to catch transients;
@@ -60,6 +60,11 @@ internal sealed class Visualizer : FrameworkElement
 
         Loaded += (_, _) => UpdateSubscription();
         Unloaded += (_, _) => Unsubscribe();
+
+        // The widget is hidden whenever a fullscreen app is foreground or nothing
+        // is playing. Without this the frame loop would keep animating bars that
+        // nobody can see.
+        IsVisibleChanged += (_, _) => UpdateSubscription();
     }
 
     // ---- Public surface ---------------------------------------------------
@@ -105,11 +110,14 @@ internal sealed class Visualizer : FrameworkElement
 
     // ---- Frame loop -------------------------------------------------------
 
+    /// <summary>
+    /// Starts the frame loop. It runs while active to animate, and while inactive
+    /// to ease the bars down — <see cref="OnRendering"/> detaches itself once an
+    /// inactive visualiser has settled, or as soon as it stops being visible.
+    /// </summary>
     private void UpdateSubscription()
     {
-        if (IsActive && IsLoaded) Subscribe();
-        // When inactive we keep rendering until the bars have settled, then stop.
-        else if (!IsActive) Subscribe();
+        if (IsVisible) Subscribe();
     }
 
     private void Subscribe()
@@ -130,6 +138,13 @@ internal sealed class Visualizer : FrameworkElement
     private void OnRendering(object? sender, EventArgs e)
     {
         if (e is not RenderingEventArgs args) return;
+
+        // Nothing to animate while off-screen; re-armed by IsVisibleChanged.
+        if (!IsVisible)
+        {
+            Unsubscribe();
+            return;
+        }
 
         // WPF can raise Rendering more than once for the same frame.
         if (args.RenderingTime == _lastFrame) return;

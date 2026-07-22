@@ -1,4 +1,6 @@
+using System.Diagnostics;
 using NAudio.Dsp;
+using TaskbarMusicWidget.Diagnostics;
 
 namespace TaskbarMusicWidget.Audio;
 
@@ -25,25 +27,42 @@ internal sealed class SpectrumProcessor
     private const int FftSize = 1024;
     private const int FftOrder = 10;   // 2^10 == FftSize
 
-    /// <summary>Bottom of the useful dynamic range, in dBFS.</summary>
-    private const double FloorDb = -62d;
-    private const double CeilingDb = -12d;
-
-    // Music has a roughly pink spectrum: energy falls as frequency rises. Without
-    // per-band gain the treble bar would barely register next to the bass one.
-    private static readonly (double LowHz, double HighHz, double Gain)[] Bands =
+    /// <summary>
+    /// Frequency span and dB window for each bar.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Every band gets its own floor and ceiling rather than sharing one window
+    /// with a gain multiplier. Measured against real music, the bands sit about
+    /// 30dB apart — bass around -28dBFS, treble around -58dBFS — so a shared
+    /// window pinned the bass bar near 0.7 with only ~4dB of visible swing while
+    /// the treble bar repeatedly bottomed out at zero.
+    /// </para>
+    /// <para>
+    /// Each window is centred on that band's typical level and kept deliberately
+    /// narrow, so ordinary programme material spans most of the bar's travel
+    /// instead of a sliver of it. Silence still falls below every floor and lets
+    /// all four settle to rest.
+    /// </para>
+    /// </remarks>
+    private static readonly (double LowHz, double HighHz, double FloorDb, double CeilingDb)[] Bands =
     [
-        (40d, 160d, 1.00d),
-        (160d, 640d, 1.20d),
-        (640d, 2560d, 1.55d),
-        (2560d, 10240d, 2.00d),
+        (40d, 160d, -42d, -22d),
+        (160d, 640d, -50d, -32d),
+        (640d, 2560d, -62d, -40d),
+        (2560d, 10240d, -68d, -48d),
     ];
 
     private readonly float[] _buffer = new float[FftSize];
     private readonly float[] _hann = new float[FftSize];
     private readonly Complex[] _fft = new Complex[FftSize];
     private readonly double[] _bands = new double[BandCount];
+    private readonly double[] _decibels = new double[BandCount];
     private readonly object _gate = new();
+
+    // Tuning aid: band levels are only meaningful against real music, so the raw
+    // dB and mapped level are sampled periodically when TMW_DEBUG is on.
+    private readonly Stopwatch _logThrottle = Stopwatch.StartNew();
 
     public SpectrumProcessor()
     {
@@ -86,7 +105,7 @@ internal sealed class SpectrumProcessor
         {
             for (int b = 0; b < BandCount; b++)
             {
-                var (lowHz, highHz, gain) = Bands[b];
+                var (lowHz, highHz, floorDb, ceilingDb) = Bands[b];
 
                 int lowBin = Math.Max(1, (int)(lowHz / binHz));
                 int highBin = Math.Min(nyquistBin - 1, (int)(highHz / binHz));
@@ -105,8 +124,18 @@ internal sealed class SpectrumProcessor
                 double rms = Math.Sqrt(sum / (highBin - lowBin + 1));
                 double db = 20d * Math.Log10(rms + 1e-12d);
 
-                double level = (db - FloorDb) / (CeilingDb - FloorDb);
-                _bands[b] = Math.Clamp(level * gain, 0d, 1d);
+                double level = (db - floorDb) / (ceilingDb - floorDb);
+                _decibels[b] = db;
+                _bands[b] = Math.Clamp(level, 0d, 1d);
+            }
+
+            if (_logThrottle.ElapsedMilliseconds >= 400)
+            {
+                _logThrottle.Restart();
+                DebugLog.Write(string.Format(
+                    "bands dB=[{0,6:F1} {1,6:F1} {2,6:F1} {3,6:F1}] lvl=[{4:F2} {5:F2} {6:F2} {7:F2}]",
+                    _decibels[0], _decibels[1], _decibels[2], _decibels[3],
+                    _bands[0], _bands[1], _bands[2], _bands[3]));
             }
         }
     }
