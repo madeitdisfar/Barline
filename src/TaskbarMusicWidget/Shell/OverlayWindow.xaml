@@ -1,0 +1,47 @@
+<Window x:Class="TaskbarMusicWidget.Shell.OverlayWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:ClassModifier="internal"
+        Title="Taskbar Music Widget"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        ShowInTaskbar="False"
+        Topmost="True"
+        ResizeMode="NoResize"
+        ShowActivated="False"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True"
+        TextOptions.TextFormattingMode="Ideal"
+        TextOptions.TextRenderingMode="ClearType"
+        Width="280" Height="48"
+        Left="-10000" Top="-10000">
+
+    <!--
+        PHASE 1 PLACEHOLDER.
+        A translucent tinted panel, deliberately not the final design. It is
+        semi-transparent so the real taskbar material shows through, which makes
+        any misalignment against the taskbar edge immediately obvious. The
+        diagnostic text is the fastest way to verify DPI and rect tracking while
+        working through the Phase 1 gates.
+    -->
+    <Border x:Name="Root"
+            CornerRadius="6"
+            Background="#5900A2FF"
+            BorderBrush="#CC00A2FF"
+            BorderThickness="1">
+        <StackPanel VerticalAlignment="Center" Margin="10,0">
+            <TextBlock x:Name="DiagPrimary"
+                       Foreground="White"
+                       FontFamily="Segoe UI Variable Text"
+                       FontSize="11"
+                       FontWeight="SemiBold"
+                       Text="Overlay attached" />
+            <TextBlock x:Name="DiagSecondary"
+                       Foreground="#C5FFFFFF"
+                       FontFamily="Segoe UI Variable Text"
+                       FontSize="10"
+                       Text="waiting for taskbar…" />
+        </StackPanel>
+    </Border>
+</Window>

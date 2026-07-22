@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <!-- The 10.0.19041.0 platform suffix is what pulls in the WinRT projections
+         for Windows.Media.Control (SMTC). Held at 19041 rather than 26100 so the
+         binary stays runnable on older Windows 11 installs. -->
+    <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
+    <SupportedOSPlatformVersion>10.0.19041.0</SupportedOSPlatformVersion>
+    <UseWPF>true</UseWPF>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+    <PlatformTarget>x64</PlatformTarget>
+    <AssemblyName>TaskbarMusicWidget</AssemblyName>
+    <RootNamespace>TaskbarMusicWidget</RootNamespace>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <!-- No console window, and don't let WPF pick a stale culture -->
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="NAudio" Version="2.2.1" />
+  </ItemGroup>
+
+</Project>
