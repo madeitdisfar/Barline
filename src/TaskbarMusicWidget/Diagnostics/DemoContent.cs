@@ -21,8 +21,10 @@ internal static class DemoContent
 
     public static TrackInfo CreateTrack() => new()
     {
-        Title = "Everything In Its Right Place",
-        Artist = "Radiohead",
+        // Title/artist can be overridden to sweep text lengths while checking the
+        // overflow fade, without rebuilding.
+        Title = Environment.GetEnvironmentVariable("TMW_DEMO_TITLE") ?? "Everything In Its Right Place",
+        Artist = Environment.GetEnvironmentVariable("TMW_DEMO_ARTIST") ?? "Radiohead",
         AlbumTitle = "Kid A",
         IsPlaying = true,
         CanGoNext = true,

@@ -57,6 +57,7 @@ src/TaskbarMusicWidget/
 |---|---|
 | `TMW_DEBUG=1` | Writes `%TEMP%\taskbar-music-widget.log` — taskbar state transitions, media sessions, and periodic visualiser band levels. |
 | `TMW_DEMO=1` | Shows a synthetic track with generated cover art instead of reading SMTC. |
+| `TMW_DEMO_TITLE` / `TMW_DEMO_ARTIST` | Override the demo track's title/artist (needs `TMW_DEMO=1`) — handy for checking the overflow fade at different text lengths. |
 
 `TMW_DEMO` exists because the widget hides itself when nothing is playing, which otherwise makes the design impossible to inspect on a quiet machine.
 

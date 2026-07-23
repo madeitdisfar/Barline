@@ -36,11 +36,10 @@
         <SolidColorBrush x:Key="SubtlePressedBrush" Color="#0AFFFFFF" />
         <SolidColorBrush x:Key="ArtPlaceholderBrush" Color="#14FFFFFF" />
 
-        <!-- Soft edge fade for overflowing text. Windows tends to fade rather
-             than ellipsize in chrome like this, and it reads far less "app-like".
-             Harmless when the text is short: the gradient falls over empty space. -->
+        <!-- Soft edge fade for overflowing text. Applied from code only when a line
+             actually overflows, so titles that fit are never faded. -->
         <LinearGradientBrush x:Key="EdgeFade" StartPoint="0,0" EndPoint="1,0">
-            <GradientStop Offset="0.86" Color="#FF000000" />
+            <GradientStop Offset="0.82" Color="#FF000000" />
             <GradientStop Offset="1.00" Color="#00000000" />
         </LinearGradientBrush>
 
@@ -83,9 +82,17 @@
         </Style>
     </Window.Resources>
 
-    <!-- No background of any kind: the real taskbar material shows through.
-         Transparent (rather than null) so the widget still receives mouse input. -->
-    <Grid x:Name="Root" Margin="8,0,12,0" Background="Transparent">
+    <!-- HitLayer fills the whole window with a 1/255-alpha black: visually invisible
+         (the real taskbar material still shows through) but crucially NON-zero alpha.
+         A layered window (AllowsTransparency) is hit-tested PER PIXEL by the OS —
+         fully transparent (alpha 0) pixels are click-through, which left the empty
+         parts of the widget dead to hover and made the buttons hard to aim at. An
+         explicitly rendered element is used rather than Window.Background, which is
+         not reliably composited into the layered surface's alpha. -->
+    <Grid>
+        <Border x:Name="HitLayer" Background="#01000000" />
+
+    <Grid x:Name="Root" Margin="8,0,12,0">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="Auto" />
             <ColumnDefinition Width="*" />
@@ -113,17 +120,23 @@
             </Border>
         </Grid>
 
-        <!-- The fade mask belongs on this panel, not on the TextBlocks. A vertical
-             StackPanel arranges an over-wide child at the child's own desired width,
-             so a mask on the TextBlock would scale to the full untruncated text and
-             land beyond the clip edge — fading nothing on exactly the long titles
-             that need it. On the panel it always spans the visible 150px. -->
-        <StackPanel Grid.Column="1"
-                    VerticalAlignment="Center"
-                    Margin="10,0,0,0"
-                    ClipToBounds="True"
-                    OpacityMask="{StaticResource EdgeFade}">
+        <!-- Two-row Grid, not a StackPanel: in a Grid cell each TextBlock is
+             constrained to the column width, so its ActualWidth is the visible
+             width and overflowing text is clipped at the cell edge. That lets the
+             code apply the edge fade per line ONLY when the text truly overflows,
+             positioned exactly at the clip edge. A vertical StackPanel instead
+             arranges each line at its full untruncated width, which is what made
+             the old fade mis-fire on titles that actually fit. -->
+        <Grid Grid.Column="1"
+              VerticalAlignment="Center"
+              Margin="10,0,0,0"
+              ClipToBounds="True">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
             <TextBlock x:Name="TitleText"
+                       Grid.Row="0"
                        FontSize="12"
                        FontWeight="SemiBold"
                        LineHeight="16"
@@ -132,6 +145,7 @@
                        Foreground="{DynamicResource TextPrimaryBrush}"
                        Text="" />
             <TextBlock x:Name="ArtistText"
+                       Grid.Row="1"
                        FontSize="11"
                        FontWeight="Normal"
                        LineHeight="14"
@@ -139,7 +153,7 @@
                        TextWrapping="NoWrap"
                        Foreground="{DynamicResource TextSecondaryBrush}"
                        Text="" />
-        </StackPanel>
+        </Grid>
 
         <!-- Fixed-width right zone. The visualiser and the transport controls share
              it and crossfade in place, so hovering never reflows the art or text —
@@ -166,5 +180,6 @@
                         Content="&#xE893;" />
             </StackPanel>
         </Grid>
+    </Grid>
     </Grid>
 </Window>

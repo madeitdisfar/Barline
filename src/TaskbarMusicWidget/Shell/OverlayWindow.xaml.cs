@@ -1,4 +1,6 @@
+using System.Globalization;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
@@ -40,6 +42,8 @@ internal partial class OverlayWindow : Window
 
     /// <summary>The Fluent "standard" easing curve, cubic-bezier(0.33, 0, 0.67, 1).</summary>
     private static readonly KeySpline FluentStandard = CreateFluentSpline();
+
+    private Brush? _edgeFade;
 
     private readonly TaskbarTracker _tracker;
     private readonly MediaSessionService _media;
@@ -99,6 +103,11 @@ internal partial class OverlayWindow : Window
         _tracker.Changed += (_, state) => Apply(state);
         _media.TrackChanged += (_, track) => SetTrack(track);
         _theme.Changed += (_, _) => ApplyTheme();
+
+        // Recompute overflow fades once the text lines get their real width — at
+        // first layout, and again whenever the width changes (e.g. a DPI change).
+        TitleText.SizeChanged += (_, _) => UpdateTextFades();
+        ArtistText.SizeChanged += (_, _) => UpdateTextFades();
 
         ApplyTheme();
     }
@@ -255,6 +264,9 @@ internal partial class OverlayWindow : Window
         TitleText.Text = track?.Title ?? string.Empty;
         ArtistText.Text = track?.Artist ?? string.Empty;
 
+        // ActualWidth is only valid after the next layout pass, so defer.
+        Dispatcher.BeginInvoke(new Action(UpdateTextFades), DispatcherPriority.Loaded);
+
         bool playing = track?.IsPlaying == true;
         Bars.IsActive = playing;
         PlayPauseButton.Content = playing ? GlyphPause : GlyphPlay;
@@ -269,6 +281,49 @@ internal partial class OverlayWindow : Window
         // Nothing playing means nothing to show. Hiding entirely is better than
         // an empty shell, and it gives the taskbar its space back.
         Apply(_tracker.Current);
+    }
+
+    /// <summary>
+    /// Applies the edge-fade mask to the title and artist lines, but only where the
+    /// text genuinely overflows its column. Fading a line that fits is the bug this
+    /// replaces; measuring against the constrained width avoids it.
+    /// </summary>
+    private void UpdateTextFades()
+    {
+        _edgeFade ??= (Brush)FindResource("EdgeFade");
+        ApplyEdgeFade(TitleText);
+        ApplyEdgeFade(ArtistText);
+    }
+
+    private void ApplyEdgeFade(TextBlock line)
+    {
+        double available = line.ActualWidth;
+        if (available <= 0 || string.IsNullOrEmpty(line.Text))
+        {
+            line.OpacityMask = null;
+            return;
+        }
+
+        // A one-pixel margin keeps a line that fits exactly from being faded.
+        bool overflows = MeasureTextWidth(line) > available + 1d;
+        line.OpacityMask = overflows ? _edgeFade : null;
+    }
+
+    private static double MeasureTextWidth(TextBlock line)
+    {
+        var typeface = new Typeface(line.FontFamily, line.FontStyle, line.FontWeight, line.FontStretch);
+        double pixelsPerDip = VisualTreeHelper.GetDpi(line).PixelsPerDip;
+
+        var formatted = new FormattedText(
+            line.Text,
+            CultureInfo.CurrentUICulture,
+            line.FlowDirection,
+            typeface,
+            line.FontSize,
+            Brushes.Black,
+            pixelsPerDip);
+
+        return formatted.WidthIncludingTrailingWhitespace;
     }
 
     private void ApplyTheme()
