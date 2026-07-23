@@ -66,6 +66,7 @@ internal static class NativeMethods
 
     // Window styles
     internal const int GWL_EXSTYLE = -20;
+    internal const int GWLP_HWNDPARENT = -8;
     internal const int WS_EX_TOOLWINDOW = 0x00000080;
     internal const int WS_EX_NOACTIVATE = 0x08000000;
     internal const int WS_EX_TOPMOST = 0x00000008;

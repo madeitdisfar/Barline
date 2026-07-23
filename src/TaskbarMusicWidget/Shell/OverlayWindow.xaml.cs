@@ -6,6 +6,7 @@ using System.Windows.Media.Animation;
 using System.Windows.Media.Media3D;
 using System.Windows.Threading;
 using TaskbarMusicWidget.Audio;
+using TaskbarMusicWidget.Diagnostics;
 using TaskbarMusicWidget.Media;
 using TaskbarMusicWidget.Ui;
 using static TaskbarMusicWidget.Shell.NativeMethods;
@@ -57,6 +58,7 @@ internal partial class OverlayWindow : Window
 
     private uint _taskbarCreatedMessage;
     private IntPtr _hwnd;
+    private IntPtr _ownerHandle;
     private TrackInfo? _track;
     private bool _hovered;
     private bool _visualizerEnabled = true;
@@ -301,6 +303,8 @@ internal partial class OverlayWindow : Window
         // Showing is immediate; cancel any pending hide.
         _hideDebounce.Stop();
 
+        EnsureTaskbarOwnership();
+
         double scale = state.Dpi / 96d;
 
         int width = (int)Math.Round(WidgetLogicalWidth * scale);
@@ -309,10 +313,42 @@ internal partial class OverlayWindow : Window
         int y = state.Rect.Top;
 
         // Position in physical pixels and re-assert topmost in the same call.
-        // Re-asserting on every taskbar change is what keeps the widget from
-        // being buried when other topmost windows come and go.
+        // Re-asserting on every taskbar change keeps the widget above other
+        // topmost windows; ownership (below) keeps it above the taskbar itself.
         SetWindowPos(_hwnd, HWND_TOPMOST, x, y, width, height,
             SWP_NOACTIVATE | SWP_SHOWWINDOW);
+    }
+
+    /// <summary>
+    /// Makes the taskbar the widget's owner window.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Re-asserting <c>HWND_TOPMOST</c> is not enough on its own. Clicking the
+    /// taskbar — an icon or empty space — raises <c>Shell_TrayWnd</c> within the
+    /// topmost band and fires no foreground or location event, so there is nothing
+    /// to react to and the widget ends up behind the taskbar.
+    /// </para>
+    /// <para>
+    /// The window manager guarantees an owned window stays above its owner in
+    /// z-order. Owning the widget to the taskbar makes it ride up automatically
+    /// whenever the taskbar raises itself, with no event handling at all.
+    /// </para>
+    /// <para>
+    /// The handle changes when Explorer restarts, so this re-owns to the current
+    /// one. A cross-process owner cannot destroy our window (that only happens
+    /// within the owner's own thread), so a stale handle briefly during a restart
+    /// is harmless.
+    /// </para>
+    /// </remarks>
+    private void EnsureTaskbarOwnership()
+    {
+        IntPtr taskbar = _tracker.TaskbarHandle;
+        if (taskbar == IntPtr.Zero || taskbar == _ownerHandle) return;
+
+        SetWindowLongPtr(_hwnd, GWLP_HWNDPARENT, taskbar);
+        _ownerHandle = taskbar;
+        DebugLog.Write($"owner set to taskbar 0x{taskbar:X}");
     }
 
     private void HideNow()
