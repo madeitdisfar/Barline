@@ -62,6 +62,7 @@ internal partial class OverlayWindow : Window
     private readonly TaskbarTracker _tracker;
     private readonly MediaSessionService _media;
     private readonly Theme _theme;
+    private readonly LoopbackAnalyzer _analyzer;
 
     /// <summary>
     /// Delays hiding so brief taskbar transitions don't flash the widget.
@@ -93,6 +94,7 @@ internal partial class OverlayWindow : Window
         _tracker = tracker;
         _media = media;
         _theme = theme;
+        _analyzer = analyzer;
 
         InitializeComponent();
 
@@ -108,7 +110,7 @@ internal partial class OverlayWindow : Window
 
         // Pull-based: the visualiser samples the latest spectrum once per frame.
         // Returning false (no capture, or silence) drops it back to decorative motion.
-        Bars.LevelSource = levels => analyzer.TryGetLevels(levels);
+        Bars.LevelSource = levels => _analyzer.TryGetLevels(levels);
 
         PreviousButton.Click += (_, _) => _ = _media.SkipPreviousAsync();
         PlayPauseButton.Click += (_, _) => _ = _media.TogglePlayPauseAsync();
@@ -287,6 +289,8 @@ internal partial class OverlayWindow : Window
 
         bool playing = track?.IsPlaying == true;
         Bars.IsActive = playing;
+        // Lets the capture watchdog distinguish a real stall from ordinary silence.
+        _analyzer.ExpectingAudio = playing;
         PlayPauseGlyph.Data = (Geometry)FindResource(playing ? "PauseGeometry" : "PlayGeometry");
 
         // Sources advertise different capabilities — a podcast app may offer no

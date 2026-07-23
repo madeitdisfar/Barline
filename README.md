@@ -23,7 +23,7 @@ Then build and run:
 dotnet run --project src/TaskbarMusicWidget
 ```
 
-Right-click the widget for **Start with Windows**, **Show visualizer**, and **Exit**.
+Right-click the widget for **Start with Windows**, **Show visualizer**, **Restart visualizer**, and **Exit**.
 
 The same menu is on the notification-area icon, though Windows 11 files new tray icons into the overflow (the `⌄` chevron) by default — drag it onto the taskbar to keep it visible. Right-clicking the widget is the more reliable route.
 
@@ -35,6 +35,7 @@ Windows 11 removed the DeskBand API, so there is no supported way to host conten
 - **It is a satellite of `Shell_TrayWnd`**, mirroring that window's rect, DPI, visibility and z-order. One mechanism covers auto-hide, fullscreen apps, DPI changes and Explorer restarts. Auto-hide needs no special handling at all: the taskbar slides off-screen and the widget slides with it.
 - **Metadata comes from SMTC** (`GlobalSystemMediaTransportControlsSessionManager`), the same source the Windows volume flyout reads — so Spotify, Apple Music, browsers and podcast apps work without per-app integration.
 - **The visualiser** captures the system mix via WASAPI loopback, runs a Hann-windowed 1024-point FFT, and maps it into four log-spaced bands. Each band has its own dB window, because measured against real music the bands sit ~30 dB apart and a shared window leaves bass pinned near maximum and treble stuck at zero.
+- **The capture self-heals.** After the machine has been idle or asleep the loopback capture can silently stall without notifying the app — the case that used to need a restart. A watchdog re-arms it whenever it has died or has gone quiet while a track is still playing, capture is re-armed proactively on resume from sleep, and **Restart visualizer** in the menu forces it by hand.
 
 Hovering crossfades the visualiser into previous / play-pause / next inside a fixed-width zone, so nothing reflows — layout shift on hover is the fastest way to look third-party.
 

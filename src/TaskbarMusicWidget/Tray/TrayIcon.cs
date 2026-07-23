@@ -26,6 +26,7 @@ internal sealed class TrayIcon : IDisposable
 
     public event EventHandler? ExitRequested;
     public event EventHandler<bool>? VisualizerToggled;
+    public event EventHandler? RestartVisualizerRequested;
 
     public TrayIcon(AutoStartService autoStart, bool visualizerEnabled)
     {
@@ -46,12 +47,19 @@ internal sealed class TrayIcon : IDisposable
         _visualizerItem.CheckedChanged += (_, _) =>
             VisualizerToggled?.Invoke(this, _visualizerItem.Checked);
 
+        // Manual fallback: the watchdog recovers a stalled capture on its own, but
+        // this lets the user force it immediately if the visualiser ever stops
+        // responding to audio.
+        var restartItem = new ToolStripMenuItem("Restart visualizer");
+        restartItem.Click += (_, _) => RestartVisualizerRequested?.Invoke(this, EventArgs.Empty);
+
         var exitItem = new ToolStripMenuItem("Exit");
         exitItem.Click += (_, _) => ExitRequested?.Invoke(this, EventArgs.Empty);
 
         _menu = new ContextMenuStrip();
         _menu.Items.Add(_autoStartItem);
         _menu.Items.Add(_visualizerItem);
+        _menu.Items.Add(restartItem);
         _menu.Items.Add(new ToolStripSeparator());
         _menu.Items.Add(exitItem);
 

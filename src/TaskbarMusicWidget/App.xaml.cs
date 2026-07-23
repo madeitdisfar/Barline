@@ -1,4 +1,5 @@
 using System.Windows;
+using Microsoft.Win32;
 using TaskbarMusicWidget.Audio;
 using TaskbarMusicWidget.Diagnostics;
 using TaskbarMusicWidget.Media;
@@ -47,7 +48,13 @@ public partial class App : Application
 
         tray.ExitRequested += (_, _) => Shutdown();
         tray.VisualizerToggled += (_, enabled) => window.VisualizerEnabled = enabled;
+        tray.RestartVisualizerRequested += (_, _) => analyzer.Restart();
         window.ContextMenuRequested += (_, _) => tray.ShowContextMenu();
+
+        // Resuming from sleep/hibernate is the classic case where the loopback
+        // capture comes back dead; re-arm it proactively rather than waiting for
+        // the watchdog to notice once playback resumes.
+        SystemEvents.PowerModeChanged += OnPowerModeChanged;
 
         _tracker = tracker;
         _media = media;
@@ -78,8 +85,19 @@ public partial class App : Application
         }
     }
 
+    private void OnPowerModeChanged(object sender, PowerModeChangedEventArgs e)
+    {
+        if (e.Mode == PowerModes.Resume)
+        {
+            DebugLog.Write("power resume; restarting loopback capture");
+            _analyzer?.Restart();
+        }
+    }
+
     protected override void OnExit(ExitEventArgs e)
     {
+        SystemEvents.PowerModeChanged -= OnPowerModeChanged;
+
         _tray?.Dispose();
         _analyzer?.Dispose();
         _media?.Dispose();
