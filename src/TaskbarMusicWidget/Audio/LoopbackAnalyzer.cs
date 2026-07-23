@@ -17,14 +17,18 @@ namespace TaskbarMusicWidget.Audio;
 /// much heavier activation path, so the whole mix is used here.
 /// </para>
 /// <para>
-/// Three failure modes matter. WASAPI raises no <c>DataAvailable</c> at all during
-/// true silence, so staleness is treated as silence rather than freezing the bars.
-/// Switching output device (Bluetooth, headphones) usually stops the capture and
-/// raises <see cref="WasapiLoopbackCapture.RecordingStopped"/>. And — the case that
-/// used to need an app restart — after the machine has been idle or asleep the
-/// capture can silently stall without ever raising that event. A watchdog covers
-/// the last two: it re-arms the capture whenever it has died, or has gone quiet
-/// while audio is known to be playing.
+/// Several failure modes matter. WASAPI raises no <c>DataAvailable</c> at all
+/// during true silence, so staleness is treated as silence rather than freezing
+/// the bars. A capture stays bound to the endpoint it was created on and does NOT
+/// follow the default output as it moves, so when headphones reconnect after sleep
+/// the capture keeps listening to the old, now-silent device. And the capture can
+/// die outright, or silently stall without raising
+/// <see cref="WasapiLoopbackCapture.RecordingStopped"/> at all.
+/// </para>
+/// <para>
+/// A watchdog covers all of these: it re-arms the capture when it has died, when
+/// the default output device has moved away from the one it is bound to, or when it
+/// has gone quiet while audio is known to be playing.
 /// </para>
 /// </remarks>
 internal sealed class LoopbackAnalyzer : IDisposable
@@ -47,11 +51,16 @@ internal sealed class LoopbackAnalyzer : IDisposable
     private readonly object _lifecycle = new();
 
     private WasapiLoopbackCapture? _capture;
+    private MMDeviceEnumerator? _deviceEnumerator;
+    private MMDevice? _captureDevice;
+    private string? _captureDeviceId;
     private System.Threading.Timer? _watchdog;
     private float[] _mono = new float[8192];
     private bool _shouldRun;
     private bool _hasCapturedData;
     private bool _disposed;
+
+    private MMDeviceEnumerator Enumerator => _deviceEnumerator ??= new MMDeviceEnumerator();
 
     public bool IsRunning { get; private set; }
 
@@ -104,7 +113,19 @@ internal sealed class LoopbackAnalyzer : IDisposable
     {
         try
         {
-            _capture = new WasapiLoopbackCapture();
+            // Bind to an explicit device (the current default) rather than the
+            // default-constructor default, so we know which endpoint we are on and
+            // can notice when the default later moves elsewhere.
+            _captureDevice = TryGetDefaultRenderDevice();
+            if (_captureDevice is null)
+            {
+                DebugLog.Write("loopback: no default render device; will retry");
+                DisposeCapture();
+                return;
+            }
+
+            _captureDeviceId = _captureDevice.ID;
+            _capture = new WasapiLoopbackCapture(_captureDevice);
             _capture.DataAvailable += OnDataAvailable;
             _capture.RecordingStopped += OnRecordingStopped;
             _capture.StartRecording();
@@ -114,7 +135,9 @@ internal sealed class LoopbackAnalyzer : IDisposable
             _sinceData.Restart();
 
             var wf = _capture.WaveFormat;
-            DebugLog.Write($"loopback started: {wf.SampleRate}Hz {wf.Channels}ch {wf.Encoding} {wf.BitsPerSample}bit");
+            DebugLog.Write(
+                $"loopback started on '{_captureDevice.FriendlyName}': " +
+                $"{wf.SampleRate}Hz {wf.Channels}ch {wf.Encoding} {wf.BitsPerSample}bit");
         }
         catch (Exception ex)
         {
@@ -122,6 +145,19 @@ internal sealed class LoopbackAnalyzer : IDisposable
             // visualiser falls back to its decorative motion; the watchdog retries.
             DebugLog.Write($"loopback unavailable: {ex.Message}");
             DisposeCapture();
+        }
+    }
+
+    private MMDevice? TryGetDefaultRenderDevice()
+    {
+        try
+        {
+            return Enumerator.GetDefaultAudioEndpoint(DataFlow.Render, Role.Multimedia);
+        }
+        catch (Exception ex)
+        {
+            DebugLog.Write($"default render device query failed: {ex.Message}");
+            return null;
         }
     }
 
@@ -133,9 +169,10 @@ internal sealed class LoopbackAnalyzer : IDisposable
     }
 
     /// <summary>
-    /// Periodic health check. Re-arms a capture that has died, or one that has gone
-    /// quiet while audio is expected. When no audio is expected, quiet is normal
-    /// and left alone so an idle widget does not churn the audio device.
+    /// Periodic health check. Re-arms a capture that has died, that is bound to a
+    /// device the default has since moved away from, or that has gone quiet while
+    /// audio is expected. When no audio is expected, quiet is normal and left alone
+    /// so an idle widget does not churn the audio device.
     /// </summary>
     private void Watchdog()
     {
@@ -150,6 +187,22 @@ internal sealed class LoopbackAnalyzer : IDisposable
                 return;
             }
 
+            // Follow the default device. WasapiLoopbackCapture stays bound to the
+            // endpoint it was created on, so when the default output moves — e.g.
+            // headphones reconnect after sleep — the capture keeps listening to the
+            // old (now silent) device and the visualiser goes dead. Re-arm onto the
+            // new default. This is independent of the stall check below, which the
+            // wrong-device case would never satisfy (that capture never had data).
+            string? currentDefaultId = TryGetDefaultRenderId();
+            if (currentDefaultId is not null &&
+                _captureDeviceId is not null &&
+                !string.Equals(currentDefaultId, _captureDeviceId, StringComparison.OrdinalIgnoreCase))
+            {
+                DebugLog.Write("watchdog: default render device changed; re-arming onto it");
+                RestartCaptureLocked();
+                return;
+            }
+
             // Only a capture that HAS been delivering data and then went quiet
             // while audio is still expected counts as a stall. A capture that has
             // never produced data is either brand new or on a silent system, and
@@ -160,6 +213,20 @@ internal sealed class LoopbackAnalyzer : IDisposable
                     $"watchdog: stalled {_sinceData.Elapsed.TotalSeconds:F1}s while audio expected; re-arming");
                 RestartCaptureLocked();
             }
+        }
+    }
+
+    private string? TryGetDefaultRenderId()
+    {
+        try
+        {
+            using var device = Enumerator.GetDefaultAudioEndpoint(DataFlow.Render, Role.Multimedia);
+            return device.ID;
+        }
+        catch (Exception ex)
+        {
+            DebugLog.Write($"default render id query failed: {ex.Message}");
+            return null;
         }
     }
 
@@ -269,6 +336,14 @@ internal sealed class LoopbackAnalyzer : IDisposable
             _capture = null;
         }
 
+        // The capture holds the device open, so release it only after the capture.
+        if (_captureDevice is not null)
+        {
+            try { _captureDevice.Dispose(); } catch { /* already gone */ }
+            _captureDevice = null;
+        }
+        _captureDeviceId = null;
+
         IsRunning = false;
         _processor.Reset();
     }
@@ -286,6 +361,9 @@ internal sealed class LoopbackAnalyzer : IDisposable
 
             try { _capture?.StopRecording(); } catch { /* ignore */ }
             DisposeCapture();
+
+            _deviceEnumerator?.Dispose();
+            _deviceEnumerator = null;
         }
     }
 }
