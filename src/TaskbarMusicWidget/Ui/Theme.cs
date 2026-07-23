@@ -47,6 +47,14 @@ internal sealed class Theme
     /// <summary>Fill shown behind album art before it loads, or when there is none.</summary>
     public Brush ArtPlaceholder { get; private set; } = Brushes.Transparent;
 
+    /// <summary>
+    /// Visualiser bar colour. Its own token rather than the primary text colour:
+    /// white bars read fine on the dark taskbar, but near-black bars on the light
+    /// taskbar are the heaviest thing on screen, so light mode softens them to a
+    /// medium grey.
+    /// </summary>
+    public Brush Bar { get; private set; } = Brushes.White;
+
     public Color Accent { get; private set; } = Color.FromRgb(0x00, 0x78, 0xD4);
 
     public event EventHandler? Changed;
@@ -74,11 +82,15 @@ internal sealed class Theme
         if (light)
         {
             TextPrimary = Frozen(0xE4, 0x00, 0x00, 0x00);
-            TextSecondary = Frozen(0x9E, 0x00, 0x00, 0x00);
+            // Darker than the WinUI secondary token (0x9E): on the light taskbar
+            // material that standard value reads washed-out next to the title.
+            TextSecondary = Frozen(0xB8, 0x00, 0x00, 0x00);
             TextTertiary = Frozen(0x72, 0x00, 0x00, 0x00);
             SubtleHover = Frozen(0x09, 0x00, 0x00, 0x00);
             SubtlePressed = Frozen(0x06, 0x00, 0x00, 0x00);
             ArtPlaceholder = Frozen(0x0F, 0x00, 0x00, 0x00);
+            // Softer than the near-black text so the bars stay a quiet accent.
+            Bar = Frozen(0x87, 0x00, 0x00, 0x00);
         }
         else
         {
@@ -88,6 +100,7 @@ internal sealed class Theme
             SubtleHover = Frozen(0x0F, 0xFF, 0xFF, 0xFF);
             SubtlePressed = Frozen(0x0A, 0xFF, 0xFF, 0xFF);
             ArtPlaceholder = Frozen(0x14, 0xFF, 0xFF, 0xFF);
+            Bar = Frozen(0xFF, 0xFF, 0xFF, 0xFF);
         }
 
         DebugLog.Write($"theme: {(light ? "light" : "dark")} accent=#{Accent.R:X2}{Accent.G:X2}{Accent.B:X2}");

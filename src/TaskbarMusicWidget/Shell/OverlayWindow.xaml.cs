@@ -350,7 +350,7 @@ internal partial class OverlayWindow : Window
         Resources["SubtlePressedBrush"] = _theme.SubtlePressed;
         Resources["ArtPlaceholderBrush"] = _theme.ArtPlaceholder;
 
-        Bars.BarBrush = _theme.TextPrimary;
+        Bars.BarBrush = _theme.Bar;
     }
 
     // ---- Placement ---------------------------------------------------------
