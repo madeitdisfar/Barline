@@ -43,15 +43,23 @@
             <GradientStop Offset="1.00" Color="#00000000" />
         </LinearGradientBrush>
 
+        <!-- Solid transport glyphs as vector geometry rather than icon-font glyphs.
+             The Segoe Fluent media glyphs are outline style; these filled shapes
+             match the requested look and render crisply at any DPI. Drawn in a
+             ~14x14 box, filled via the button Foreground. -->
+        <PathGeometry x:Key="PrevGeometry" Figures="M2,1 H4 V13 H2 Z M12,1 L4.5,7 L12,13 Z" />
+        <PathGeometry x:Key="NextGeometry" Figures="M2,1 L9.5,7 L2,13 Z M10,1 H12 V13 H10 Z" />
+        <PathGeometry x:Key="PlayGeometry" Figures="M2.5,1 L12.5,7 L2.5,13 Z" />
+        <PathGeometry x:Key="PauseGeometry" Figures="M2.5,1 H5.5 V13 H2.5 Z M8.5,1 H11.5 V13 H8.5 Z" />
+
         <!-- Win11 subtle button: no chrome at rest, a faint rounded fill on hover,
-             slightly stronger when pressed. -->
+             slightly stronger when pressed. The glyph is a filled Path whose Fill
+             follows the button Foreground. -->
         <Style x:Key="TransportButton" TargetType="Button">
             <Setter Property="Width" Value="28" />
             <Setter Property="Height" Value="28" />
             <Setter Property="Padding" Value="0" />
             <Setter Property="Focusable" Value="False" />
-            <Setter Property="FontFamily" Value="Segoe Fluent Icons" />
-            <Setter Property="FontSize" Value="13" />
             <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
             <Setter Property="Template">
                 <Setter.Value>
@@ -79,6 +87,16 @@
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
+        </Style>
+
+        <!-- The transport glyph Path: filled with the button's Foreground so theme
+             changes and the disabled-opacity trigger both carry through. -->
+        <Style x:Key="TransportGlyph" TargetType="Path">
+            <Setter Property="Stretch" Value="None" />
+            <Setter Property="HorizontalAlignment" Value="Center" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Fill"
+                    Value="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
         </Style>
     </Window.Resources>
 
@@ -120,14 +138,16 @@
             </Border>
         </Grid>
 
-        <!-- Two-row Grid, not a StackPanel: in a Grid cell each TextBlock is
-             constrained to the column width, so its ActualWidth is the visible
-             width and overflowing text is clipped at the cell edge. That lets the
-             code apply the edge fade per line ONLY when the text truly overflows,
-             positioned exactly at the clip edge. A vertical StackPanel instead
-             arranges each line at its full untruncated width, which is what made
-             the old fade mis-fire on titles that actually fit. -->
-        <Grid Grid.Column="1"
+        <!-- TextArea has an explicit Width (set in code to the available column
+             width) and clips. A NoWrap TextBlock ignores width constraints and
+             renders at its full content width regardless, so the fade cannot be
+             positioned off the TextBlock itself. Instead the OpacityMask goes on
+             this fixed-width container — the gradient then maps to the visible
+             width — and is toggled on only when a line actually overflows. A line
+             that fits never reaches the fade band, so it is never dimmed. -->
+        <Grid x:Name="TextArea"
+              Grid.Column="1"
+              HorizontalAlignment="Left"
               VerticalAlignment="Center"
               Margin="10,0,0,0"
               ClipToBounds="True">
@@ -169,15 +189,19 @@
                         VerticalAlignment="Center"
                         Opacity="0"
                         IsHitTestVisible="False">
-                <Button x:Name="PreviousButton"
-                        Style="{StaticResource TransportButton}"
-                        Content="&#xE892;" />
-                <Button x:Name="PlayPauseButton"
-                        Style="{StaticResource TransportButton}"
-                        Content="&#xE768;" />
-                <Button x:Name="NextButton"
-                        Style="{StaticResource TransportButton}"
-                        Content="&#xE893;" />
+                <Button x:Name="PreviousButton" Style="{StaticResource TransportButton}">
+                    <Path Style="{StaticResource TransportGlyph}"
+                          Data="{StaticResource PrevGeometry}" />
+                </Button>
+                <Button x:Name="PlayPauseButton" Style="{StaticResource TransportButton}">
+                    <Path x:Name="PlayPauseGlyph"
+                          Style="{StaticResource TransportGlyph}"
+                          Data="{StaticResource PlayGeometry}" />
+                </Button>
+                <Button x:Name="NextButton" Style="{StaticResource TransportButton}">
+                    <Path Style="{StaticResource TransportGlyph}"
+                          Data="{StaticResource NextGeometry}" />
+                </Button>
             </StackPanel>
         </Grid>
     </Grid>

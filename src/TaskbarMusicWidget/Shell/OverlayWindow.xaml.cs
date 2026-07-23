@@ -33,12 +33,26 @@ internal partial class OverlayWindow : Window
     /// <summary>Gap between the taskbar's left edge and the widget, in logical pixels.</summary>
     private const double LeftInsetLogical = 0d;
 
-    private const int HoverFadeMs = 150;
+    // Layout constants, mirroring the XAML, used to derive the width available to
+    // the title/artist lines. They must stay in sync with OverlayWindow.xaml:
+    // Root Margin, the album-art width, the text block's left margin and the
+    // right-zone width.
+    private const double RootMarginLeft = 8d;
+    private const double RootMarginRight = 12d;
+    private const double ArtWidth = 32d;
+    private const double TextMarginLeft = 10d;
+    private const double RightZoneWidth = 88d;
 
-    // Segoe Fluent Icons — Windows 11's own icon font. Using the system glyphs
-    // rather than custom paths is a large part of why this reads as native.
-    private const string GlyphPlay = "";
-    private const string GlyphPause = "";
+    /// <summary>
+    /// Logical width available to the title/artist text. Used as an explicit
+    /// <c>MaxWidth</c> on the lines: a NoWrap TextBlock in a star column otherwise
+    /// expands to its full content width and is merely clipped, so its ActualWidth
+    /// never reflects the visible width and the overflow fade cannot be placed.
+    /// </summary>
+    private const double AvailableTextWidth =
+        WidgetLogicalWidth - RootMarginLeft - ArtWidth - TextMarginLeft - RightZoneWidth - RootMarginRight;
+
+    private const int HoverFadeMs = 150;
 
     /// <summary>The Fluent "standard" easing curve, cubic-bezier(0.33, 0, 0.67, 1).</summary>
     private static readonly KeySpline FluentStandard = CreateFluentSpline();
@@ -104,8 +118,12 @@ internal partial class OverlayWindow : Window
         _media.TrackChanged += (_, track) => SetTrack(track);
         _theme.Changed += (_, _) => ApplyTheme();
 
-        // Recompute overflow fades once the text lines get their real width — at
-        // first layout, and again whenever the width changes (e.g. a DPI change).
+        // Fix the text area to the real available width so its clip and fade mask
+        // map to the visible region (the lines inside render full-width and clip).
+        TextArea.Width = AvailableTextWidth;
+
+        // Recompute the overflow fade when a line's text changes; SetTrack also
+        // triggers it. SizeChanged covers first layout and DPI changes.
         TitleText.SizeChanged += (_, _) => UpdateTextFades();
         ArtistText.SizeChanged += (_, _) => UpdateTextFades();
 
@@ -269,7 +287,7 @@ internal partial class OverlayWindow : Window
 
         bool playing = track?.IsPlaying == true;
         Bars.IsActive = playing;
-        PlayPauseButton.Content = playing ? GlyphPause : GlyphPlay;
+        PlayPauseGlyph.Data = (Geometry)FindResource(playing ? "PauseGeometry" : "PlayGeometry");
 
         // Sources advertise different capabilities — a podcast app may offer no
         // "previous", a radio stream neither. Drive the buttons from what the
@@ -284,29 +302,20 @@ internal partial class OverlayWindow : Window
     }
 
     /// <summary>
-    /// Applies the edge-fade mask to the title and artist lines, but only where the
-    /// text genuinely overflows its column. Fading a line that fits is the bug this
-    /// replaces; measuring against the constrained width avoids it.
+    /// Fades the right edge of the text area, but only when the title or artist
+    /// actually overflows the available width. A line that fits never reaches the
+    /// fade band, so this leaves short and medium titles untouched and softens only
+    /// the ones that are genuinely clipped.
     /// </summary>
     private void UpdateTextFades()
     {
         _edgeFade ??= (Brush)FindResource("EdgeFade");
-        ApplyEdgeFade(TitleText);
-        ApplyEdgeFade(ArtistText);
-    }
 
-    private void ApplyEdgeFade(TextBlock line)
-    {
-        double available = line.ActualWidth;
-        if (available <= 0 || string.IsNullOrEmpty(line.Text))
-        {
-            line.OpacityMask = null;
-            return;
-        }
+        bool overflows =
+            MeasureTextWidth(TitleText) > AvailableTextWidth + 1d ||
+            MeasureTextWidth(ArtistText) > AvailableTextWidth + 1d;
 
-        // A one-pixel margin keeps a line that fits exactly from being faded.
-        bool overflows = MeasureTextWidth(line) > available + 1d;
-        line.OpacityMask = overflows ? _edgeFade : null;
+        TextArea.OpacityMask = overflows ? _edgeFade : null;
     }
 
     private static double MeasureTextWidth(TextBlock line)
