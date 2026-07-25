@@ -3,6 +3,7 @@ using Microsoft.Win32;
 using TaskbarMusicWidget.Audio;
 using TaskbarMusicWidget.Diagnostics;
 using TaskbarMusicWidget.Media;
+using TaskbarMusicWidget.Settings;
 using TaskbarMusicWidget.Shell;
 using TaskbarMusicWidget.Startup;
 using TaskbarMusicWidget.Tray;
@@ -37,19 +38,31 @@ public partial class App : Application
             return;
         }
 
+        var settings = new SettingsStore();
         var tracker = new TaskbarTracker();
         var media = new MediaSessionService(Dispatcher);
         var theme = new Theme();
         var analyzer = new LoopbackAnalyzer();
-        var window = new OverlayWindow(tracker, media, theme, analyzer);
+        var window = new OverlayWindow(tracker, media, theme, analyzer, settings);
+
+        window.VisualizerEnabled = settings.Current.VisualizerEnabled;
 
         var autoStart = new AutoStartService();
-        var tray = new TrayIcon(autoStart, window.VisualizerEnabled);
+        var tray = new TrayIcon(autoStart, settings.Current);
 
         tray.ExitRequested += (_, _) => Shutdown();
-        tray.VisualizerToggled += (_, enabled) => window.VisualizerEnabled = enabled;
         tray.RestartVisualizerRequested += (_, _) => analyzer.Restart();
         window.ContextMenuRequested += (_, _) => tray.ShowContextMenu();
+
+        // Both of these persist. The window picks the colour change up through the
+        // store's Changed event, so only the visualiser toggle is applied directly.
+        tray.VisualizerToggled += (_, enabled) =>
+        {
+            window.VisualizerEnabled = enabled;
+            settings.Update(s => s.VisualizerEnabled = enabled);
+        };
+        tray.VisualizerColorModeChanged += (_, mode) =>
+            settings.Update(s => s.VisualizerColor = mode);
 
         // Resuming from sleep/hibernate is the classic case where the loopback
         // capture comes back dead; re-arm it proactively rather than waiting for

@@ -10,6 +10,7 @@ using System.Windows.Threading;
 using TaskbarMusicWidget.Audio;
 using TaskbarMusicWidget.Diagnostics;
 using TaskbarMusicWidget.Media;
+using TaskbarMusicWidget.Settings;
 using TaskbarMusicWidget.Ui;
 using static TaskbarMusicWidget.Shell.NativeMethods;
 
@@ -52,17 +53,14 @@ internal partial class OverlayWindow : Window
     private const double AvailableTextWidth =
         WidgetLogicalWidth - RootMarginLeft - ArtWidth - TextMarginLeft - RightZoneWidth - RootMarginRight;
 
-    private const int HoverFadeMs = 150;
-
-    /// <summary>The Fluent "standard" easing curve, cubic-bezier(0.33, 0, 0.67, 1).</summary>
-    private static readonly KeySpline FluentStandard = CreateFluentSpline();
-
     private Brush? _edgeFade;
 
     private readonly TaskbarTracker _tracker;
     private readonly MediaSessionService _media;
     private readonly Theme _theme;
     private readonly LoopbackAnalyzer _analyzer;
+    private readonly SettingsStore _settings;
+    private readonly BarColorResolver _barColor;
 
     /// <summary>
     /// Delays hiding so brief taskbar transitions don't flash the widget.
@@ -89,12 +87,15 @@ internal partial class OverlayWindow : Window
         TaskbarTracker tracker,
         MediaSessionService media,
         Theme theme,
-        LoopbackAnalyzer analyzer)
+        LoopbackAnalyzer analyzer,
+        SettingsStore settings)
     {
         _tracker = tracker;
         _media = media;
         _theme = theme;
         _analyzer = analyzer;
+        _settings = settings;
+        _barColor = new BarColorResolver(theme, settings);
 
         InitializeComponent();
 
@@ -112,6 +113,10 @@ internal partial class OverlayWindow : Window
         // Returning false (no capture, or silence) drops it back to decorative motion.
         Bars.LevelSource = levels => _analyzer.TryGetLevels(levels);
 
+        // Assigned once. The resolver animates this brush's colour in place, so the
+        // visualiser never sees its colour change and needs no notification.
+        Bars.BarBrush = _barColor.Brush;
+
         PreviousButton.Click += (_, _) => _ = _media.SkipPreviousAsync();
         PlayPauseButton.Click += (_, _) => _ = _media.TogglePlayPauseAsync();
         NextButton.Click += (_, _) => _ = _media.SkipNextAsync();
@@ -119,6 +124,7 @@ internal partial class OverlayWindow : Window
         _tracker.Changed += (_, state) => Apply(state);
         _media.TrackChanged += (_, track) => SetTrack(track);
         _theme.Changed += (_, _) => ApplyTheme();
+        _settings.Changed += (_, _) => ApplyBarColor();
 
         // Fix the text area to the real available width so its clip and fade mask
         // map to the visible region (the lines inside render full-width and clip).
@@ -207,17 +213,10 @@ internal partial class OverlayWindow : Window
         var animation = new DoubleAnimationUsingKeyFrames();
         animation.KeyFrames.Add(new SplineDoubleKeyFrame(
             to,
-            KeyTime.FromTimeSpan(TimeSpan.FromMilliseconds(HoverFadeMs)),
-            FluentStandard));
+            KeyTime.FromTimeSpan(TimeSpan.FromMilliseconds(Motion.FastMs)),
+            Motion.Standard));
 
         element.BeginAnimation(OpacityProperty, animation);
-    }
-
-    private static KeySpline CreateFluentSpline()
-    {
-        var spline = new KeySpline(0.33, 0.0, 0.67, 1.0);
-        spline.Freeze();
-        return spline;
     }
 
     // ---- Click-to-focus ----------------------------------------------------
@@ -280,6 +279,10 @@ internal partial class OverlayWindow : Window
         ArtBrush.ImageSource = track?.AlbumArt;
         ArtLayer.Visibility = hasArt ? Visibility.Visible : Visibility.Collapsed;
         ArtFallbackGlyph.Visibility = hasArt ? Visibility.Collapsed : Visibility.Visible;
+
+        // In album-art mode the bar colour is part of the track's identity, so it is
+        // resolved here rather than only on theme changes.
+        ApplyBarColor();
 
         TitleText.Text = track?.Title ?? string.Empty;
         ArtistText.Text = track?.Artist ?? string.Empty;
@@ -350,8 +353,12 @@ internal partial class OverlayWindow : Window
         Resources["SubtlePressedBrush"] = _theme.SubtlePressed;
         Resources["ArtPlaceholderBrush"] = _theme.ArtPlaceholder;
 
-        Bars.BarBrush = _theme.Bar;
+        // Every colour mode is theme-dependent: the default token switches outright,
+        // and the corrected modes are measured against the new taskbar material.
+        ApplyBarColor();
     }
+
+    private void ApplyBarColor() => _barColor.Update(_track?.AlbumArt);
 
     // ---- Placement ---------------------------------------------------------
 

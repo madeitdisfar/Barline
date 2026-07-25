@@ -2,6 +2,7 @@ using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
+using TaskbarMusicWidget.Settings;
 using TaskbarMusicWidget.Startup;
 
 namespace TaskbarMusicWidget.Tray;
@@ -20,6 +21,10 @@ internal sealed class TrayIcon : IDisposable
     private readonly ContextMenuStrip _menu;
     private readonly ToolStripMenuItem _autoStartItem;
     private readonly ToolStripMenuItem _visualizerItem;
+
+    /// <summary>Colour-mode items, keyed by the mode each one selects.</summary>
+    private readonly Dictionary<VisualizerColorMode, ToolStripMenuItem> _colorItems = new();
+
     private readonly Icon _icon;
 
     private bool _disposed;
@@ -27,8 +32,9 @@ internal sealed class TrayIcon : IDisposable
     public event EventHandler? ExitRequested;
     public event EventHandler<bool>? VisualizerToggled;
     public event EventHandler? RestartVisualizerRequested;
+    public event EventHandler<VisualizerColorMode>? VisualizerColorModeChanged;
 
-    public TrayIcon(AutoStartService autoStart, bool visualizerEnabled)
+    public TrayIcon(AutoStartService autoStart, WidgetSettings settings)
     {
         _autoStart = autoStart;
 
@@ -42,7 +48,7 @@ internal sealed class TrayIcon : IDisposable
         _visualizerItem = new ToolStripMenuItem("Show visualizer")
         {
             CheckOnClick = true,
-            Checked = visualizerEnabled,
+            Checked = settings.VisualizerEnabled,
         };
         _visualizerItem.CheckedChanged += (_, _) =>
             VisualizerToggled?.Invoke(this, _visualizerItem.Checked);
@@ -59,6 +65,7 @@ internal sealed class TrayIcon : IDisposable
         _menu = new ContextMenuStrip();
         _menu.Items.Add(_autoStartItem);
         _menu.Items.Add(_visualizerItem);
+        _menu.Items.Add(BuildColorMenu(settings.VisualizerColor));
         _menu.Items.Add(restartItem);
         _menu.Items.Add(new ToolStripSeparator());
         _menu.Items.Add(exitItem);
@@ -75,6 +82,48 @@ internal sealed class TrayIcon : IDisposable
 
     /// <summary>Opens the menu at the cursor, for right-clicks on the widget itself.</summary>
     public void ShowContextMenu() => _menu.Show(Control.MousePosition);
+
+    /// <summary>
+    /// Builds the visualiser-colour submenu as a mutually exclusive group.
+    /// </summary>
+    /// <remarks>
+    /// <see cref="VisualizerColorMode.Custom"/> is intentionally absent: picking a
+    /// colour needs a picker, which belongs in the settings window. It stays
+    /// selectable by editing settings.json, and a file already set to Custom is left
+    /// alone unless the user chooses another mode here.
+    /// </remarks>
+    private ToolStripMenuItem BuildColorMenu(VisualizerColorMode current)
+    {
+        var parent = new ToolStripMenuItem("Visualizer color");
+
+        (VisualizerColorMode Mode, string Label)[] entries =
+        [
+            (VisualizerColorMode.Default, "Default"),
+            (VisualizerColorMode.SystemAccent, "Windows accent"),
+            (VisualizerColorMode.AlbumArt, "From album art"),
+        ];
+
+        foreach (var (mode, label) in entries)
+        {
+            // No CheckOnClick: these are radio behaviour, so the check state follows
+            // the selected mode rather than toggling per item.
+            var item = new ToolStripMenuItem(label) { Checked = mode == current };
+            item.Click += (_, _) => SelectColorMode(mode);
+
+            _colorItems[mode] = item;
+            parent.DropDownItems.Add(item);
+        }
+
+        return parent;
+    }
+
+    private void SelectColorMode(VisualizerColorMode mode)
+    {
+        foreach (var (candidate, item) in _colorItems)
+            item.Checked = candidate == mode;
+
+        VisualizerColorModeChanged?.Invoke(this, mode);
+    }
 
     /// <summary>
     /// Draws the tray icon rather than shipping an .ico, so it always matches the
