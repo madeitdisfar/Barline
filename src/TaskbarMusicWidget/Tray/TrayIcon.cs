@@ -9,22 +9,21 @@ namespace TaskbarMusicWidget.Tray;
 
 /// <summary>
 /// Notification-area icon and menu — the widget's only chrome, since a taskbar
-/// overlay has nowhere else to put settings or a way to quit.
+/// overlay has nowhere else to hang a menu or a way to quit.
 /// </summary>
+/// <remarks>
+/// The menu holds quick actions only. Anything that is configuration rather than a
+/// one-off action lives in the settings window instead, which also avoids two places
+/// showing the same state and drifting out of sync.
+/// </remarks>
 internal sealed class TrayIcon : IDisposable
 {
     [DllImport("user32.dll", SetLastError = true)]
     private static extern bool DestroyIcon(IntPtr hIcon);
 
-    private readonly AutoStartService _autoStart;
     private readonly NotifyIcon _notifyIcon;
     private readonly ContextMenuStrip _menu;
-    private readonly ToolStripMenuItem _autoStartItem;
     private readonly ToolStripMenuItem _visualizerItem;
-
-    /// <summary>Colour-mode items, keyed by the mode each one selects.</summary>
-    private readonly Dictionary<VisualizerColorMode, ToolStripMenuItem> _colorItems = new();
-
     private readonly Icon _icon;
 
     private bool _disposed;
@@ -32,26 +31,21 @@ internal sealed class TrayIcon : IDisposable
     public event EventHandler? ExitRequested;
     public event EventHandler<bool>? VisualizerToggled;
     public event EventHandler? RestartVisualizerRequested;
-    public event EventHandler<VisualizerColorMode>? VisualizerColorModeChanged;
+    public event EventHandler? SettingsRequested;
 
-    public TrayIcon(AutoStartService autoStart, WidgetSettings settings)
+    public TrayIcon(WidgetSettings settings)
     {
-        _autoStart = autoStart;
-
-        _autoStartItem = new ToolStripMenuItem("Start with Windows")
-        {
-            CheckOnClick = true,
-            Checked = _autoStart.IsEnabled,
-        };
-        _autoStartItem.CheckedChanged += (_, _) => _autoStart.SetEnabled(_autoStartItem.Checked);
+        var settingsItem = new ToolStripMenuItem("Settings");
+        settingsItem.Click += (_, _) => SettingsRequested?.Invoke(this, EventArgs.Empty);
+        settingsItem.Font = new Font(settingsItem.Font, System.Drawing.FontStyle.Bold);
 
         _visualizerItem = new ToolStripMenuItem("Show visualizer")
         {
             CheckOnClick = true,
             Checked = settings.VisualizerEnabled,
         };
-        _visualizerItem.CheckedChanged += (_, _) =>
-            VisualizerToggled?.Invoke(this, _visualizerItem.Checked);
+        // A named handler, not a lambda, so SetVisualizerChecked can detach it.
+        _visualizerItem.CheckedChanged += OnVisualizerItemChanged;
 
         // Manual fallback: the watchdog recovers a stalled capture on its own, but
         // this lets the user force it immediately if the visualiser ever stops
@@ -63,9 +57,9 @@ internal sealed class TrayIcon : IDisposable
         exitItem.Click += (_, _) => ExitRequested?.Invoke(this, EventArgs.Empty);
 
         _menu = new ContextMenuStrip();
-        _menu.Items.Add(_autoStartItem);
+        _menu.Items.Add(settingsItem);
+        _menu.Items.Add(new ToolStripSeparator());
         _menu.Items.Add(_visualizerItem);
-        _menu.Items.Add(BuildColorMenu(settings.VisualizerColor));
         _menu.Items.Add(restartItem);
         _menu.Items.Add(new ToolStripSeparator());
         _menu.Items.Add(exitItem);
@@ -84,46 +78,22 @@ internal sealed class TrayIcon : IDisposable
     public void ShowContextMenu() => _menu.Show(Control.MousePosition);
 
     /// <summary>
-    /// Builds the visualiser-colour submenu as a mutually exclusive group.
+    /// Reflects a visualiser-visibility change made elsewhere (the settings window)
+    /// so the menu's checkmark does not go stale.
     /// </summary>
-    /// <remarks>
-    /// <see cref="VisualizerColorMode.Custom"/> is intentionally absent: picking a
-    /// colour needs a picker, which belongs in the settings window. It stays
-    /// selectable by editing settings.json, and a file already set to Custom is left
-    /// alone unless the user chooses another mode here.
-    /// </remarks>
-    private ToolStripMenuItem BuildColorMenu(VisualizerColorMode current)
+    public void SetVisualizerChecked(bool enabled)
     {
-        var parent = new ToolStripMenuItem("Visualizer color");
+        if (_visualizerItem.Checked == enabled) return;
 
-        (VisualizerColorMode Mode, string Label)[] entries =
-        [
-            (VisualizerColorMode.Default, "Default"),
-            (VisualizerColorMode.SystemAccent, "Windows accent"),
-            (VisualizerColorMode.AlbumArt, "From album art"),
-        ];
-
-        foreach (var (mode, label) in entries)
-        {
-            // No CheckOnClick: these are radio behaviour, so the check state follows
-            // the selected mode rather than toggling per item.
-            var item = new ToolStripMenuItem(label) { Checked = mode == current };
-            item.Click += (_, _) => SelectColorMode(mode);
-
-            _colorItems[mode] = item;
-            parent.DropDownItems.Add(item);
-        }
-
-        return parent;
+        // CheckedChanged would otherwise echo this back out as a user action and
+        // bounce between the two surfaces.
+        _visualizerItem.CheckedChanged -= OnVisualizerItemChanged;
+        _visualizerItem.Checked = enabled;
+        _visualizerItem.CheckedChanged += OnVisualizerItemChanged;
     }
 
-    private void SelectColorMode(VisualizerColorMode mode)
-    {
-        foreach (var (candidate, item) in _colorItems)
-            item.Checked = candidate == mode;
-
-        VisualizerColorModeChanged?.Invoke(this, mode);
-    }
+    private void OnVisualizerItemChanged(object? sender, EventArgs e) =>
+        VisualizerToggled?.Invoke(this, _visualizerItem.Checked);
 
     /// <summary>
     /// Draws the tray icon rather than shipping an .ico, so it always matches the

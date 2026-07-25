@@ -63,9 +63,20 @@ internal sealed class BarColorResolver
     /// Recomputes the bar colour. Cheap to call often — the expensive part (art
     /// extraction) is memoised, and an unchanged result animates nothing.
     /// </summary>
+    /// <summary>
+    /// The colour a given mode would produce right now, without selecting it.
+    /// </summary>
+    /// <remarks>
+    /// Lets the settings window show every option's real, corrected colour side by
+    /// side — which is the honest way to present this, since what the user gets is
+    /// never exactly what the artwork or the picker said.
+    /// </remarks>
+    public Color Preview(VisualizerColorMode mode, ImageSource? albumArt) =>
+        Resolve(mode, albumArt);
+
     public void Update(ImageSource? albumArt)
     {
-        Color target = Resolve(albumArt);
+        Color target = Resolve(_settings.Current.VisualizerColor, albumArt);
         if (_target == target) return;
 
         bool first = _target is null;
@@ -93,9 +104,9 @@ internal sealed class BarColorResolver
             $"-> #{target.A:X2}{target.R:X2}{target.G:X2}{target.B:X2}");
     }
 
-    private Color Resolve(ImageSource? albumArt)
+    private Color Resolve(VisualizerColorMode mode, ImageSource? albumArt)
     {
-        switch (_settings.Current.VisualizerColor)
+        switch (mode)
         {
             case VisualizerColorMode.SystemAccent:
                 return MakeLegible(_theme.Accent);

@@ -1,0 +1,552 @@
+<Window x:Class="TaskbarMusicWidget.Settings.SettingsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:ui="clr-namespace:TaskbarMusicWidget.Ui"
+        x:ClassModifier="internal"
+        Title="Taskbar Music Widget"
+        Width="560" Height="700"
+        MinWidth="460" MinHeight="420"
+        WindowStartupLocation="CenterScreen"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True"
+        FontFamily="Segoe UI Variable Text, Segoe UI"
+        TextOptions.TextFormattingMode="Ideal"
+        TextOptions.TextRenderingMode="Grayscale"
+        Background="{DynamicResource WindowBackgroundBrush}">
+
+    <!--
+        Grayscale text antialiasing, matching the overlay and Windows 11's own XAML
+        shell. ClearType would be available here (unlike on the layered overlay) but
+        would make this window the one piece of the app whose text renders differently
+        from the rest of the shell.
+    -->
+
+    <Window.Resources>
+        <!-- Theme brushes, swapped wholesale by ApplyTheme on a system theme change.
+             Values here are the dark-mode defaults so the designer and first load
+             have something sane before ApplyTheme runs. -->
+        <SolidColorBrush x:Key="WindowBackgroundBrush" Color="#FF202020" />
+        <SolidColorBrush x:Key="TextPrimaryBrush" Color="#FFFFFFFF" />
+        <SolidColorBrush x:Key="TextSecondaryBrush" Color="#C5FFFFFF" />
+        <SolidColorBrush x:Key="TextTertiaryBrush" Color="#87FFFFFF" />
+        <SolidColorBrush x:Key="CardBackgroundBrush" Color="#0DFFFFFF" />
+        <SolidColorBrush x:Key="CardStrokeBrush" Color="#1A000000" />
+        <SolidColorBrush x:Key="ControlAltFillBrush" Color="#1A000000" />
+        <SolidColorBrush x:Key="ControlStrongStrokeBrush" Color="#8BFFFFFF" />
+        <SolidColorBrush x:Key="AccentFillBrush" Color="#FF0078D4" />
+        <SolidColorBrush x:Key="TextOnAccentBrush" Color="#FFFFFFFF" />
+        <SolidColorBrush x:Key="SubtleHoverBrush" Color="#0FFFFFFF" />
+        <SolidColorBrush x:Key="SubtlePressedBrush" Color="#0AFFFFFF" />
+
+        <!-- Section header. Windows 11 Settings uses body-strong for these: same
+             size as body text, heavier weight — not a larger font. -->
+        <Style x:Key="SectionHeader" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+            <Setter Property="Margin" Value="0,20,0,8" />
+        </Style>
+
+        <Style x:Key="CardLabel" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+        </Style>
+
+        <Style x:Key="CardDescription" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+            <Setter Property="Margin" Value="0,2,0,0" />
+        </Style>
+
+        <!-- The settings card: the single most recognisable piece of Windows 11
+             Settings. 4px radius, faint fill, hairline border. -->
+        <Style x:Key="Card" TargetType="Border">
+            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="Background" Value="{DynamicResource CardBackgroundBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource CardStrokeBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Padding" Value="16,14" />
+            <Setter Property="SnapsToDevicePixels" Value="True" />
+        </Style>
+
+        <!-- WPF has no ToggleSwitch, so a CheckBox is retemplated as one: 40x20
+             track, 12px knob, 4px inset. The knob slides rather than jumping —
+             an instant snap is the tell that a switch is hand-made. -->
+        <Style x:Key="ToggleSwitch" TargetType="CheckBox">
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="CheckBox">
+                        <Grid Width="40" Height="20" Background="Transparent">
+                            <Border x:Name="Track"
+                                    CornerRadius="10"
+                                    Background="{DynamicResource ControlAltFillBrush}"
+                                    BorderBrush="{DynamicResource ControlStrongStrokeBrush}"
+                                    BorderThickness="1"
+                                    SnapsToDevicePixels="True" />
+                            <Ellipse x:Name="Knob"
+                                     Width="12" Height="12"
+                                     HorizontalAlignment="Left"
+                                     Margin="4,0,0,0"
+                                     Fill="{DynamicResource ControlStrongStrokeBrush}">
+                                <Ellipse.RenderTransform>
+                                    <TranslateTransform x:Name="KnobShift" X="0" />
+                                </Ellipse.RenderTransform>
+                            </Ellipse>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Track" Property="Background"
+                                        Value="{DynamicResource AccentFillBrush}" />
+                                <Setter TargetName="Track" Property="BorderBrush"
+                                        Value="Transparent" />
+                                <Setter TargetName="Knob" Property="Fill"
+                                        Value="{DynamicResource TextOnAccentBrush}" />
+                                <Trigger.EnterActions>
+                                    <BeginStoryboard>
+                                        <Storyboard>
+                                            <DoubleAnimation
+                                                Storyboard.TargetName="KnobShift"
+                                                Storyboard.TargetProperty="X"
+                                                To="20" Duration="0:0:0.15">
+                                                <DoubleAnimation.EasingFunction>
+                                                    <CubicEase EasingMode="EaseInOut" />
+                                                </DoubleAnimation.EasingFunction>
+                                            </DoubleAnimation>
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </Trigger.EnterActions>
+                                <Trigger.ExitActions>
+                                    <BeginStoryboard>
+                                        <Storyboard>
+                                            <DoubleAnimation
+                                                Storyboard.TargetName="KnobShift"
+                                                Storyboard.TargetProperty="X"
+                                                To="0" Duration="0:0:0.15">
+                                                <DoubleAnimation.EasingFunction>
+                                                    <CubicEase EasingMode="EaseInOut" />
+                                                </DoubleAnimation.EasingFunction>
+                                            </DoubleAnimation>
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </Trigger.ExitActions>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.36" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Colour-mode option. Checked state fills the ring with the accent and puts
+             a knockout dot in it, as WinUI's RadioButton does. -->
+        <Style x:Key="ColorOption" TargetType="RadioButton">
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Focusable" Value="True" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="RadioButton">
+                        <Border x:Name="Hover"
+                                CornerRadius="4"
+                                Background="Transparent"
+                                Padding="8,9"
+                                SnapsToDevicePixels="True">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Grid Grid.Column="0" Width="20" Height="20"
+                                      VerticalAlignment="Center">
+                                    <Ellipse x:Name="Ring"
+                                             Fill="Transparent"
+                                             Stroke="{DynamicResource ControlStrongStrokeBrush}"
+                                             StrokeThickness="1" />
+                                    <Ellipse x:Name="Dot"
+                                             Width="8" Height="8"
+                                             Fill="{DynamicResource TextOnAccentBrush}"
+                                             Visibility="Collapsed" />
+                                </Grid>
+                                <ContentPresenter Grid.Column="1"
+                                                  Margin="12,0,0,0"
+                                                  VerticalAlignment="Center" />
+                            </Grid>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Ring" Property="Fill"
+                                        Value="{DynamicResource AccentFillBrush}" />
+                                <Setter TargetName="Ring" Property="Stroke"
+                                        Value="{DynamicResource AccentFillBrush}" />
+                                <Setter TargetName="Dot" Property="Visibility"
+                                        Value="Visible" />
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Hover" Property="Background"
+                                        Value="{DynamicResource SubtleHoverBrush}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Swatch button for the custom palette. Content is the colour itself, so
+             the template is just a rounded fill with a selection ring. -->
+        <!-- Sized so all twelve hues fit one row inside the card at the default window
+             width. At 32px plus an 8px gap they came to exactly the available width and
+             wrapped a single swatch onto a second row. -->
+        <Style x:Key="Swatch" TargetType="RadioButton">
+            <Setter Property="Width" Value="30" />
+            <Setter Property="Height" Value="30" />
+            <Setter Property="Margin" Value="0,0,5,5" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="RadioButton">
+                        <Grid>
+                            <Border x:Name="Selection"
+                                    CornerRadius="5"
+                                    BorderThickness="2"
+                                    BorderBrush="Transparent" />
+                            <Border CornerRadius="3"
+                                    Margin="4"
+                                    Background="{TemplateBinding Background}"
+                                    SnapsToDevicePixels="True" />
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Selection" Property="BorderBrush"
+                                        Value="{DynamicResource AccentFillBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Selection" Property="BorderBrush"
+                                        Value="{DynamicResource ControlStrongStrokeBrush}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Hex entry. WinUI-ish: rounded, faint fill, hairline border. -->
+        <Style x:Key="HexBox" TargetType="TextBox">
+            <Setter Property="Width" Value="110" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="FontFamily" Value="Cascadia Mono, Consolas, monospace" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+            <Setter Property="CaretBrush" Value="{DynamicResource TextPrimaryBrush}" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TextBox">
+                        <Border CornerRadius="4"
+                                Background="{DynamicResource ControlAltFillBrush}"
+                                BorderBrush="{DynamicResource ControlStrongStrokeBrush}"
+                                BorderThickness="1"
+                                Padding="10,6"
+                                SnapsToDevicePixels="True">
+                            <ScrollViewer x:Name="PART_ContentHost" />
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Hairline divider between rows inside one card. -->
+        <Style x:Key="RowDivider" TargetType="Border">
+            <Setter Property="Height" Value="1" />
+            <Setter Property="Background" Value="{DynamicResource CardStrokeBrush}" />
+            <Setter Property="Margin" Value="0,12" />
+        </Style>
+
+        <!-- Repeat buttons for the scrollbar track. Windows 11 has no arrow buttons on
+             its scrollbars, but the Track still needs page-up/page-down regions, so
+             they are present and invisible rather than removed. -->
+        <Style x:Key="ScrollPageButton" TargetType="RepeatButton">
+            <Setter Property="Focusable" Value="False" />
+            <Setter Property="IsTabStop" Value="False" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="RepeatButton">
+                        <Border Background="Transparent" />
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- A thin Windows 11-style scrollbar: no arrows, no track, a 3px rounded
+             thumb that thickens on hover. WPF's stock scrollbar is a wide bordered
+             control with arrow buttons at both ends, which looks like a Windows 7 app. -->
+        <Style x:Key="ThinScrollBar" TargetType="ScrollBar">
+            <Setter Property="Width" Value="12" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ScrollBar">
+                        <Grid x:Name="Root" Background="Transparent">
+                            <Track x:Name="PART_Track" IsDirectionReversed="True">
+                                <Track.DecreaseRepeatButton>
+                                    <RepeatButton Style="{StaticResource ScrollPageButton}"
+                                                  Command="ScrollBar.PageUpCommand" />
+                                </Track.DecreaseRepeatButton>
+                                <Track.IncreaseRepeatButton>
+                                    <RepeatButton Style="{StaticResource ScrollPageButton}"
+                                                  Command="ScrollBar.PageDownCommand" />
+                                </Track.IncreaseRepeatButton>
+                                <Track.Thumb>
+                                    <Thumb x:Name="Thumb">
+                                        <Thumb.Template>
+                                            <ControlTemplate TargetType="Thumb">
+                                                <!-- Fully opaque at rest. The brush is
+                                                     already only ~55% white, and at 70%
+                                                     of that the thumb was invisible —
+                                                     which hides the fact that there is
+                                                     more of the page below. -->
+                                                <Border x:Name="ThumbFill"
+                                                        Width="4"
+                                                        CornerRadius="2"
+                                                        HorizontalAlignment="Center"
+                                                        Background="{DynamicResource ControlStrongStrokeBrush}" />
+                                            </ControlTemplate>
+                                        </Thumb.Template>
+                                    </Thumb>
+                                </Track.Thumb>
+                            </Track>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Thumb" Property="Width" Value="8" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- The scrollbar overlays the content instead of taking a column beside it.
+             A reserved gutter is visible even when nothing scrolls, and it shifts the
+             whole page sideways the moment the custom-colour card expands. -->
+        <Style x:Key="OverlayScrollViewer" TargetType="ScrollViewer">
+            <Setter Property="VerticalScrollBarVisibility" Value="Auto" />
+            <Setter Property="HorizontalScrollBarVisibility" Value="Disabled" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ScrollViewer">
+                        <Grid>
+                            <ScrollContentPresenter />
+                            <ScrollBar x:Name="PART_VerticalScrollBar"
+                                       Style="{StaticResource ThinScrollBar}"
+                                       Orientation="Vertical"
+                                       HorizontalAlignment="Right"
+                                       Margin="0,4"
+                                       Value="{Binding VerticalOffset, Mode=OneWay,
+                                               RelativeSource={RelativeSource TemplatedParent}}"
+                                       Maximum="{TemplateBinding ScrollableHeight}"
+                                       ViewportSize="{TemplateBinding ViewportHeight}"
+                                       Visibility="{TemplateBinding ComputedVerticalScrollBarVisibility}" />
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
+    <ScrollViewer Style="{StaticResource OverlayScrollViewer}">
+        <StackPanel Margin="24,16,24,24">
+
+            <!-- === Preview === -->
+
+            <TextBlock Style="{StaticResource SectionHeader}"
+                       Margin="0,0,0,8"
+                       Text="Visualizer" />
+
+            <Border Style="{StaticResource Card}">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource CardLabel}" Text="Preview" />
+                    <TextBlock x:Name="PreviewCaption"
+                               Style="{StaticResource CardDescription}"
+                               Text="Shown against the taskbar's approximate shade." />
+
+                    <!-- Background is set from code to the theme's backdrop estimate —
+                         the same value the contrast correction measures against, so
+                         this preview is honest about what the bars have to survive. -->
+                    <Border x:Name="PreviewStrip"
+                            CornerRadius="4"
+                            Height="48"
+                            Margin="0,12,0,0"
+                            SnapsToDevicePixels="True">
+                        <ui:Visualizer x:Name="PreviewBars"
+                                       HorizontalAlignment="Center"
+                                       VerticalAlignment="Center" />
+                    </Border>
+                </StackPanel>
+            </Border>
+
+            <!-- === Bar colour === -->
+
+            <TextBlock Style="{StaticResource SectionHeader}" Text="Bar color" />
+
+            <Border Style="{StaticResource Card}" Padding="8,6">
+                <StackPanel>
+                    <RadioButton x:Name="DefaultOption" Style="{StaticResource ColorOption}">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Style="{StaticResource CardLabel}"
+                                       Text="Default" VerticalAlignment="Center" />
+                            <Border x:Name="DefaultSwatch" Grid.Column="1"
+                                    Width="36" Height="16" CornerRadius="3"
+                                    VerticalAlignment="Center" />
+                            <TextBlock x:Name="DefaultHex" Grid.Column="2"
+                                       Width="72" Margin="10,0,0,0"
+                                       FontSize="11" FontFamily="Cascadia Mono, Consolas, monospace"
+                                       Foreground="{DynamicResource TextTertiaryBrush}"
+                                       VerticalAlignment="Center" />
+                        </Grid>
+                    </RadioButton>
+
+                    <RadioButton x:Name="AccentOption" Style="{StaticResource ColorOption}">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Style="{StaticResource CardLabel}"
+                                       Text="Windows accent" VerticalAlignment="Center" />
+                            <Border x:Name="AccentSwatch" Grid.Column="1"
+                                    Width="36" Height="16" CornerRadius="3"
+                                    VerticalAlignment="Center" />
+                            <TextBlock x:Name="AccentHex" Grid.Column="2"
+                                       Width="72" Margin="10,0,0,0"
+                                       FontSize="11" FontFamily="Cascadia Mono, Consolas, monospace"
+                                       Foreground="{DynamicResource TextTertiaryBrush}"
+                                       VerticalAlignment="Center" />
+                        </Grid>
+                    </RadioButton>
+
+                    <RadioButton x:Name="AlbumArtOption" Style="{StaticResource ColorOption}">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Style="{StaticResource CardLabel}"
+                                       Text="From album art" VerticalAlignment="Center" />
+                            <Border x:Name="AlbumArtSwatch" Grid.Column="1"
+                                    Width="36" Height="16" CornerRadius="3"
+                                    VerticalAlignment="Center" />
+                            <TextBlock x:Name="AlbumArtHex" Grid.Column="2"
+                                       Width="72" Margin="10,0,0,0"
+                                       FontSize="11" FontFamily="Cascadia Mono, Consolas, monospace"
+                                       Foreground="{DynamicResource TextTertiaryBrush}"
+                                       VerticalAlignment="Center" />
+                        </Grid>
+                    </RadioButton>
+
+                    <RadioButton x:Name="CustomOption" Style="{StaticResource ColorOption}">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Style="{StaticResource CardLabel}"
+                                       Text="Custom" VerticalAlignment="Center" />
+                            <Border x:Name="CustomSwatch" Grid.Column="1"
+                                    Width="36" Height="16" CornerRadius="3"
+                                    VerticalAlignment="Center" />
+                            <TextBlock x:Name="CustomHex" Grid.Column="2"
+                                       Width="72" Margin="10,0,0,0"
+                                       FontSize="11" FontFamily="Cascadia Mono, Consolas, monospace"
+                                       Foreground="{DynamicResource TextTertiaryBrush}"
+                                       VerticalAlignment="Center" />
+                        </Grid>
+                    </RadioButton>
+                </StackPanel>
+            </Border>
+
+            <TextBlock Style="{StaticResource CardDescription}"
+                       Margin="4,8,0,0"
+                       Text="Each hex is what will actually be drawn: colors are adjusted to stay visible against the taskbar. A cover with no strong color falls back to Default." />
+
+            <!-- === Custom colour === -->
+
+            <Border x:Name="CustomCard"
+                    Style="{StaticResource Card}"
+                    Margin="0,12,0,0"
+                    Visibility="Collapsed">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource CardLabel}" Text="Choose a color" />
+                    <TextBlock Style="{StaticResource CardDescription}"
+                               Text="Only the hue matters — lightness is set for you so the bars stay legible." />
+
+                    <WrapPanel x:Name="SwatchPanel" Margin="0,12,0,0" />
+
+                    <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                        <TextBox x:Name="HexInput" Style="{StaticResource HexBox}" />
+                        <TextBlock x:Name="HexError"
+                                   Style="{StaticResource CardDescription}"
+                                   Margin="10,0,0,0"
+                                   VerticalAlignment="Center"
+                                   Foreground="{DynamicResource TextTertiaryBrush}" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- === Widget === -->
+
+            <TextBlock Style="{StaticResource SectionHeader}" Text="Widget" />
+
+            <Border Style="{StaticResource Card}">
+                <StackPanel>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0" Margin="0,0,16,0">
+                            <TextBlock Style="{StaticResource CardLabel}" Text="Show visualizer" />
+                            <TextBlock Style="{StaticResource CardDescription}"
+                                       Text="Hide the bars and keep the hover controls." />
+                        </StackPanel>
+                        <CheckBox x:Name="VisualizerToggle" Grid.Column="1"
+                                  Style="{StaticResource ToggleSwitch}" />
+                    </Grid>
+
+                    <Border Style="{StaticResource RowDivider}" />
+
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0" Margin="0,0,16,0">
+                            <TextBlock Style="{StaticResource CardLabel}" Text="Start with Windows" />
+                            <TextBlock Style="{StaticResource CardDescription}"
+                                       Text="Run the widget when you sign in." />
+                        </StackPanel>
+                        <CheckBox x:Name="AutoStartToggle" Grid.Column="1"
+                                  Style="{StaticResource ToggleSwitch}" />
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <TextBlock x:Name="SettingsPathText"
+                       Style="{StaticResource CardDescription}"
+                       Margin="4,16,0,0"
+                       Foreground="{DynamicResource TextTertiaryBrush}" />
+        </StackPanel>
+    </ScrollViewer>
+</Window>

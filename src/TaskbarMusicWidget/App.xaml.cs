@@ -25,6 +25,7 @@ public partial class App : Application
     private MediaSessionService? _media;
     private LoopbackAnalyzer? _analyzer;
     private TrayIcon? _tray;
+    private SettingsWindow? _settingsWindow;
 
     protected override void OnStartup(StartupEventArgs e)
     {
@@ -48,21 +49,26 @@ public partial class App : Application
         window.VisualizerEnabled = settings.Current.VisualizerEnabled;
 
         var autoStart = new AutoStartService();
-        var tray = new TrayIcon(autoStart, settings.Current);
+        var tray = new TrayIcon(settings.Current);
 
         tray.ExitRequested += (_, _) => Shutdown();
         tray.RestartVisualizerRequested += (_, _) => analyzer.Restart();
+        tray.SettingsRequested += (_, _) => ShowSettings(theme, settings, autoStart, window);
         window.ContextMenuRequested += (_, _) => tray.ShowContextMenu();
 
-        // Both of these persist. The window picks the colour change up through the
-        // store's Changed event, so only the visualiser toggle is applied directly.
         tray.VisualizerToggled += (_, enabled) =>
         {
             window.VisualizerEnabled = enabled;
             settings.Update(s => s.VisualizerEnabled = enabled);
         };
-        tray.VisualizerColorModeChanged += (_, mode) =>
-            settings.Update(s => s.VisualizerColor = mode);
+
+        // The settings window writes the same setting, so the menu's checkmark is
+        // pushed back from the store rather than only being set at construction.
+        settings.Changed += (_, _) =>
+        {
+            window.VisualizerEnabled = settings.Current.VisualizerEnabled;
+            tray.SetVisualizerChecked(settings.Current.VisualizerEnabled);
+        };
 
         // Resuming from sleep/hibernate is the classic case where the loopback
         // capture comes back dead; re-arm it proactively rather than waiting for
@@ -96,6 +102,43 @@ public partial class App : Application
             // stays hidden until the first session resolves.
             _ = media.StartAsync();
         }
+
+        // Opened last, after a track exists: iterating on this window otherwise means
+        // a tray right-click on every rebuild, and the tray menu is awkward to script.
+        if (Environment.GetEnvironmentVariable("TMW_SETTINGS") == "1")
+            ShowSettings(theme, settings, autoStart, window);
+    }
+
+    /// <summary>
+    /// Opens the settings window, or brings the existing one forward.
+    /// </summary>
+    /// <remarks>
+    /// Created lazily and kept for the app's lifetime: a widget that mostly runs
+    /// untouched should not pay for a window nobody opens, and reopening a closed one
+    /// is cheap enough that caching a hidden instance would only add state to get
+    /// wrong.
+    /// </remarks>
+    private void ShowSettings(
+        Ui.Theme theme,
+        SettingsStore settings,
+        AutoStartService autoStart,
+        OverlayWindow window)
+    {
+        if (_settingsWindow is null)
+        {
+            _settingsWindow = new SettingsWindow(theme, settings, autoStart, window);
+
+            _settingsWindow.Closed += (_, _) => _settingsWindow = null;
+            _settingsWindow.Show();
+            return;
+        }
+
+        // Already open: restore it if minimised and pull it to the front rather than
+        // opening a second copy.
+        if (_settingsWindow.WindowState == WindowState.Minimized)
+            _settingsWindow.WindowState = WindowState.Normal;
+
+        _settingsWindow.Activate();
     }
 
     private void OnPowerModeChanged(object sender, PowerModeChangedEventArgs e)

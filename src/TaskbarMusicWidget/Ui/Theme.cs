@@ -88,6 +88,44 @@ internal sealed class Theme
     /// <summary>Whichever of the two backdrops matches the live theme.</summary>
     public Color BackdropEstimate { get; private set; } = DarkBackdrop;
 
+    // ---- Settings-window tokens -------------------------------------------
+    //
+    // The overlay paints onto real taskbar material and so needs almost no surface
+    // colours. A settings window is a normal window and needs the full set: WinUI's
+    // SolidBackgroundFillColorBase, CardBackgroundFillColorDefault,
+    // CardStrokeColorDefault, ControlAltFillColorSecondary and
+    // ControlStrongStrokeColorDefault, reproduced at their exact values for the same
+    // reason as the text tokens above.
+
+    /// <summary>Window backdrop (WinUI SolidBackgroundFillColorBase).</summary>
+    public Brush WindowBackground { get; private set; } = Brushes.White;
+
+    /// <summary>Settings-card fill (WinUI CardBackgroundFillColorDefault).</summary>
+    public Brush CardBackground { get; private set; } = Brushes.Transparent;
+
+    /// <summary>Settings-card border (WinUI CardStrokeColorDefault).</summary>
+    public Brush CardStroke { get; private set; } = Brushes.Transparent;
+
+    /// <summary>Toggle-switch fill when off (WinUI ControlAltFillColorSecondary).</summary>
+    public Brush ControlAltFill { get; private set; } = Brushes.Transparent;
+
+    /// <summary>Toggle-switch border and knob when off (WinUI ControlStrongStrokeColorDefault).</summary>
+    public Brush ControlStrongStroke { get; private set; } = Brushes.Gray;
+
+    /// <summary>The accent colour as a brush, for toggle switches that are on.</summary>
+    public Brush AccentFill { get; private set; } = Brushes.DodgerBlue;
+
+    /// <summary>
+    /// Foreground for content sitting on <see cref="AccentFill"/>.
+    /// </summary>
+    /// <remarks>
+    /// Not simply white: Windows uses black on light accents, and a user with a
+    /// yellow or lime accent gets an unreadable knob otherwise. Chosen by measuring
+    /// the accent's luminance rather than by guessing from the theme, because the
+    /// accent is independent of light/dark mode.
+    /// </remarks>
+    public Brush TextOnAccent { get; private set; } = Brushes.White;
+
     public Color Accent { get; private set; } = Color.FromRgb(0x00, 0x78, 0xD4);
 
     public event EventHandler? Changed;
@@ -125,6 +163,12 @@ internal sealed class Theme
             // Softer than the near-black text so the bars stay a quiet accent.
             BarDefault = Color.FromArgb(0x87, 0x00, 0x00, 0x00);
             BackdropEstimate = LightBackdrop;
+
+            WindowBackground = Frozen(0xFF, 0xF3, 0xF3, 0xF3);
+            CardBackground = Frozen(0xB3, 0xFF, 0xFF, 0xFF);
+            CardStroke = Frozen(0x0F, 0x00, 0x00, 0x00);
+            ControlAltFill = Frozen(0x06, 0x00, 0x00, 0x00);
+            ControlStrongStroke = Frozen(0x72, 0x00, 0x00, 0x00);
         }
         else
         {
@@ -136,7 +180,23 @@ internal sealed class Theme
             ArtPlaceholder = Frozen(0x14, 0xFF, 0xFF, 0xFF);
             BarDefault = Colors.White;
             BackdropEstimate = DarkBackdrop;
+
+            WindowBackground = Frozen(0xFF, 0x20, 0x20, 0x20);
+            CardBackground = Frozen(0x0D, 0xFF, 0xFF, 0xFF);
+            CardStroke = Frozen(0x1A, 0x00, 0x00, 0x00);
+            ControlAltFill = Frozen(0x1A, 0x00, 0x00, 0x00);
+            ControlStrongStroke = Frozen(0x8B, 0xFF, 0xFF, 0xFF);
         }
+
+        var accentBrush = new SolidColorBrush(Accent);
+        accentBrush.Freeze();
+        AccentFill = accentBrush;
+
+        // WCAG-style luminance split rather than a fixed white: Windows puts black on
+        // light accents, and a lime or yellow accent otherwise gets an invisible knob.
+        TextOnAccent = ColorMath.RelativeLuminance(Accent) > 0.45d
+            ? Frozen(0xFF, 0x00, 0x00, 0x00)
+            : Frozen(0xFF, 0xFF, 0xFF, 0xFF);
 
         DebugLog.Write($"theme: {(light ? "light" : "dark")} accent=#{Accent.R:X2}{Accent.G:X2}{Accent.B:X2}");
         Changed?.Invoke(this, EventArgs.Empty);

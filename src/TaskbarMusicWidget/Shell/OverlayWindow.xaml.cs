@@ -26,7 +26,7 @@ namespace TaskbarMusicWidget.Shell;
 /// any of it.
 /// </para>
 /// </summary>
-internal partial class OverlayWindow : Window
+internal partial class OverlayWindow : Window, IAlbumArtSource
 {
     /// <summary>Widget width in logical (DPI-independent) pixels.</summary>
     private const double WidgetLogicalWidth = 300d;
@@ -82,6 +82,15 @@ internal partial class OverlayWindow : Window
 
     /// <summary>Raised on right-click, so the host can show the tray menu.</summary>
     public event EventHandler? ContextMenuRequested;
+
+    /// <summary>
+    /// Art for the track on display, or null when nothing is playing. Lets the
+    /// settings window preview the album-art colour mode against the same cover the
+    /// widget is currently showing.
+    /// </summary>
+    public ImageSource? CurrentAlbumArt => _track?.AlbumArt;
+
+    public event EventHandler? AlbumArtChanged;
 
     public OverlayWindow(
         TaskbarTracker tracker,
@@ -273,6 +282,11 @@ internal partial class OverlayWindow : Window
     /// <summary>Applies a track to the view. Also the injection point for demo mode.</summary>
     internal void SetTrack(TrackInfo? track)
     {
+        // Compared before the assignment: metadata ticks arrive far more often than
+        // the track changes, and re-announcing the same cover would make the settings
+        // window re-extract its palette several times a second.
+        bool artChanged = !ReferenceEquals(_track?.AlbumArt, track?.AlbumArt);
+
         _track = track;
 
         bool hasArt = track?.AlbumArt is not null;
@@ -306,6 +320,9 @@ internal partial class OverlayWindow : Window
         // Nothing playing means nothing to show. Hiding entirely is better than
         // an empty shell, and it gives the taskbar its space back.
         Apply(_tracker.Current);
+
+        if (artChanged)
+            AlbumArtChanged?.Invoke(this, EventArgs.Empty);
     }
 
     /// <summary>

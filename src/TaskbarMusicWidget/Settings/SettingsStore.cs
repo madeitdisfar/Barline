@@ -40,6 +40,9 @@ internal sealed class SettingsStore
     /// </summary>
     public WidgetSettings Current { get; private set; }
 
+    /// <summary>Where the file lives, so the settings window can point users at it.</summary>
+    public string FilePath => _path;
+
     public event EventHandler? Changed;
 
     public SettingsStore()
@@ -64,6 +67,12 @@ internal sealed class SettingsStore
     {
         mutate(Current);
         Save();
+
+        DebugLog.Write(
+            $"settings updated: color={Current.VisualizerColor} " +
+            $"custom={Current.CustomBarColor ?? "(none)"} " +
+            $"visualizer={Current.VisualizerEnabled}");
+
         Changed?.Invoke(this, EventArgs.Empty);
     }
 

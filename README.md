@@ -23,26 +23,28 @@ Then build and run:
 dotnet run --project src/TaskbarMusicWidget
 ```
 
-Right-click the widget for **Start with Windows**, **Show visualizer**, **Visualizer color**, **Restart visualizer**, and **Exit**.
+Right-click the widget for **Settings**, **Show visualizer**, **Restart visualizer**, and **Exit**. The menu carries quick actions only; anything that is configuration rather than a one-off lives in the settings window, so no state is shown in two places where it can drift.
 
 The same menu is on the notification-area icon, though Windows 11 files new tray icons into the overflow (the `⌄` chevron) by default — drag it onto the taskbar to keep it visible. Right-clicking the widget is the more reliable route.
 
 ## Settings
 
-Settings live in `%LocalAppData%\TaskbarMusicWidget\settings.json`, written whenever you change something from the menu. A missing or malformed file falls back to defaults rather than failing to start, so it is safe to delete or hand-edit.
+Changes apply and persist immediately — there is no OK or Apply button, matching Windows 11 Settings, and the widget is on the taskbar the whole time so every change is already previewed where it counts.
 
-**Visualizer color** takes one of four values:
+The file lives at `%LocalAppData%\TaskbarMusicWidget\settings.json`. A missing or malformed file falls back to defaults rather than failing to start, so it is safe to delete or hand-edit, and it is written via a temp file and a swap so a crash mid-write cannot truncate it.
+
+**Bar color** takes one of four values:
 
 | Mode | Bars are… |
 |---|---|
 | `Default` | White on the dark taskbar, medium grey on the light one. |
 | `SystemAccent` | Your Windows accent color. |
 | `AlbumArt` | The dominant hue of the current cover, crossfading as tracks change. |
-| `Custom` | A fixed color from `CustomBarColor` (`#RRGGBB`, `#AARRGGBB` or a color name). |
-
-`Custom` has no menu entry yet — picking a color needs a picker, which is waiting on a settings window — but it works if you set it in the file.
+| `Custom` | A color you pick, from a hue palette or as `#RRGGBB` / `#AARRGGBB` / a color name. |
 
 Every mode except `Default` is **corrected for legibility** before it is drawn. The hue is the artwork's (or yours) to choose; the lightness is not. A dark navy cover on the dark taskbar or a pale yellow one on the light taskbar would otherwise paint bars that are technically colored and practically invisible, so the hue is kept and the lightness is pushed until the bars clear a 3:1 contrast ratio — WCAG's threshold for non-text graphics — against the taskbar. Saturation is held inside a band for the same reason, so a correction can neither bleach the hue to grey nor push it into neon. A cover with no usable hue at all, like a black-and-white sleeve, falls back to `Default` rather than inventing a tint.
+
+Because of that, the settings window shows each mode's **resolved** color and hex — what will actually be drawn, not what was picked — over a strip painted the same shade the correction measures against. Showing the picked color instead would misrepresent the whole feature.
 
 ## How it works
 
@@ -65,7 +67,7 @@ src/TaskbarMusicWidget/
 ├─ Media/        SMTC session handling and album art
 ├─ Audio/        WASAPI loopback capture and FFT
 ├─ Ui/           theme tokens, colour resolution, the visualiser control
-├─ Settings/     the persisted settings model and its JSON store
+├─ Settings/     the settings model, its JSON store, and the settings window
 ├─ Tray/         notification-area icon and menu
 ├─ Startup/      run-at-sign-in registration
 └─ Diagnostics/  opt-in logging, demo content
@@ -78,6 +80,7 @@ src/TaskbarMusicWidget/
 | `TMW_DEBUG=1` | Writes `%TEMP%\taskbar-music-widget.log` — taskbar state transitions, media sessions, and periodic visualiser band levels. |
 | `TMW_DEMO=1` | Shows a synthetic track with generated cover art instead of reading SMTC. |
 | `TMW_DEMO_TITLE` / `TMW_DEMO_ARTIST` | Override the demo track's title/artist (needs `TMW_DEMO=1`) — handy for checking the overflow fade at different text lengths. |
+| `TMW_SETTINGS=1` | Opens the settings window at startup, instead of right-clicking the tray on every rebuild. |
 
 `TMW_DEMO` exists because the widget hides itself when nothing is playing, which otherwise makes the design impossible to inspect on a quiet machine.
 
