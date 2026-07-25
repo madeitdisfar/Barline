@@ -20,6 +20,11 @@ x86/
 [Ll]og/
 [Ll]ogs/
 
+## Test output
+TestResults/
+*.trx
+*.coverage
+
 ## NuGet
 *.nupkg
 *.snupkg

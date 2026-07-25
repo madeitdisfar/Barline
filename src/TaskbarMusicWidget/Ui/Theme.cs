@@ -62,14 +62,14 @@ internal sealed class Theme
     public Color BarDefault { get; private set; } = Colors.White;
 
     /// <summary>
-    /// Approximate luminance of the taskbar material, for contrast checks.
+    /// Assumed luminance of the dark taskbar material, for contrast checks.
     /// </summary>
     /// <remarks>
     /// <para>
     /// The real backdrop is Mica over the wallpaper, so no single value is correct —
-    /// but a contrast floor needs something to measure against. These are pessimistic
-    /// rather than typical: the dark value is lighter than a normal dark taskbar
-    /// (~#1F1F1F) and the light value darker than a normal light one (~#F3F3F3).
+    /// but a contrast floor needs something to measure against. This is pessimistic
+    /// rather than typical: lighter than a normal dark taskbar, which measures around
+    /// #1F1F1F.
     /// </para>
     /// <para>
     /// Pessimistic in the direction that matters. Bars are corrected away from the
@@ -77,7 +77,16 @@ internal sealed class Theme
     /// makes every real case clear the floor by more than asked, never less.
     /// </para>
     /// </remarks>
-    public Color BackdropEstimate { get; private set; } = Color.FromRgb(0x2C, 0x2C, 0x2C);
+    public static readonly Color DarkBackdrop = Color.FromRgb(0x2C, 0x2C, 0x2C);
+
+    /// <summary>
+    /// Assumed luminance of the light taskbar material. Darker than a real light
+    /// taskbar (~#F3F3F3), for the same reason as <see cref="DarkBackdrop"/>.
+    /// </summary>
+    public static readonly Color LightBackdrop = Color.FromRgb(0xE6, 0xE6, 0xE6);
+
+    /// <summary>Whichever of the two backdrops matches the live theme.</summary>
+    public Color BackdropEstimate { get; private set; } = DarkBackdrop;
 
     public Color Accent { get; private set; } = Color.FromRgb(0x00, 0x78, 0xD4);
 
@@ -115,7 +124,7 @@ internal sealed class Theme
             ArtPlaceholder = Frozen(0x0F, 0x00, 0x00, 0x00);
             // Softer than the near-black text so the bars stay a quiet accent.
             BarDefault = Color.FromArgb(0x87, 0x00, 0x00, 0x00);
-            BackdropEstimate = Color.FromRgb(0xE6, 0xE6, 0xE6);
+            BackdropEstimate = LightBackdrop;
         }
         else
         {
@@ -126,7 +135,7 @@ internal sealed class Theme
             SubtlePressed = Frozen(0x0A, 0xFF, 0xFF, 0xFF);
             ArtPlaceholder = Frozen(0x14, 0xFF, 0xFF, 0xFF);
             BarDefault = Colors.White;
-            BackdropEstimate = Color.FromRgb(0x2C, 0x2C, 0x2C);
+            BackdropEstimate = DarkBackdrop;
         }
 
         DebugLog.Write($"theme: {(light ? "light" : "dark")} accent=#{Accent.R:X2}{Accent.G:X2}{Accent.B:X2}");

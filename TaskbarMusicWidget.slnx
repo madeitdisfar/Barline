@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/TaskbarMusicWidget/TaskbarMusicWidget.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/TaskbarMusicWidget.Tests/TaskbarMusicWidget.Tests.csproj" />
+  </Folder>
+</Solution>

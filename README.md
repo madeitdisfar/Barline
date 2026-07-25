@@ -59,6 +59,7 @@ Hovering crossfades the visualiser into previous / play-pause / next inside a fi
 ## Project layout
 
 ```
+tests/TaskbarMusicWidget.Tests/    colour maths, contrast floor, hue extraction
 src/TaskbarMusicWidget/
 ├─ Shell/        window hosting, taskbar tracking, Win32 interop
 ├─ Media/        SMTC session handling and album art
@@ -81,6 +82,20 @@ src/TaskbarMusicWidget/
 `TMW_DEMO` exists because the widget hides itself when nothing is playing, which otherwise makes the design impossible to inspect on a quiet machine.
 
 Debugging the window layer interactively is awkward — attaching a debugger changes foreground-window behaviour, which is often the thing being observed. Prefer the log.
+
+**Close the running widget before building.** It holds a lock on its own executable, and the build fails on the copy step rather than saying anything useful about why.
+
+## Tests
+
+```bash
+dotnet test
+```
+
+The window and audio layers are verified by observation — they are about real windowing and device behaviour, and a mock of either would only assert that the mock works. What *is* covered is the part with a guarantee attached: the colour maths, the contrast floor, and hue extraction from cover art.
+
+The contrast tests sweep 4536 hue/saturation/lightness inputs per theme and assert that anything with a hue to keep comes back clearing 3:1, that a real taskbar gets more headroom than the pessimistic estimate aims for, and that hue never moves by more than a few degrees. There are named cases for the ones that are easy to get wrong: saturated blue carries 7% of luminance and needs the most correction to be seen, a pale cover must not resolve to something indistinguishable from white, and a dark one must not paint near-black bars on the light taskbar.
+
+These tests were checked by mutation — each guarantee was deliberately broken to confirm a test fails. That found two that did not: the sweep tolerated a correction that gave up early (returning "uncorrectable" is legal there, so the assertion never ran), and the letterboxing test used pure black, which the saturation gate already rejects, so it never exercised the lightness gate it was named for. Both are now covered. If you tune the constants in `Legibility` or `AlbumArtPalette`, the suite is what tells you whether you have made bars that cannot be seen.
 
 ## Known limitations
 

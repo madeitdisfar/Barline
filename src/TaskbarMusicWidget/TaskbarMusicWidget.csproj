@@ -43,4 +43,12 @@
     <PackageReference Include="NAudio" Version="2.2.1" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- Everything in this app is internal, including the colour logic the tests
+         exist to pin down. Exposing internals to the test project keeps them that
+         way for consumers while letting the tests exercise the real assembly rather
+         than a second compilation of the same files. -->
+    <InternalsVisibleTo Include="TaskbarMusicWidget.Tests" />
+  </ItemGroup>
+
 </Project>
