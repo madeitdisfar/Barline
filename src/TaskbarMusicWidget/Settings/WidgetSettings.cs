@@ -46,6 +46,25 @@ internal enum LyricsDisplayMode
 }
 
 /// <summary>
+/// How the lyrics panel is styled. Every style sweeps word by word; they differ in
+/// the treatment around it.
+/// </summary>
+internal enum LyricsStyle
+{
+    /// <summary>The album art's colour on the system's acrylic. No effects.</summary>
+    Clean,
+
+    /// <summary>Adds a soft halo behind the current line, in the same colour.</summary>
+    Glow,
+
+    /// <summary>
+    /// Lime panel, black condensed lowercase — the flat, lo-fi album-cover look.
+    /// Named for what it is rather than for the record it evokes.
+    /// </summary>
+    Lime,
+}
+
+/// <summary>
 /// User settings, persisted as JSON. A plain mutable model: it is the shape of the
 /// file, and later the backing object for the settings window.
 /// </summary>
@@ -84,6 +103,9 @@ internal sealed class WidgetSettings
 
     /// <summary>Where lyrics are drawn, when they are enabled.</summary>
     public LyricsDisplayMode LyricsDisplay { get; set; } = LyricsDisplayMode.Inline;
+
+    /// <summary>How the lyrics panel is styled. Ignored in inline mode.</summary>
+    public LyricsStyle LyricsStyle { get; set; } = LyricsStyle.Clean;
 
     /// <summary>
     /// Whether to look up lyrics for what is playing.

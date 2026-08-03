@@ -35,18 +35,34 @@
                        Opacity="0.55"
                        Text="" />
 
-            <!-- Large enough to count as large text, which is what makes the 3:1
-                 contrast the colour correction guarantees the right bar for it. -->
-            <TextBlock x:Name="CurrentLine"
-                       Margin="0,3,0,3"
-                       FontSize="20"
-                       FontWeight="SemiBold"
-                       LineHeight="26"
-                       LineStackingStrategy="BlockLineHeight"
-                       TextTrimming="CharacterEllipsis"
-                       TextWrapping="Wrap"
-                       MaxHeight="52"
-                       Text="" />
+            <!-- Two layers, exactly overlaid. The halo is the whole line, blurred and
+                 static, so it can be bitmap-cached and rasterised once per line — an
+                 effect on the live text would be re-rendered every frame as the word
+                 highlight moves. Only used by the styles that want one. -->
+            <Grid Margin="0,3,0,3">
+                <TextBlock x:Name="HaloLine"
+                           FontSize="20"
+                           FontWeight="SemiBold"
+                           LineHeight="26"
+                           LineStackingStrategy="BlockLineHeight"
+                           TextTrimming="CharacterEllipsis"
+                           TextWrapping="Wrap"
+                           MaxHeight="52"
+                           CacheMode="BitmapCache"
+                           Visibility="Collapsed"
+                           Text="" />
+
+                <!-- Large enough to count as large text, which is what makes the 3:1
+                     contrast the colour correction guarantees the right bar for it. -->
+                <TextBlock x:Name="CurrentLine"
+                           FontSize="20"
+                           FontWeight="SemiBold"
+                           LineHeight="26"
+                           LineStackingStrategy="BlockLineHeight"
+                           TextTrimming="CharacterEllipsis"
+                           TextWrapping="Wrap"
+                           MaxHeight="52" />
+            </Grid>
 
             <TextBlock x:Name="NextLine"
                        FontSize="13"

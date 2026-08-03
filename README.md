@@ -67,6 +67,22 @@ The panel uses Windows' own **acrylic material** rather than trying to adapt to 
 
 The current line is drawn in the album art's colour, at a size that qualifies as large text — which is what makes the 3:1 ratio the correction guarantees the right threshold for it. The panel never takes input: clicks pass straight through to whatever is behind, and it is owned by the taskbar, so it hides for fullscreen apps and slides away with auto-hide by the same mechanism the widget does.
 
+### Word by word
+
+The panel highlights each word as it is sung. No free source carries word-level timing, so it is inferred: the line's span is divided by **syllable count**, which tracks singing time far better than character count — *strength* and *a potato* are the same length and nothing alike to sing. Vowel-group counting is an English heuristic, so scripts that write a syllable per character (Hangul, kana, CJK) are counted that way instead; otherwise a Korean line would come back as one syllable per word and the sweep would be worthless. A file that carries real word timings always overrides the estimate.
+
+Aligning the words to the audio properly was considered and rejected — not because it is slow, but because it is **causal**. A forced aligner cannot know where a word lands until after it has been sung, so using one would mean running the lyrics behind the music, which defeats the point at any speed.
+
+Three styles, all of which sweep:
+
+| Style | Look |
+|---|---|
+| `Clean` | The album art's colour on acrylic. No effects. |
+| `Glow` | Adds a soft halo behind the current line. |
+| `Lime` | Flat lime panel, condensed black lowercase — the lo-fi album-cover look. |
+
+Effects are carried on a **separate, bitmap-cached layer** behind the live text rather than on the text itself. An effect on the text would be re-rendered every frame as the highlight moves; on a static layer it rasterises once per line. Measured with the visualiser and the sweep both running, the whole widget sits near 2% CPU, so there is no performance trade-off to warn about.
+
 LRCLIB was chosen because it is the only free source serving timed lyrics with no API key, no paid tier, and no terms forbidding this use. It is run at no charge for exactly this purpose, which is a reason to be a careful client: **every result is cached to disk, misses included**, so a track is fetched once rather than once per play. Misses expire after two weeks, since the database grows and today's gap may be filled next month.
 
 Matching is the hard part, not coverage. Spotify reports `Creep - Remastered 2011` and a browser reports `Creep (Official Video)`; neither string is filed under that name anywhere. Lookups therefore widen in stages — the name exactly as reported first, since stripping is a guess and a track really can be called `Live`, then with packaging removed, then with only the first credited artist, and finally a duration-matched search that tolerates a source reporting the length a second or two out.

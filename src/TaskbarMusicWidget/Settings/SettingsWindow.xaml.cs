@@ -59,6 +59,8 @@ internal partial class SettingsWindow : Window
 
     private readonly Dictionary<LyricsDisplayMode, RadioButton> _lyricsDisplayOptions;
 
+    private readonly Dictionary<LyricsStyle, RadioButton> _lyricsStyleOptions;
+
     /// <summary>
     /// Set while the UI is being rebuilt from the settings, so the control events
     /// fired by that rebuild do not write back and re-enter.
@@ -124,6 +126,16 @@ internal partial class SettingsWindow : Window
 
         foreach (var (mode, option) in _lyricsDisplayOptions)
             option.Checked += (_, _) => OnLyricsDisplayChosen(mode);
+
+        _lyricsStyleOptions = new Dictionary<LyricsStyle, RadioButton>
+        {
+            [LyricsStyle.Clean] = CleanStyleOption,
+            [LyricsStyle.Glow] = GlowStyleOption,
+            [LyricsStyle.Lime] = LimeStyleOption,
+        };
+
+        foreach (var (style, option) in _lyricsStyleOptions)
+            option.Checked += (_, _) => OnLyricsStyleChosen(style);
 
         AutoStartToggle.Checked += (_, _) => OnAutoStartToggled(true);
         AutoStartToggle.Unchecked += (_, _) => OnAutoStartToggled(false);
@@ -237,11 +249,14 @@ internal partial class SettingsWindow : Window
             VisualizerToggle.IsChecked = current.VisualizerEnabled;
             LyricsToggle.IsChecked = current.LyricsEnabled;
             _lyricsDisplayOptions[current.LyricsDisplay].IsChecked = true;
+            _lyricsStyleOptions[current.LyricsStyle].IsChecked = true;
 
             // Where to put lyrics is only a question once there are any.
             LyricsPlacementCard.Visibility = current.LyricsEnabled
                 ? Visibility.Visible
                 : Visibility.Collapsed;
+
+            UpdateStyleRowVisibility();
             AutoStartToggle.IsChecked = _autoStart.IsEnabled;
 
             PreviewBars.BarCount = current.VisualizerBarCount;
@@ -373,7 +388,32 @@ internal partial class SettingsWindow : Window
     private void OnLyricsDisplayChosen(LyricsDisplayMode mode)
     {
         if (_syncing) return;
-        WithoutFeedback(() => _settings.Update(s => s.LyricsDisplay = mode));
+
+        WithoutFeedback(() =>
+        {
+            _settings.Update(s => s.LyricsDisplay = mode);
+            UpdateStyleRowVisibility();
+        });
+    }
+
+    private void OnLyricsStyleChosen(LyricsStyle style)
+    {
+        if (_syncing) return;
+        WithoutFeedback(() => _settings.Update(s => s.LyricsStyle = style));
+    }
+
+    /// <summary>
+    /// Style only applies to the panel, so offering it alongside the inline mode
+    /// would be a control that visibly does nothing.
+    /// </summary>
+    private void UpdateStyleRowVisibility()
+    {
+        var visible = _settings.Current.LyricsDisplay == LyricsDisplayMode.Panel
+            ? Visibility.Visible
+            : Visibility.Collapsed;
+
+        StyleRow.Visibility = visible;
+        StyleDivider.Visibility = visible;
     }
 
     private void OnAutoStartToggled(bool enabled)
