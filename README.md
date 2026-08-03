@@ -54,7 +54,18 @@ Because of that, the settings window shows each mode's **resolved** color and he
 
 **Off by default.** A lookup sends the track's title and artist to [LRCLIB](https://lrclib.net), so it is opt-in rather than something the widget starts doing on its own. Turn it on under **Lyrics → Show lyrics**.
 
-When a track has timed lyrics, the current line replaces the title and artist; hovering the widget brings the title back. Instrumental gaps are timed too, and during one the title returns rather than the previous line hanging around.
+There are two places to put them:
+
+| Mode | Where |
+|---|---|
+| `Inline` | In the widget itself, replacing the title until you hover it. Costs no extra window, but the reserved width is about 150px — twenty-five characters — so a long line is cut short. |
+| `Panel` | A panel floating just above the taskbar, showing the line before and after as well. |
+
+Inline, instrumental gaps are timed too, and during one the title returns rather than the previous line hanging around.
+
+The panel uses Windows' own **acrylic material** rather than trying to adapt to the desktop behind it. Sampling the screen would cost a capture every frame and is self-referential — the window would capture itself — whereas the compositor blurs and tints for free on the GPU, and bounds the luminance the text has to survive to roughly the same range the taskbar occupies. That means the same contrast correction the bars use applies unchanged, and the panel reads as a system surface. Where the material is unavailable (before Windows 11 22H2) it paints a solid panel of the same shade instead, so the contrast guarantee holds either way.
+
+The current line is drawn in the album art's colour, at a size that qualifies as large text — which is what makes the 3:1 ratio the correction guarantees the right threshold for it. The panel never takes input: clicks pass straight through to whatever is behind, and it is owned by the taskbar, so it hides for fullscreen apps and slides away with auto-hide by the same mechanism the widget does.
 
 LRCLIB was chosen because it is the only free source serving timed lyrics with no API key, no paid tier, and no terms forbidding this use. It is run at no charge for exactly this purpose, which is a reason to be a careful client: **every result is cached to disk, misses included**, so a track is fetched once rather than once per play. Misses expire after two weeks, since the database grows and today's gap may be filled next month.
 

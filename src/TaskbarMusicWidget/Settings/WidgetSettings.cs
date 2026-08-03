@@ -27,6 +27,25 @@ internal enum VisualizerColorMode
 }
 
 /// <summary>
+/// Where the current lyric line is drawn.
+/// </summary>
+internal enum LyricsDisplayMode
+{
+    /// <summary>
+    /// In the widget's own text area, replacing the title until hovered. Costs no
+    /// extra window and no extra pixels, but the reserved width is about 150px —
+    /// twenty-five characters — so a long line is cut short.
+    /// </summary>
+    Inline,
+
+    /// <summary>
+    /// A panel floating just above the taskbar, with room for the line before and
+    /// after. Reads far better; costs a second window.
+    /// </summary>
+    Panel,
+}
+
+/// <summary>
 /// User settings, persisted as JSON. A plain mutable model: it is the shape of the
 /// file, and later the backing object for the settings window.
 /// </summary>
@@ -62,6 +81,9 @@ internal sealed class WidgetSettings
     /// visualiser off did not survive a restart.
     /// </summary>
     public bool VisualizerEnabled { get; set; } = true;
+
+    /// <summary>Where lyrics are drawn, when they are enabled.</summary>
+    public LyricsDisplayMode LyricsDisplay { get; set; } = LyricsDisplayMode.Inline;
 
     /// <summary>
     /// Whether to look up lyrics for what is playing.

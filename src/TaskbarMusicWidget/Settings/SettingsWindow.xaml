@@ -611,6 +611,45 @@
                 </Grid>
             </Border>
 
+            <Border x:Name="LyricsPlacementCard"
+                    Style="{StaticResource Card}"
+                    Margin="0,12,0,0"
+                    Visibility="Collapsed">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                        <TextBlock Style="{StaticResource CardLabel}" Text="Where to show them" />
+                        <TextBlock Style="{StaticResource CardDescription}"
+                                   Text="The widget has room for about 25 characters. The panel floats above the taskbar with the lines either side, and never takes clicks." />
+                    </StackPanel>
+
+                    <Border Grid.Column="1"
+                            Margin="16,0,0,0"
+                            CornerRadius="4"
+                            Padding="2"
+                            VerticalAlignment="Center"
+                            Background="{DynamicResource ControlAltFillBrush}"
+                            BorderBrush="{DynamicResource CardStrokeBrush}"
+                            BorderThickness="1"
+                            SnapsToDevicePixels="True">
+                        <UniformGrid Rows="1">
+                            <RadioButton x:Name="InlineOption"
+                                         GroupName="LyricsDisplay"
+                                         Style="{StaticResource SegmentOption}"
+                                         Content="In widget" />
+                            <RadioButton x:Name="PanelOption"
+                                         GroupName="LyricsDisplay"
+                                         Style="{StaticResource SegmentOption}"
+                                         Content="Panel" />
+                        </UniformGrid>
+                    </Border>
+                </Grid>
+            </Border>
+
             <!-- === Widget === -->
 
             <TextBlock Style="{StaticResource SectionHeader}" Text="Widget" />

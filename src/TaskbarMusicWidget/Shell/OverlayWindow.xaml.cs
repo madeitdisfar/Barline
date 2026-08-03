@@ -152,6 +152,14 @@ internal partial class OverlayWindow : Window, IAlbumArtSource
         {
             ApplyBarColor();
             ApplyBarCount();
+
+            // Turning lyrics on mid-track has to start a lookup that would otherwise
+            // not happen until the next song, and turning them off has to take the
+            // panel down — which the poll cannot do, because switching off is exactly
+            // what stops the poll. Both are handled here, before polling is reassessed.
+            _lyrics.SetTrack(_track, _media.Clock.Duration);
+            UpdateLyricLine();
+            UpdateLyricPolling();
         };
 
         // Fix the text area to the real available width so its clip and fade mask
@@ -347,6 +355,7 @@ internal partial class OverlayWindow : Window, IAlbumArtSource
         // The clock is anchored by the session service before this runs, so the
         // duration is already the new track's.
         _lyrics.SetTrack(track, _media.Clock.Duration);
+        _panel?.OnTrackChanged();
         UpdateLyricLine();
         UpdateLyricPolling();
 
@@ -445,9 +454,18 @@ internal partial class OverlayWindow : Window, IAlbumArtSource
     /// Runs the poll only while it can change something: timed lyrics, playing, and
     /// visible. A paused or lyric-less widget costs nothing.
     /// </summary>
+    private LyricsPanel? _panel;
+
+    /// <summary>
+    /// Hands the widget the panel to drive. Both need the same poll and the same
+    /// position, so one timer serves them rather than each running its own.
+    /// </summary>
+    public void AttachPanel(LyricsPanel panel) => _panel = panel;
+
     private void UpdateLyricPolling()
     {
         bool wanted =
+            _settings.Current.LyricsEnabled &&
             _lyrics.Current.IsSynced &&
             !_lyrics.Current.IsEmpty &&
             _track?.IsPlaying == true;
@@ -462,11 +480,16 @@ internal partial class OverlayWindow : Window, IAlbumArtSource
     {
         var document = _lyrics.Current;
 
+        _panel?.Update(_track?.IsPlaying == true);
+
         string line = string.Empty;
 
-        // Only timed lyrics can follow playback. A plain-text set is left to the
-        // settings window rather than shown here a line at a time out of step.
-        if (document.IsSynced && _media.Clock.IsUsable)
+        // Only timed lyrics can follow playback, and only the inline mode draws them
+        // here — in panel mode the widget keeps showing the title.
+        if (document.IsSynced &&
+            _media.Clock.IsUsable &&
+            _settings.Current.LyricsEnabled &&
+            _settings.Current.LyricsDisplay == LyricsDisplayMode.Inline)
         {
             int index = document.IndexAt(_media.Clock.PositionAt(DateTimeOffset.UtcNow));
             if (index >= 0) line = document.Lines[index].Text;

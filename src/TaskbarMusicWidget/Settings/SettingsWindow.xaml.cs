@@ -57,6 +57,8 @@ internal partial class SettingsWindow : Window
     /// </remarks>
     private readonly Dictionary<int, RadioButton> _barCountOptions;
 
+    private readonly Dictionary<LyricsDisplayMode, RadioButton> _lyricsDisplayOptions;
+
     /// <summary>
     /// Set while the UI is being rebuilt from the settings, so the control events
     /// fired by that rebuild do not write back and re-enter.
@@ -113,6 +115,15 @@ internal partial class SettingsWindow : Window
 
         LyricsToggle.Checked += (_, _) => OnLyricsToggled(true);
         LyricsToggle.Unchecked += (_, _) => OnLyricsToggled(false);
+
+        _lyricsDisplayOptions = new Dictionary<LyricsDisplayMode, RadioButton>
+        {
+            [LyricsDisplayMode.Inline] = InlineOption,
+            [LyricsDisplayMode.Panel] = PanelOption,
+        };
+
+        foreach (var (mode, option) in _lyricsDisplayOptions)
+            option.Checked += (_, _) => OnLyricsDisplayChosen(mode);
 
         AutoStartToggle.Checked += (_, _) => OnAutoStartToggled(true);
         AutoStartToggle.Unchecked += (_, _) => OnAutoStartToggled(false);
@@ -225,6 +236,12 @@ internal partial class SettingsWindow : Window
             _barCountOptions[current.VisualizerBarCount].IsChecked = true;
             VisualizerToggle.IsChecked = current.VisualizerEnabled;
             LyricsToggle.IsChecked = current.LyricsEnabled;
+            _lyricsDisplayOptions[current.LyricsDisplay].IsChecked = true;
+
+            // Where to put lyrics is only a question once there are any.
+            LyricsPlacementCard.Visibility = current.LyricsEnabled
+                ? Visibility.Visible
+                : Visibility.Collapsed;
             AutoStartToggle.IsChecked = _autoStart.IsEnabled;
 
             PreviewBars.BarCount = current.VisualizerBarCount;
@@ -342,7 +359,21 @@ internal partial class SettingsWindow : Window
     private void OnLyricsToggled(bool enabled)
     {
         if (_syncing) return;
-        WithoutFeedback(() => _settings.Update(s => s.LyricsEnabled = enabled));
+
+        WithoutFeedback(() =>
+        {
+            _settings.Update(s => s.LyricsEnabled = enabled);
+
+            LyricsPlacementCard.Visibility = enabled
+                ? Visibility.Visible
+                : Visibility.Collapsed;
+        });
+    }
+
+    private void OnLyricsDisplayChosen(LyricsDisplayMode mode)
+    {
+        if (_syncing) return;
+        WithoutFeedback(() => _settings.Update(s => s.LyricsDisplay = mode));
     }
 
     private void OnAutoStartToggled(bool enabled)

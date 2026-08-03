@@ -85,6 +85,13 @@ public partial class App : Application
         // Show first so the HWND exists and OnSourceInitialized can apply the
         // extended styles, then start tracking — the first Changed event places it.
         window.Show();
+
+        // Same pattern: shown so the handle exists, then it hides itself until there
+        // is a lyric to put in it.
+        var panel = new LyricsPanel(tracker, media, theme, settings, lyrics);
+        panel.Show();
+        window.AttachPanel(panel);
+
         tracker.Start();
 
         // Left running for the app's lifetime: WASAPI raises no callbacks during
