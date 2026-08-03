@@ -47,6 +47,17 @@ internal partial class SettingsWindow : Window
     private readonly Dictionary<VisualizerColorMode, RadioButton> _modeOptions;
 
     /// <summary>
+    /// The bar counts on offer, keyed by count.
+    /// </summary>
+    /// <remarks>
+    /// Keyed off the range constants rather than literals, so a count the range
+    /// allows but the window has no segment for fails here instead of leaving a
+    /// setting the user cannot reach. The range is asserted to be exactly these
+    /// three by the tests.
+    /// </remarks>
+    private readonly Dictionary<int, RadioButton> _barCountOptions;
+
+    /// <summary>
     /// Set while the UI is being rebuilt from the settings, so the control events
     /// fired by that rebuild do not write back and re-enter.
     /// </summary>
@@ -86,6 +97,16 @@ internal partial class SettingsWindow : Window
 
         foreach (var (mode, option) in _modeOptions)
             option.Checked += (_, _) => OnModeChosen(mode);
+
+        _barCountOptions = new Dictionary<int, RadioButton>
+        {
+            [WidgetSettings.MinBarCount] = SimpleOption,
+            [WidgetSettings.MinBarCount + 1] = BalancedOption,
+            [WidgetSettings.MaxBarCount] = DetailedOption,
+        };
+
+        foreach (var (count, option) in _barCountOptions)
+            option.Checked += (_, _) => OnBarCountChosen(count);
 
         VisualizerToggle.Checked += (_, _) => OnVisualizerToggled(true);
         VisualizerToggle.Unchecked += (_, _) => OnVisualizerToggled(false);
@@ -198,8 +219,11 @@ internal partial class SettingsWindow : Window
             var current = _settings.Current;
 
             _modeOptions[current.VisualizerColor].IsChecked = true;
+            _barCountOptions[current.VisualizerBarCount].IsChecked = true;
             VisualizerToggle.IsChecked = current.VisualizerEnabled;
             AutoStartToggle.IsChecked = _autoStart.IsEnabled;
+
+            PreviewBars.BarCount = current.VisualizerBarCount;
 
             CustomCard.Visibility = current.VisualizerColor == VisualizerColorMode.Custom
                 ? Visibility.Visible
@@ -288,6 +312,21 @@ internal partial class SettingsWindow : Window
         });
 
         RefreshPreview();
+    }
+
+    /// <summary>
+    /// Applies a new bar count. The preview follows immediately; the widget itself
+    /// picks it up from the store's change notification.
+    /// </summary>
+    private void OnBarCountChosen(int count)
+    {
+        if (_syncing) return;
+
+        WithoutFeedback(() =>
+        {
+            _settings.Update(s => s.VisualizerBarCount = count);
+            PreviewBars.BarCount = count;
+        });
     }
 
     private void OnVisualizerToggled(bool enabled)

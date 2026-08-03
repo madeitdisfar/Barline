@@ -4,7 +4,7 @@
         xmlns:ui="clr-namespace:TaskbarMusicWidget.Ui"
         x:ClassModifier="internal"
         Title="Taskbar Music Widget"
-        Width="560" Height="700"
+        Width="560" Height="805"
         MinWidth="460" MinHeight="420"
         WindowStartupLocation="CenterScreen"
         UseLayoutRounding="True"
@@ -191,6 +191,50 @@
                                 <Setter TargetName="Hover" Property="Background"
                                         Value="{DynamicResource SubtleHoverBrush}" />
                             </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- One segment of the bar-count selector. A segmented control rather than a
+             third stack of radio rows: the counts are points on a scale, which a row
+             of segments shows and a vertical list does not, and it keeps the page
+             short enough that the default view still needs no scrolling. -->
+        <Style x:Key="SegmentOption" TargetType="RadioButton">
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="RadioButton">
+                        <Border x:Name="Fill"
+                                CornerRadius="3"
+                                Background="Transparent"
+                                Padding="14,5"
+                                SnapsToDevicePixels="True">
+                            <TextBlock x:Name="Label"
+                                       Text="{TemplateBinding Content}"
+                                       HorizontalAlignment="Center"
+                                       FontFamily="Segoe UI Variable Text, Segoe UI"
+                                       FontSize="12"
+                                       Foreground="{DynamicResource TextPrimaryBrush}" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Fill" Property="Background"
+                                        Value="{DynamicResource AccentFillBrush}" />
+                                <Setter TargetName="Label" Property="Foreground"
+                                        Value="{DynamicResource TextOnAccentBrush}" />
+                            </Trigger>
+                            <!-- Hover only while unselected, so it cannot wash out the
+                                 accent fill on the segment already chosen. -->
+                            <MultiTrigger>
+                                <MultiTrigger.Conditions>
+                                    <Condition Property="IsMouseOver" Value="True" />
+                                    <Condition Property="IsChecked" Value="False" />
+                                </MultiTrigger.Conditions>
+                                <Setter TargetName="Fill" Property="Background"
+                                        Value="{DynamicResource SubtleHoverBrush}" />
+                            </MultiTrigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
@@ -387,6 +431,48 @@
                                        VerticalAlignment="Center" />
                     </Border>
                 </StackPanel>
+            </Border>
+
+            <!-- === Bar count === -->
+
+            <Border Style="{StaticResource Card}" Margin="0,8,0,0">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                        <TextBlock Style="{StaticResource CardLabel}" Text="Bars" />
+                        <TextBlock Style="{StaticResource CardDescription}"
+                                   Text="More bars show more of the spectrum. They divide a fixed width, so the widget never grows — the bars get thinner." />
+                    </StackPanel>
+
+                    <Border Grid.Column="1"
+                            Margin="16,0,0,0"
+                            CornerRadius="4"
+                            Padding="2"
+                            VerticalAlignment="Center"
+                            Background="{DynamicResource ControlAltFillBrush}"
+                            BorderBrush="{DynamicResource CardStrokeBrush}"
+                            BorderThickness="1"
+                            SnapsToDevicePixels="True">
+                        <UniformGrid Rows="1">
+                            <RadioButton x:Name="SimpleOption"
+                                         GroupName="BarCount"
+                                         Style="{StaticResource SegmentOption}"
+                                         Content="Simple" />
+                            <RadioButton x:Name="BalancedOption"
+                                         GroupName="BarCount"
+                                         Style="{StaticResource SegmentOption}"
+                                         Content="Balanced" />
+                            <RadioButton x:Name="DetailedOption"
+                                         GroupName="BarCount"
+                                         Style="{StaticResource SegmentOption}"
+                                         Content="Detailed" />
+                        </UniformGrid>
+                    </Border>
+                </Grid>
             </Border>
 
             <!-- === Bar colour === -->

@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using NAudio.Dsp;
 using TaskbarMusicWidget.Diagnostics;
+using TaskbarMusicWidget.Settings;
 
 namespace TaskbarMusicWidget.Audio;
 
@@ -21,55 +22,128 @@ namespace TaskbarMusicWidget.Audio;
 /// </remarks>
 internal sealed class SpectrumProcessor
 {
-    public const int BandCount = 4;
-
     /// <summary>1024 samples ≈ 21ms at 48kHz — responsive without being jittery.</summary>
-    private const int FftSize = 1024;
+    internal const int FftSize = 1024;
     private const int FftOrder = 10;   // 2^10 == FftSize
 
     /// <summary>
-    /// Frequency span and dB window for each bar.
+    /// Span the bars cover. Below 40Hz is mostly rumble the speakers cannot
+    /// reproduce; above ~10kHz there is rarely enough energy to move a bar.
+    /// </summary>
+    private const double LowestHz = 40d;
+    private const double HighestHz = 10240d;
+
+    /// <summary>Width of the covered span, in octaves — exactly 8.</summary>
+    private const double TotalOctaves = 8d;
+
+    /// <summary>
+    /// Where each band's dB window sits, as a function of its centre frequency in
+    /// octaves above <see cref="LowestHz"/>.
     /// </summary>
     /// <remarks>
     /// <para>
-    /// Every band gets its own floor and ceiling rather than sharing one window
-    /// with a gain multiplier. Measured against real music, the bands sit about
-    /// 30dB apart — bass around -28dBFS, treble around -58dBFS — so a shared
-    /// window pinned the bass bar near 0.7 with only ~4dB of visible swing while
-    /// the treble bar repeatedly bottomed out at zero.
+    /// Every band gets its own floor and ceiling rather than sharing one window with
+    /// a gain multiplier. Measured against real music the bands sit about 30dB apart
+    /// — bass around -28dBFS, treble around -58dBFS — so a shared window pinned the
+    /// bass bar near 0.7 with only ~4dB of visible swing while the treble bar
+    /// repeatedly bottomed out at zero.
     /// </para>
     /// <para>
-    /// Each window is centred on that band's typical level and kept deliberately
-    /// narrow, so ordinary programme material spans most of the bar's travel
-    /// instead of a sliver of it. Silence still falls below every floor and lets
-    /// all four settle to rest.
+    /// These four constants are a least-squares fit through the four windows that
+    /// were originally measured by hand, which is what lets the band count vary at
+    /// all: a table only describes the count it was measured for. The fit
+    /// reproduces the measured windows to within 2dB — a tenth of a window, and
+    /// only at one band's floor — so the default four bars behave as before.
+    /// </para>
+    /// <para>
+    /// It generalises to other counts because <see cref="Compute"/> takes the RMS
+    /// across a band's bins, which is average power per bin — a spectral density,
+    /// not a total. Narrowing a band therefore does not systematically lower its
+    /// level, so the same trend line holds however finely the span is cut.
     /// </para>
     /// </remarks>
-    private static readonly (double LowHz, double HighHz, double FloorDb, double CeilingDb)[] Bands =
-    [
-        (40d, 160d, -42d, -22d),
-        (160d, 640d, -50d, -32d),
-        (640d, 2560d, -62d, -40d),
-        (2560d, 10240d, -68d, -48d),
-    ];
+    private const double FloorDbAtLowest = -37.5d;
+    private const double FloorDbPerOctave = -4.5d;
+    private const double CeilingDbAtLowest = -18.3d;
+    private const double CeilingDbPerOctave = -4.3d;
 
     private readonly float[] _buffer = new float[FftSize];
     private readonly float[] _hann = new float[FftSize];
     private readonly Complex[] _fft = new Complex[FftSize];
-    private readonly double[] _bands = new double[BandCount];
-    private readonly double[] _decibels = new double[BandCount];
     private readonly object _gate = new();
+
+    private Band[] _plan;
+    private double[] _bands;
+    private double[] _decibels;
+    private int _bandCount;
+
+    internal readonly record struct Band(double LowHz, double HighHz, double FloorDb, double CeilingDb);
 
     // Tuning aid: band levels are only meaningful against real music, so the raw
     // dB and mapped level are sampled periodically when TMW_DEBUG is on.
     private readonly Stopwatch _logThrottle = Stopwatch.StartNew();
 
-    public SpectrumProcessor()
+    public SpectrumProcessor(int bandCount = WidgetSettings.DefaultBarCount)
     {
         // Hann window: without it, the discontinuity at the frame edges smears
         // energy across every bin and the bands all move together.
         for (int i = 0; i < FftSize; i++)
             _hann[i] = (float)(0.5d * (1d - Math.Cos(2d * Math.PI * i / (FftSize - 1))));
+
+        _bandCount = bandCount;
+        _plan = BuildPlan(bandCount);
+        _bands = new double[bandCount];
+        _decibels = new double[bandCount];
+    }
+
+    /// <summary>
+    /// How many bands the spectrum is split into. Follows the bar count, so the
+    /// bars are always fed a band each.
+    /// </summary>
+    public int BandCount
+    {
+        get { lock (_gate) return _bandCount; }
+        set
+        {
+            lock (_gate)
+            {
+                if (_bandCount == value) return;
+
+                _bandCount = value;
+                _plan = BuildPlan(value);
+                _bands = new double[value];
+                _decibels = new double[value];
+            }
+        }
+    }
+
+    /// <summary>
+    /// Divides the covered span into equal slices in octaves, and gives each one a
+    /// dB window from the fitted trend.
+    /// </summary>
+    /// <remarks>
+    /// Equal in octaves rather than in hertz because pitch is perceived
+    /// logarithmically; linear slices would put all but the first in territory music
+    /// barely occupies, and those bars would sit still.
+    /// </remarks>
+    internal static Band[] BuildPlan(int bandCount)
+    {
+        var plan = new Band[bandCount];
+
+        for (int b = 0; b < bandCount; b++)
+        {
+            double lowHz = LowestHz * Math.Pow(2d, TotalOctaves * b / bandCount);
+            double highHz = LowestHz * Math.Pow(2d, TotalOctaves * (b + 1) / bandCount);
+            double centreOctave = TotalOctaves * (b + 0.5d) / bandCount;
+
+            plan[b] = new Band(
+                lowHz,
+                highHz,
+                FloorDbAtLowest + (FloorDbPerOctave * centreOctave),
+                CeilingDbAtLowest + (CeilingDbPerOctave * centreOctave));
+        }
+
+        return plan;
     }
 
     /// <summary>Appends mono samples and recomputes the bands.</summary>
@@ -103,9 +177,9 @@ internal sealed class SpectrumProcessor
 
         lock (_gate)
         {
-            for (int b = 0; b < BandCount; b++)
+            for (int b = 0; b < _bandCount; b++)
             {
-                var (lowHz, highHz, floorDb, ceilingDb) = Bands[b];
+                var (lowHz, highHz, floorDb, ceilingDb) = _plan[b];
 
                 int lowBin = Math.Max(1, (int)(lowHz / binHz));
                 int highBin = Math.Min(nyquistBin - 1, (int)(highHz / binHz));
@@ -132,10 +206,9 @@ internal sealed class SpectrumProcessor
             if (_logThrottle.ElapsedMilliseconds >= 400)
             {
                 _logThrottle.Restart();
-                DebugLog.Write(string.Format(
-                    "bands dB=[{0,6:F1} {1,6:F1} {2,6:F1} {3,6:F1}] lvl=[{4:F2} {5:F2} {6:F2} {7:F2}]",
-                    _decibels[0], _decibels[1], _decibels[2], _decibels[3],
-                    _bands[0], _bands[1], _bands[2], _bands[3]));
+                DebugLog.Write(
+                    $"bands dB=[{string.Join(' ', _decibels.Select(d => d.ToString("F1").PadLeft(6)))}] " +
+                    $"lvl=[{string.Join(' ', _bands.Select(l => l.ToString("F2")))}]");
             }
         }
     }
@@ -145,7 +218,7 @@ internal sealed class SpectrumProcessor
     {
         lock (_gate)
         {
-            int n = Math.Min(destination.Length, BandCount);
+            int n = Math.Min(destination.Length, _bandCount);
             for (int i = 0; i < n; i++)
                 destination[i] = _bands[i];
         }

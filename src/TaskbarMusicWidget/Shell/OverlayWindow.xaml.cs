@@ -126,6 +126,8 @@ internal partial class OverlayWindow : Window, IAlbumArtSource
         // visualiser never sees its colour change and needs no notification.
         Bars.BarBrush = _barColor.Brush;
 
+        ApplyBarCount();
+
         PreviousButton.Click += (_, _) => _ = _media.SkipPreviousAsync();
         PlayPauseButton.Click += (_, _) => _ = _media.TogglePlayPauseAsync();
         NextButton.Click += (_, _) => _ = _media.SkipNextAsync();
@@ -133,7 +135,11 @@ internal partial class OverlayWindow : Window, IAlbumArtSource
         _tracker.Changed += (_, state) => Apply(state);
         _media.TrackChanged += (_, track) => SetTrack(track);
         _theme.Changed += (_, _) => ApplyTheme();
-        _settings.Changed += (_, _) => ApplyBarColor();
+        _settings.Changed += (_, _) =>
+        {
+            ApplyBarColor();
+            ApplyBarCount();
+        };
 
         // Fix the text area to the real available width so its clip and fade mask
         // map to the visible region (the lines inside render full-width and clip).
@@ -376,6 +382,19 @@ internal partial class OverlayWindow : Window, IAlbumArtSource
     }
 
     private void ApplyBarColor() => _barColor.Update(_track?.AlbumArt);
+
+    /// <summary>
+    /// Keeps the bar count and the band count in step. The analyser is set first, so
+    /// a newly added bar is fed real audio on the frame it appears rather than
+    /// climbing up from zero.
+    /// </summary>
+    private void ApplyBarCount()
+    {
+        int count = _settings.Current.VisualizerBarCount;
+
+        _analyzer.BandCount = count;
+        Bars.BarCount = count;
+    }
 
     // ---- Placement ---------------------------------------------------------
 

@@ -65,6 +65,16 @@ internal sealed class LoopbackAnalyzer : IDisposable
     public bool IsRunning { get; private set; }
 
     /// <summary>
+    /// How many bands the spectrum is split into. Follows the visualiser's bar
+    /// count, so every bar is fed by a band of its own.
+    /// </summary>
+    public int BandCount
+    {
+        get => _processor.BandCount;
+        set => _processor.BandCount = value;
+    }
+
+    /// <summary>
     /// Set by the UI to say whether the widget believes audio is playing. It lets
     /// the watchdog tell a genuine stall (playing, but no callbacks) apart from
     /// ordinary silence (paused, and no callbacks is expected).

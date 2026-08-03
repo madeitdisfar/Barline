@@ -23,14 +23,34 @@ namespace TaskbarMusicWidget.Ui;
 /// </remarks>
 internal sealed class Visualizer : FrameworkElement
 {
-    private const int BarCount = 4;
-    private const double BarWidth = 3d;
-    private const double BarGap = 3d;
+    /// <summary>Bar count when nothing says otherwise — the shipped design.</summary>
+    public const int DefaultBarCount = 4;
 
     /// <summary>
-    /// Resting height. Must stay comfortably above <see cref="BarWidth"/>: with fully
-    /// rounded caps, a bar shorter than it is wide stops reading as a bar and turns
-    /// into a dot.
+    /// Total bar area, in logical pixels, split between ink and gaps.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Both figures are held constant as the bar count changes, which is what keeps
+    /// every count looking like the same widget. The original four 3px bars with 3px
+    /// gaps give 12px of ink and 9px of gap; a wider count divides those same two
+    /// budgets more finely rather than growing.
+    /// </para>
+    /// <para>
+    /// Holding the width alone would be enough to stop the widget stretching, but it
+    /// would let more bars mean more ink, so a "detailed" visualiser would also read
+    /// as a heavier one. Fixing the ink too means changing the count changes the
+    /// detail and nothing else — the row keeps its weight against the taskbar, and
+    /// the bar colour keeps the contrast it was corrected for.
+    /// </para>
+    /// </remarks>
+    private const double TotalBarInk = 12d;
+    private const double TotalBarGap = 9d;
+
+    /// <summary>
+    /// Resting height. Must stay comfortably above the bar width: with fully rounded
+    /// caps, a bar shorter than it is wide stops reading as a bar and turns into a
+    /// dot. Held constant across counts, so the resting row is always the same line.
     /// </summary>
     private const double MinBarHeight = 6d;
     private const double MaxBarHeight = 18d;
@@ -40,13 +60,17 @@ internal sealed class Visualizer : FrameworkElement
     private const double AttackTau = 0.035d;
     private const double DecayTau = 0.220d;
 
-    private readonly double[] _current = new double[BarCount];
-    private readonly double[] _target = new double[BarCount];
+    private int _barCount = DefaultBarCount;
+    private double[] _current = new double[DefaultBarCount];
+    private double[] _target = new double[DefaultBarCount];
 
     // Deliberately irrational-ish ratios so the decorative loop never lines up
-    // into an obvious repeating pattern.
-    private static readonly double[] DecorativeRates = [2.9d, 3.7d, 2.3d, 3.1d];
-    private static readonly double[] DecorativePhases = [0.0d, 1.7d, 3.4d, 5.1d];
+    // into an obvious repeating pattern. The first four are the shipped values, so
+    // the default count animates exactly as it always has.
+    private static readonly double[] DecorativeRates =
+        [2.9d, 3.7d, 2.3d, 3.1d, 3.5d, 2.6d, 3.3d, 2.8d];
+    private static readonly double[] DecorativePhases =
+        [0.0d, 1.7d, 3.4d, 5.1d, 0.9d, 2.6d, 4.3d, 6.0d];
 
     private TimeSpan _lastFrame;
     private double _elapsed;
@@ -54,7 +78,9 @@ internal sealed class Visualizer : FrameworkElement
 
     public Visualizer()
     {
-        Width = BarCount * BarWidth + (BarCount - 1) * BarGap;   // 21px
+        // Constant regardless of count: the bars divide a fixed budget rather than
+        // extending past it, so the reserved zone never has to reflow.
+        Width = TotalWidth;   // 21px
         Height = MaxBarHeight;
         IsHitTestVisible = false;
 
@@ -78,6 +104,52 @@ internal sealed class Visualizer : FrameworkElement
     {
         get => (Brush)GetValue(BarBrushProperty);
         set => SetValue(BarBrushProperty, value);
+    }
+
+    /// <summary>
+    /// How many bars are drawn. Bars share a fixed width and ink budget, so a higher
+    /// count means thinner bars in the same footprint rather than a wider widget.
+    /// </summary>
+    /// <remarks>
+    /// Levels already in flight are kept where they overlap, so changing the count
+    /// while playing grows or trims the row rather than dropping every bar to rest
+    /// and climbing back up.
+    /// </remarks>
+    public int BarCount
+    {
+        get => _barCount;
+        set
+        {
+            if (_barCount == value) return;
+
+            _barCount = value;
+            _current = Resize(_current, value);
+            _target = Resize(_target, value);
+
+            InvalidateVisual();
+        }
+    }
+
+    /// <summary>
+    /// Bar width and gap for a given count, in logical pixels.
+    /// </summary>
+    /// <remarks>
+    /// A pure function of the count, and the whole of the sizing rule: both budgets
+    /// are fixed, so the count only decides how finely they are cut. Separated from
+    /// <see cref="OnRender"/> so the invariants it exists to hold — constant total
+    /// width, constant total ink — can be asserted directly.
+    /// </remarks>
+    public static (double Width, double Gap) BarGeometry(int barCount) =>
+        (TotalBarInk / barCount, barCount > 1 ? TotalBarGap / (barCount - 1) : 0d);
+
+    /// <summary>Total width the bars occupy, whatever the count.</summary>
+    public static double TotalWidth => TotalBarInk + TotalBarGap;
+
+    private static double[] Resize(double[] source, int length)
+    {
+        var resized = new double[length];
+        source.AsSpan(0, Math.Min(source.Length, length)).CopyTo(resized);
+        return resized;
     }
 
     private bool _isActive;
@@ -218,15 +290,18 @@ internal sealed class Visualizer : FrameworkElement
         var brush = BarBrush;
         if (brush is null) return;
 
-        double centreY = ActualHeight / 2d;
-        double radius = BarWidth / 2d;   // fully rounded caps
+        // At the default four this is the original 3px bar with a 3px gap.
+        var (barWidth, barGap) = BarGeometry(_barCount);
 
-        for (int i = 0; i < BarCount; i++)
+        double centreY = ActualHeight / 2d;
+        double radius = barWidth / 2d;   // fully rounded caps
+
+        for (int i = 0; i < _barCount; i++)
         {
             double height = MinBarHeight + _current[i] * (MaxBarHeight - MinBarHeight);
-            double x = i * (BarWidth + BarGap);
+            double x = i * (barWidth + barGap);
 
-            var rect = new Rect(x, centreY - height / 2d, BarWidth, height);
+            var rect = new Rect(x, centreY - height / 2d, barWidth, height);
             dc.DrawRoundedRectangle(brush, null, rect, radius, radius);
         }
     }

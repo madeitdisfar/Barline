@@ -66,12 +66,18 @@ internal sealed class SettingsStore
     public void Update(Action<WidgetSettings> mutate)
     {
         mutate(Current);
+
+        // Before saving, so an out-of-range value can never reach the file even if a
+        // caller writes one.
+        Current.Normalize();
+
         Save();
 
         DebugLog.Write(
             $"settings updated: color={Current.VisualizerColor} " +
             $"custom={Current.CustomBarColor ?? "(none)"} " +
-            $"visualizer={Current.VisualizerEnabled}");
+            $"visualizer={Current.VisualizerEnabled} " +
+            $"bars={Current.VisualizerBarCount}");
 
         Changed?.Invoke(this, EventArgs.Empty);
     }
@@ -95,7 +101,14 @@ internal sealed class SettingsStore
                 return new WidgetSettings();
             }
 
-            DebugLog.Write($"settings loaded: visualizerColor={loaded.VisualizerColor}");
+            // A hand edit can put values out of range without making the file
+            // unreadable, so this runs on every successful load rather than only on
+            // a parse failure.
+            loaded.Normalize();
+
+            DebugLog.Write(
+                $"settings loaded: visualizerColor={loaded.VisualizerColor} " +
+                $"bars={loaded.VisualizerBarCount}");
             return loaded;
         }
         catch (Exception ex)

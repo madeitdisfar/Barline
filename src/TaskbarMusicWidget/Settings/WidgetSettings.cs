@@ -62,4 +62,45 @@ internal sealed class WidgetSettings
     /// visualiser off did not survive a restart.
     /// </summary>
     public bool VisualizerEnabled { get; set; } = true;
+
+    /// <summary>The bar count when nothing says otherwise, and the shipped design.</summary>
+    public const int DefaultBarCount = 4;
+
+    /// <summary>
+    /// Narrowest and widest bar counts on offer.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The ceiling is six for two independent reasons, either of which would set it
+    /// there alone. Visually, the bars divide a fixed width, so seven bars are 1.7px
+    /// wide and the tall neighbouring ones visibly merge at 100% scaling — worse on
+    /// the light taskbar, where the bar colour is translucent as well as thin.
+    /// </para>
+    /// <para>
+    /// Technically, a 1024-point FFT at 48kHz resolves 46.9Hz per bin, and the
+    /// lowest band spans 40Hz to <c>40 × 256^(1/n)</c>. At seven bands that upper
+    /// edge is 89.8Hz, which falls in the same bin the second band starts from, so
+    /// the lowest band becomes a strict subset of its neighbour and the two bottom
+    /// bars move as one.
+    /// </para>
+    /// </remarks>
+    public const int MinBarCount = 4;
+    public const int MaxBarCount = 6;
+
+    /// <summary>
+    /// How many bars the visualiser draws. Bars share a fixed width and ink budget,
+    /// so this trades detail for thickness and never widens the widget.
+    /// </summary>
+    public int VisualizerBarCount { get; set; } = DefaultBarCount;
+
+    /// <summary>
+    /// Forces hand-edited values back into range.
+    /// </summary>
+    /// <remarks>
+    /// The file is documented as safe to edit, so out-of-range values are an
+    /// expected input rather than a corrupt one. Clamping beats rejecting the whole
+    /// file: a mistyped bar count should not also discard the user's colour.
+    /// </remarks>
+    public void Normalize() =>
+        VisualizerBarCount = Math.Clamp(VisualizerBarCount, MinBarCount, MaxBarCount);
 }
