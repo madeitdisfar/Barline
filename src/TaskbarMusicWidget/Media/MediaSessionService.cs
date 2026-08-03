@@ -41,6 +41,12 @@ internal sealed class MediaSessionService : IDisposable
 
     public TrackInfo? Current { get; private set; }
 
+    /// <summary>
+    /// Continuous playback position, extrapolated from the session's occasional
+    /// reports. Safe to poll per frame — it is arithmetic, not a query.
+    /// </summary>
+    public PlaybackClock Clock { get; } = new();
+
     /// <summary>Raised on the UI thread. A null payload means nothing is playing.</summary>
     public event EventHandler<TrackInfo?>? TrackChanged;
 
@@ -88,7 +94,13 @@ internal sealed class MediaSessionService : IDisposable
 
         _session.MediaPropertiesChanged += OnMediaPropertiesChanged;
         _session.PlaybackInfoChanged += OnPlaybackInfoChanged;
+        _session.TimelinePropertiesChanged += OnTimelinePropertiesChanged;
         DebugLog.Write($"attached session: {_session.SourceAppUserModelId}");
+
+        // Arm the clock straight away. Waiting for the first event would leave it
+        // blind for however long the source app takes to publish one, which for a
+        // paused or steadily playing session can be a long time.
+        AnchorClock(_session);
     }
 
     private void DetachSession()
@@ -96,7 +108,10 @@ internal sealed class MediaSessionService : IDisposable
         if (_session is null) return;
         _session.MediaPropertiesChanged -= OnMediaPropertiesChanged;
         _session.PlaybackInfoChanged -= OnPlaybackInfoChanged;
+        _session.TimelinePropertiesChanged -= OnTimelinePropertiesChanged;
         _session = null;
+
+        Clock.Reset();
     }
 
     private void OnMediaPropertiesChanged(Session sender, MediaPropertiesChangedEventArgs args)
@@ -106,7 +121,67 @@ internal sealed class MediaSessionService : IDisposable
 
     private void OnPlaybackInfoChanged(Session sender, PlaybackInfoChangedEventArgs args)
     {
-        if (!_disposed) _ = RefreshAsync();
+        if (_disposed) return;
+
+        // Play, pause and seek all land here, and each of them invalidates the
+        // extrapolation, so re-anchor before the slower refresh runs.
+        AnchorClock(sender);
+        _ = RefreshAsync();
+    }
+
+    /// <summary>
+    /// Position reports arrive far more often than anything else changes, so this
+    /// deliberately does not run a full refresh — that would re-query metadata and
+    /// re-decode album art several times a minute for a number that fits in a long.
+    /// </summary>
+    private void OnTimelinePropertiesChanged(Session sender, TimelinePropertiesChangedEventArgs args)
+    {
+        if (!_disposed) AnchorClock(sender);
+    }
+
+    private void AnchorClock(Session session)
+    {
+        try
+        {
+            var timeline = session.GetTimelineProperties();
+            var playback = session.GetPlaybackInfo();
+            if (timeline is null || playback is null) return;
+
+            var anchor = new PlaybackAnchor(
+                Position: timeline.Position,
+                // Not always zero: some sources describe a window into a longer
+                // stream, so the length is the span rather than the end.
+                Duration: timeline.EndTime - timeline.StartTime,
+                Rate: playback.PlaybackRate ?? 1d,
+                IsPlaying: playback.PlaybackStatus == PlaybackStatus.Playing,
+                ReportedAt: timeline.LastUpdatedTime);
+
+            if (!Clock.Anchor(anchor, DateTimeOffset.UtcNow))
+            {
+                DebugLog.Write(
+                    $"clock: rejected report pos={timeline.Position} " +
+                    $"len={anchor.Duration} at={timeline.LastUpdatedTime:O}");
+                return;
+            }
+
+            // Every accepted report is logged, not only the ones with an error to
+            // show, so the log distinguishes "the clock is accurate" from "the clock
+            // is never being told anything".
+            string error = Clock.LastPredictionError is { } e
+                ? $"{e.TotalMilliseconds,7:F0}ms"
+                : "      --";
+
+            DebugLog.Write(
+                $"clock: error={error} " +
+                $"pos={anchor.Position:mm\\:ss\\.fff} " +
+                $"len={anchor.Duration:mm\\:ss} " +
+                $"rate={anchor.Rate:F2} playing={anchor.IsPlaying}");
+        }
+        catch (Exception ex)
+        {
+            // The session can die between the event firing and this query.
+            DebugLog.Write($"clock: anchor failed: {ex.Message}");
+        }
     }
 
     // ---- Refresh ----------------------------------------------------------
