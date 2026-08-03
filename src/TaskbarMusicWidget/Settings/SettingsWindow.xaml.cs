@@ -111,6 +111,9 @@ internal partial class SettingsWindow : Window
         VisualizerToggle.Checked += (_, _) => OnVisualizerToggled(true);
         VisualizerToggle.Unchecked += (_, _) => OnVisualizerToggled(false);
 
+        LyricsToggle.Checked += (_, _) => OnLyricsToggled(true);
+        LyricsToggle.Unchecked += (_, _) => OnLyricsToggled(false);
+
         AutoStartToggle.Checked += (_, _) => OnAutoStartToggled(true);
         AutoStartToggle.Unchecked += (_, _) => OnAutoStartToggled(false);
 
@@ -221,6 +224,7 @@ internal partial class SettingsWindow : Window
             _modeOptions[current.VisualizerColor].IsChecked = true;
             _barCountOptions[current.VisualizerBarCount].IsChecked = true;
             VisualizerToggle.IsChecked = current.VisualizerEnabled;
+            LyricsToggle.IsChecked = current.LyricsEnabled;
             AutoStartToggle.IsChecked = _autoStart.IsEnabled;
 
             PreviewBars.BarCount = current.VisualizerBarCount;
@@ -333,6 +337,12 @@ internal partial class SettingsWindow : Window
     {
         if (_syncing) return;
         WithoutFeedback(() => _settings.Update(s => s.VisualizerEnabled = enabled));
+    }
+
+    private void OnLyricsToggled(bool enabled)
+    {
+        if (_syncing) return;
+        WithoutFeedback(() => _settings.Update(s => s.LyricsEnabled = enabled));
     }
 
     private void OnAutoStartToggled(bool enabled)

@@ -50,6 +50,18 @@ Every mode except `Default` is **corrected for legibility** before it is drawn. 
 
 Because of that, the settings window shows each mode's **resolved** color and hex — what will actually be drawn, not what was picked — over a strip painted the same shade the correction measures against. Showing the picked color instead would misrepresent the whole feature.
 
+## Lyrics
+
+**Off by default.** A lookup sends the track's title and artist to [LRCLIB](https://lrclib.net), so it is opt-in rather than something the widget starts doing on its own. Turn it on under **Lyrics → Show lyrics**.
+
+When a track has timed lyrics, the current line replaces the title and artist; hovering the widget brings the title back. Instrumental gaps are timed too, and during one the title returns rather than the previous line hanging around.
+
+LRCLIB was chosen because it is the only free source serving timed lyrics with no API key, no paid tier, and no terms forbidding this use. It is run at no charge for exactly this purpose, which is a reason to be a careful client: **every result is cached to disk, misses included**, so a track is fetched once rather than once per play. Misses expire after two weeks, since the database grows and today's gap may be filled next month.
+
+Matching is the hard part, not coverage. Spotify reports `Creep - Remastered 2011` and a browser reports `Creep (Official Video)`; neither string is filed under that name anywhere. Lookups therefore widen in stages — the name exactly as reported first, since stripping is a guess and a track really can be called `Live`, then with packaging removed, then with only the first credited artist, and finally a duration-matched search that tolerates a source reporting the length a second or two out.
+
+To supply your own, drop an `.lrc` file named `Artist - Title.lrc` into `%LocalAppData%\TaskbarMusicWidget\lyrics`. A file always wins over the network — it is the only route for tracks the database has never heard of, and the way to fix timings you disagree with. Both standard and word-level (enhanced) LRC are read.
+
 ## How it works
 
 Windows 11 removed the DeskBand API, so there is no supported way to host content *inside* the taskbar. Instead this is a transparent, non-activating window that shadows the taskbar:

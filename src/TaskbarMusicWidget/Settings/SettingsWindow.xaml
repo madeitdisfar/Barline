@@ -591,6 +591,26 @@
                 </StackPanel>
             </Border>
 
+            <!-- === Lyrics === -->
+
+            <TextBlock Style="{StaticResource SectionHeader}" Text="Lyrics" />
+
+            <Border Style="{StaticResource Card}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0" Margin="0,0,16,0">
+                        <TextBlock Style="{StaticResource CardLabel}" Text="Show lyrics" />
+                        <TextBlock Style="{StaticResource CardDescription}"
+                                   Text="Replaces the title while a track is playing; hover the widget to see the title again. Looking lyrics up sends the track name and artist to lrclib.net." />
+                    </StackPanel>
+                    <CheckBox x:Name="LyricsToggle" Grid.Column="1"
+                              Style="{StaticResource ToggleSwitch}" />
+                </Grid>
+            </Border>
+
             <!-- === Widget === -->
 
             <TextBlock Style="{StaticResource SectionHeader}" Text="Widget" />

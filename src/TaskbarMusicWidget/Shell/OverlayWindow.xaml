@@ -155,6 +155,21 @@
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
+            <!-- Sits over the title and artist rather than beside them: the reserved
+                 width is already the tightest part of the layout, so the two states
+                 crossfade in place instead of competing for space. -->
+            <TextBlock x:Name="LyricsText"
+                       Grid.Row="0"
+                       Grid.RowSpan="2"
+                       VerticalAlignment="Center"
+                       FontSize="12"
+                       FontWeight="SemiBold"
+                       LineHeight="16"
+                       LineStackingStrategy="BlockLineHeight"
+                       TextWrapping="NoWrap"
+                       Opacity="0"
+                       Foreground="{DynamicResource TextPrimaryBrush}"
+                       Text="" />
             <TextBlock x:Name="TitleText"
                        Grid.Row="0"
                        FontSize="12"

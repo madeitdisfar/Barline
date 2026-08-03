@@ -63,6 +63,16 @@ internal sealed class WidgetSettings
     /// </summary>
     public bool VisualizerEnabled { get; set; } = true;
 
+    /// <summary>
+    /// Whether to look up lyrics for what is playing.
+    /// </summary>
+    /// <remarks>
+    /// Off by default, and deliberately so. A lookup sends the track's title and
+    /// artist to a third-party service, which is not something the widget should
+    /// start doing without being asked.
+    /// </remarks>
+    public bool LyricsEnabled { get; set; }
+
     /// <summary>The bar count when nothing says otherwise, and the shipped design.</summary>
     public const int DefaultBarCount = 4;
 

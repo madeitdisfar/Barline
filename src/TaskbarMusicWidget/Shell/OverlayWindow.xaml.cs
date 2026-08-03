@@ -9,6 +9,7 @@ using System.Windows.Media.Media3D;
 using System.Windows.Threading;
 using TaskbarMusicWidget.Audio;
 using TaskbarMusicWidget.Diagnostics;
+using TaskbarMusicWidget.Lyrics;
 using TaskbarMusicWidget.Media;
 using TaskbarMusicWidget.Settings;
 using TaskbarMusicWidget.Ui;
@@ -61,6 +62,8 @@ internal partial class OverlayWindow : Window, IAlbumArtSource
     private readonly LoopbackAnalyzer _analyzer;
     private readonly SettingsStore _settings;
     private readonly BarColorResolver _barColor;
+    private readonly LyricsService _lyrics;
+    private readonly DispatcherTimer _lyricPoll;
 
     /// <summary>
     /// Delays hiding so brief taskbar transitions don't flash the widget.
@@ -97,16 +100,26 @@ internal partial class OverlayWindow : Window, IAlbumArtSource
         MediaSessionService media,
         Theme theme,
         LoopbackAnalyzer analyzer,
-        SettingsStore settings)
+        SettingsStore settings,
+        LyricsService lyrics)
     {
         _tracker = tracker;
         _media = media;
         _theme = theme;
         _analyzer = analyzer;
         _settings = settings;
+        _lyrics = lyrics;
         _barColor = new BarColorResolver(theme, settings);
 
         InitializeComponent();
+
+        _lyricPoll = new DispatcherTimer(DispatcherPriority.Background)
+        {
+            Interval = LyricPollInterval,
+        };
+        _lyricPoll.Tick += (_, _) => UpdateLyricLine();
+
+        _lyrics.Changed += OnLyricsChanged;
 
         _hideDebounce = new DispatcherTimer(DispatcherPriority.Normal)
         {
@@ -221,6 +234,27 @@ internal partial class OverlayWindow : Window, IAlbumArtSource
         TransportPanel.IsHitTestVisible = hovered;
         Fade(TransportPanel, hovered ? 1d : 0d);
         Fade(Bars, hovered ? 0d : 1d);
+
+        // Hovering is how you ask what is playing, so the title comes back while the
+        // pointer is over the widget and the lyric steps aside.
+        UpdateTextLayer();
+    }
+
+    /// <summary>
+    /// Crossfades between the lyric line and the title/artist pair.
+    /// </summary>
+    /// <remarks>
+    /// The lyric only takes the space when there is genuinely something to show. A
+    /// track with no lyrics, an instrumental passage between lines, or a paused
+    /// widget all fall back to the title rather than leaving the area blank.
+    /// </remarks>
+    private void UpdateTextLayer()
+    {
+        bool showLyrics = !_hovered && _lyricLine.Length > 0;
+
+        Fade(LyricsText, showLyrics ? 1d : 0d);
+        Fade(TitleText, showLyrics ? 0d : 1d);
+        Fade(ArtistText, showLyrics ? 0d : 1d);
     }
 
     private static void Fade(UIElement element, double to)
@@ -310,6 +344,12 @@ internal partial class OverlayWindow : Window, IAlbumArtSource
         // ActualWidth is only valid after the next layout pass, so defer.
         Dispatcher.BeginInvoke(new Action(UpdateTextFades), DispatcherPriority.Loaded);
 
+        // The clock is anchored by the session service before this runs, so the
+        // duration is already the new track's.
+        _lyrics.SetTrack(track, _media.Clock.Duration);
+        UpdateLyricLine();
+        UpdateLyricPolling();
+
         bool playing = track?.IsPlaying == true;
         Bars.IsActive = playing;
         // Lets the capture watchdog distinguish a real stall from ordinary silence.
@@ -343,7 +383,8 @@ internal partial class OverlayWindow : Window, IAlbumArtSource
 
         bool overflows =
             MeasureTextWidth(TitleText) > AvailableTextWidth + 1d ||
-            MeasureTextWidth(ArtistText) > AvailableTextWidth + 1d;
+            MeasureTextWidth(ArtistText) > AvailableTextWidth + 1d ||
+            MeasureTextWidth(LyricsText) > AvailableTextWidth + 1d;
 
         TextArea.OpacityMask = overflows ? _edgeFade : null;
     }
@@ -379,6 +420,65 @@ internal partial class OverlayWindow : Window, IAlbumArtSource
         // Every colour mode is theme-dependent: the default token switches outright,
         // and the corrected modes are measured against the new taskbar material.
         ApplyBarColor();
+    }
+
+    // ---- Lyrics ------------------------------------------------------------
+
+    /// <summary>
+    /// Ten times a second. Lines change every few seconds, so a render-rate loop
+    /// would be spending frames to re-decide the same answer; the word-level sweep
+    /// is what will need one, and it does not exist yet.
+    /// </summary>
+    private static readonly TimeSpan LyricPollInterval = TimeSpan.FromMilliseconds(100);
+
+    private string _lyricLine = string.Empty;
+
+    private void OnLyricsChanged(object? sender, EventArgs e)
+    {
+        // A new document invalidates the line on screen even mid-track, since the
+        // lookup may have completed after playback started.
+        UpdateLyricLine();
+        UpdateLyricPolling();
+    }
+
+    /// <summary>
+    /// Runs the poll only while it can change something: timed lyrics, playing, and
+    /// visible. A paused or lyric-less widget costs nothing.
+    /// </summary>
+    private void UpdateLyricPolling()
+    {
+        bool wanted =
+            _lyrics.Current.IsSynced &&
+            !_lyrics.Current.IsEmpty &&
+            _track?.IsPlaying == true;
+
+        if (wanted == _lyricPoll.IsEnabled) return;
+
+        if (wanted) _lyricPoll.Start();
+        else _lyricPoll.Stop();
+    }
+
+    private void UpdateLyricLine()
+    {
+        var document = _lyrics.Current;
+
+        string line = string.Empty;
+
+        // Only timed lyrics can follow playback. A plain-text set is left to the
+        // settings window rather than shown here a line at a time out of step.
+        if (document.IsSynced && _media.Clock.IsUsable)
+        {
+            int index = document.IndexAt(_media.Clock.PositionAt(DateTimeOffset.UtcNow));
+            if (index >= 0) line = document.Lines[index].Text;
+        }
+
+        if (line == _lyricLine) return;
+
+        _lyricLine = line;
+        LyricsText.Text = line;
+
+        UpdateTextFades();
+        UpdateTextLayer();
     }
 
     private void ApplyBarColor() => _barColor.Update(_track?.AlbumArt);

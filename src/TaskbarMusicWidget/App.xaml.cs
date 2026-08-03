@@ -2,6 +2,7 @@ using System.Windows;
 using Microsoft.Win32;
 using TaskbarMusicWidget.Audio;
 using TaskbarMusicWidget.Diagnostics;
+using TaskbarMusicWidget.Lyrics;
 using TaskbarMusicWidget.Media;
 using TaskbarMusicWidget.Settings;
 using TaskbarMusicWidget.Shell;
@@ -44,7 +45,8 @@ public partial class App : Application
         var media = new MediaSessionService(Dispatcher);
         var theme = new Theme();
         var analyzer = new LoopbackAnalyzer();
-        var window = new OverlayWindow(tracker, media, theme, analyzer, settings);
+        var lyrics = new LyricsService(settings, Dispatcher);
+        var window = new OverlayWindow(tracker, media, theme, analyzer, settings, lyrics);
 
         window.VisualizerEnabled = settings.Current.VisualizerEnabled;
 

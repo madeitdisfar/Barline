@@ -147,6 +147,8 @@ internal sealed class MediaSessionService : IDisposable
             var playback = session.GetPlaybackInfo();
             if (timeline is null || playback is null) return;
 
+            var receivedAt = DateTimeOffset.UtcNow;
+
             var anchor = new PlaybackAnchor(
                 Position: timeline.Position,
                 // Not always zero: some sources describe a window into a longer
@@ -156,7 +158,12 @@ internal sealed class MediaSessionService : IDisposable
                 IsPlaying: playback.PlaybackStatus == PlaybackStatus.Playing,
                 ReportedAt: timeline.LastUpdatedTime);
 
-            if (!Clock.Anchor(anchor, DateTimeOffset.UtcNow))
+            // How stale the source says its own report is. Spotify keeps this near
+            // zero; a source that never advances it is not maintaining the timestamp
+            // at all, which makes the error figure below meaningless rather than good.
+            double age = (receivedAt - timeline.LastUpdatedTime).TotalSeconds;
+
+            if (!Clock.Anchor(anchor, receivedAt))
             {
                 DebugLog.Write(
                     $"clock: rejected report pos={timeline.Position} " +
@@ -172,7 +179,7 @@ internal sealed class MediaSessionService : IDisposable
                 : "      --";
 
             DebugLog.Write(
-                $"clock: error={error} " +
+                $"clock: error={error} age={age,6:F2}s " +
                 $"pos={anchor.Position:mm\\:ss\\.fff} " +
                 $"len={anchor.Duration:mm\\:ss} " +
                 $"rate={anchor.Rate:F2} playing={anchor.IsPlaying}");
