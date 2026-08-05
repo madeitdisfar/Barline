@@ -8,70 +8,40 @@
         ShowActivated="False"
         Topmost="True"
         Focusable="False"
+        AllowsTransparency="True"
         Background="Transparent"
         TextOptions.TextFormattingMode="Ideal"
-        TextOptions.TextRenderingMode="ClearType"
         UseLayoutRounding="True"
         SnapsToDevicePixels="True">
 
-    <!-- No AllowsTransparency. That would force a layered window, and DWM refuses to
-         compose a backdrop material behind one — see SystemBackdrop. The window is
-         transparent because the frame is extended across the client area instead. -->
+    <!-- AllowsTransparency is what makes this window genuinely see-through: it gives
+         WPF a layered window with real per-pixel alpha. The earlier attempt used a DWM
+         backdrop instead, which is drawn behind the window and so was hidden by WPF's
+         opaque surface — see SystemBackdrop. -->
 
     <Border x:Name="Root"
             CornerRadius="8"
-            Padding="18,14">
-        <StackPanel VerticalAlignment="Center">
+            Padding="18,12">
 
-            <!-- The line just gone and the line coming up. Dimmer than the current
-                 line, and always present even when blank, so the current line keeps
-                 its vertical position instead of jumping as verses start and end. -->
-            <TextBlock x:Name="PreviousLine"
-                       FontSize="13"
-                       LineHeight="18"
+        <!-- Two layers, exactly overlaid. The halo is the whole line, blurred and
+             static, so it can be bitmap-cached and rasterised once per line — an
+             effect on the live text would be re-rendered every frame as the word
+             highlight moves. Only used by the styles that want one. -->
+        <Grid VerticalAlignment="Center">
+            <TextBlock x:Name="HaloLine"
                        LineStackingStrategy="BlockLineHeight"
                        TextTrimming="CharacterEllipsis"
-                       TextWrapping="NoWrap"
-                       Opacity="0.55"
+                       TextWrapping="Wrap"
+                       CacheMode="BitmapCache"
+                       Visibility="Collapsed"
                        Text="" />
 
-            <!-- Two layers, exactly overlaid. The halo is the whole line, blurred and
-                 static, so it can be bitmap-cached and rasterised once per line — an
-                 effect on the live text would be re-rendered every frame as the word
-                 highlight moves. Only used by the styles that want one. -->
-            <Grid Margin="0,3,0,3">
-                <TextBlock x:Name="HaloLine"
-                           FontSize="20"
-                           FontWeight="SemiBold"
-                           LineHeight="26"
-                           LineStackingStrategy="BlockLineHeight"
-                           TextTrimming="CharacterEllipsis"
-                           TextWrapping="Wrap"
-                           MaxHeight="52"
-                           CacheMode="BitmapCache"
-                           Visibility="Collapsed"
-                           Text="" />
-
-                <!-- Large enough to count as large text, which is what makes the 3:1
-                     contrast the colour correction guarantees the right bar for it. -->
-                <TextBlock x:Name="CurrentLine"
-                           FontSize="20"
-                           FontWeight="SemiBold"
-                           LineHeight="26"
-                           LineStackingStrategy="BlockLineHeight"
-                           TextTrimming="CharacterEllipsis"
-                           TextWrapping="Wrap"
-                           MaxHeight="52" />
-            </Grid>
-
-            <TextBlock x:Name="NextLine"
-                       FontSize="13"
-                       LineHeight="18"
+            <!-- Large enough to count as large text, which is what makes the 3:1
+                 contrast the colour correction guarantees the right bar for it. -->
+            <TextBlock x:Name="CurrentLine"
                        LineStackingStrategy="BlockLineHeight"
                        TextTrimming="CharacterEllipsis"
-                       TextWrapping="NoWrap"
-                       Opacity="0.55"
-                       Text="" />
-        </StackPanel>
+                       TextWrapping="Wrap" />
+        </Grid>
     </Border>
 </Window>

@@ -16,6 +16,12 @@ internal sealed class LrcLibRecord
     public string? PlainLyrics { get; set; }
     public string? SyncedLyrics { get; set; }
 
+    /// <summary>
+    /// The same lyrics in LRCLIB's own YAML format, which states each line's end as
+    /// well as its start. Served alongside the LRC for every record.
+    /// </summary>
+    public string? LyricsFile { get; set; }
+
     [JsonIgnore]
     public bool HasAnything =>
         Instrumental ||

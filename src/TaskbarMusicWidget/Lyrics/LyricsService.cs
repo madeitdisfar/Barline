@@ -35,6 +35,10 @@ internal sealed class LyricsService : IDisposable
     /// <summary>What the current document was fetched for, to avoid refetching it.</summary>
     private string? _currentKey;
 
+    /// <summary>The track and length last asked for, so an import can reload them.</summary>
+    private TrackInfo? _currentTrack;
+    private TimeSpan _currentDuration;
+
     private bool _disposed;
 
     /// <summary>
@@ -50,9 +54,36 @@ internal sealed class LyricsService : IDisposable
     {
         _settings = settings;
         _dispatcher = dispatcher;
+
+        // Written on first run so the built-in looks are ordinary, readable files
+        // rather than something compiled in and hidden.
+        new LyricsPresetStore().EnsureBuiltIns();
     }
 
     public string CacheDirectory => _cache.DirectoryPath;
+
+    /// <summary>How many tracks are cached, and how much room they take.</summary>
+    public (int Count, long Bytes) MeasureCache() => _cache.Measure();
+
+    /// <summary>
+    /// Throws away every fetched result. Imported files are left alone.
+    /// </summary>
+    /// <remarks>
+    /// The document on screen is dropped too, so the current track is looked up again
+    /// rather than carrying on from an entry that no longer exists.
+    /// </remarks>
+    public int ClearCache()
+    {
+        int removed = _cache.Clear();
+
+        var track = _currentTrack;
+        var duration = _currentDuration;
+
+        _currentKey = null;
+        if (track is not null) SetTrack(track, duration);
+
+        return removed;
+    }
 
     /// <summary>
     /// Points the service at a track. Safe to call repeatedly — a track already
@@ -81,7 +112,10 @@ internal sealed class LyricsService : IDisposable
         if (key == _currentKey) return;
 
         Clear();
+
         _currentKey = key;
+        _currentTrack = track;
+        _currentDuration = duration;
 
         _inFlight = new CancellationTokenSource();
         _ = LoadAsync(track, duration, key, _inFlight.Token);
@@ -151,7 +185,9 @@ internal sealed class LyricsService : IDisposable
             Found = record is not null,
             SyncedLyrics = record?.SyncedLyrics,
             PlainLyrics = record?.PlainLyrics,
+            LyricsFile = record?.LyricsFile,
             FetchedUtc = DateTimeOffset.UtcNow,
+            Schema = LyricsCache.CurrentSchema,
             TrackName = record?.TrackName ?? track.Title,
             ArtistName = record?.ArtistName ?? track.Artist,
         };
@@ -192,11 +228,81 @@ internal sealed class LyricsService : IDisposable
     {
         if (!entry.Found) return LyricsDocument.Empty;
 
-        // Timed lyrics if they exist, plain text if not. An instrumental has neither,
-        // and correctly resolves to nothing to show.
         var synced = LrcParser.Parse(entry.SyncedLyrics);
 
+        // Real word timings outrank everything. The lyricsfile form states where each
+        // line ends, which is worth having — but only the enhanced LRC extension
+        // carries per-word times, and an estimate bounded by a true line end is still
+        // an estimate. Preferring lyricsfile unconditionally would throw away actual
+        // data in favour of a better guess.
+        if (synced.Lines.Any(line => line.Words is not null)) return synced;
+
+        // Otherwise take the stated line ends: the LRC leaves them to be inferred from
+        // the next line's start, which is wrong across every instrumental gap, and
+        // that span is precisely what the word timing divides up.
+        if (LyricsFileParser.Parse(entry.LyricsFile) is { } stated) return stated;
+
+        // Timed lyrics if they exist, plain text if not. An instrumental has neither,
+        // and correctly resolves to nothing to show.
         return synced.IsEmpty ? LrcParser.Parse(entry.PlainLyrics) : synced;
+    }
+
+    // ---- Importing ---------------------------------------------------------
+
+    /// <summary>
+    /// The name a hand-supplied file must have to be picked up for a track.
+    /// </summary>
+    public static string FileNameFor(TrackInfo track) =>
+        $"{Sanitize($"{track.Artist} - {track.Title}")}.lrc";
+
+    /// <summary>Full path an import for this track would occupy.</summary>
+    public string ImportPathFor(TrackInfo track) =>
+        Path.Combine(_cache.DirectoryPath, FileNameFor(track));
+
+    /// <summary>Whether a hand-supplied file is already in place for a track.</summary>
+    public bool HasImport(TrackInfo track) => File.Exists(ImportPathFor(track));
+
+    /// <summary>
+    /// Copies a chosen file into place for a track and reloads immediately.
+    /// </summary>
+    /// <remarks>
+    /// The file is parsed before it is kept. Copying something unreadable in would
+    /// silently replace working lyrics with nothing, and the failure would look like
+    /// the track having none.
+    /// </remarks>
+    public bool TryImport(TrackInfo track, string sourcePath, out string message)
+    {
+        try
+        {
+            string text = File.ReadAllText(sourcePath);
+            var parsed = LrcParser.Parse(text);
+
+            if (parsed.IsEmpty)
+            {
+                message = "That file has no lyrics this can read.";
+                return false;
+            }
+
+            Directory.CreateDirectory(_cache.DirectoryPath);
+            File.WriteAllText(ImportPathFor(track), text);
+
+            // Drop the loaded document so the next request picks the file up rather
+            // than the cached network result.
+            _currentKey = null;
+            SetTrack(_currentTrack ?? track, _currentDuration);
+
+            message = parsed.IsSynced
+                ? $"Imported {parsed.Lines.Count} timed lines."
+                : $"Imported {parsed.Lines.Count} lines, but the file has no timings.";
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            DebugLog.Write($"lyrics: import failed: {ex.Message}");
+            message = $"Could not import: {ex.Message}";
+            return false;
+        }
     }
 
     private static string Sanitize(string name)

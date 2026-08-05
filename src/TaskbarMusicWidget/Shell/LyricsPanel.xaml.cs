@@ -1,10 +1,10 @@
+using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Documents;
 using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
-using System.Windows.Media.Effects;
-using TaskbarMusicWidget.Diagnostics;
+using System.Windows.Threading;
 using TaskbarMusicWidget.Lyrics;
 using TaskbarMusicWidget.Media;
 using TaskbarMusicWidget.Settings;
@@ -14,8 +14,7 @@ using static TaskbarMusicWidget.Shell.NativeMethods;
 namespace TaskbarMusicWidget.Shell;
 
 /// <summary>
-/// A floating panel that shows the current lyric line just above the taskbar, with
-/// the lines either side of it for context.
+/// A floating panel showing the line of the song being sung right now.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -29,57 +28,43 @@ namespace TaskbarMusicWidget.Shell;
 /// a panel sitting over the desktop cannot swallow a click meant for whatever is
 /// underneath — the failure that would make a floating overlay intolerable.
 /// </para>
-/// <para>
-/// Like the widget it is owned by the taskbar, which is what makes it disappear for
-/// fullscreen apps and slide away with auto-hide without any handling of its own.
-/// </para>
 /// </remarks>
 internal partial class LyricsPanel : Window
 {
-    /// <summary>
-    /// Sized against real lyrics rather than by eye. At 380px a line as ordinary as
-    /// "So tell me that you love me again" was already being cut, and an ellipsis in
-    /// the middle of a sung line is worse than no lyrics at all.
-    /// </summary>
-    private const double PanelLogicalWidth = 520d;
+    /// <summary>Clearance from whichever screen edge the panel is anchored to.</summary>
+    private const double MarginLogical = 10d;
 
     /// <summary>
-    /// Fixed, and tall enough for the current line to take two rows. Sizing to the
-    /// content would make the panel jump every few seconds as lines changed length,
-    /// which is exactly the kind of movement the widget avoids elsewhere.
+    /// How long the panel waits before disappearing once there is nothing to show.
     /// </summary>
-    private const double PanelLogicalHeight = 136d;
+    /// <remarks>
+    /// Between tracks there is a moment with no lyrics: the old ones are dropped and
+    /// the new ones have not arrived. Hiding immediately made the panel blink out and
+    /// back on every song change. Showing is never delayed — only hiding.
+    /// </remarks>
+    private static readonly TimeSpan HideGrace = TimeSpan.FromSeconds(4);
 
-    /// <summary>Clearance between the panel and the top of the taskbar.</summary>
-    private const double GapLogical = 10d;
+    /// <summary>How faint the panel goes while the pointer is over it.</summary>
+    private const double HoverFadeOpacity = 0.15d;
 
     private readonly TaskbarTracker _tracker;
     private readonly MediaSessionService _media;
-    private readonly Theme _theme;
     private readonly SettingsStore _settings;
     private readonly LyricsService _lyrics;
 
-    /// <summary>
-    /// The panel's own resolver, as the settings window has. Sharing one would mean
-    /// two windows animating the same brush and fighting over it.
-    /// </summary>
-    private readonly BarColorResolver _accent;
-
-    /// <summary>
-    /// The lime style's panel colour, and the black it is paired with. Flat and
-    /// deliberately unsubtle — the whole point of the look.
-    /// </summary>
-    private static readonly Color LimePanel = Color.FromRgb(0x8A, 0xCE, 0x00);
-    private static readonly Color LimeInk = Color.FromRgb(0x10, 0x12, 0x08);
-
-    /// <summary>How dim a word is before it has been sung.</summary>
-    private const double UnsungOpacity = 0.38d;
+    /// <summary>Delays hiding so a song change does not blink the panel out.</summary>
+    private readonly DispatcherTimer _hideDebounce;
 
     private IntPtr _hwnd;
     private IntPtr _ownerHandle;
-    private bool _acrylic;
     private int _lineIndex = -2;
     private bool _wantVisible;
+    private bool _shown;
+    private bool _hovered;
+    private int _placedX;
+    private int _placedY;
+    private int _placedWidth;
+    private int _placedHeight;
 
     /// <summary>
     /// The current line split into words, with a start for each — taken from the file
@@ -96,30 +81,38 @@ internal partial class LyricsPanel : Window
     /// </summary>
     private readonly SolidColorBrush _activeBrush = new();
 
+    private LyricsAppearance Appearance => _settings.Current.PanelAppearance;
+
     public LyricsPanel(
         TaskbarTracker tracker,
         MediaSessionService media,
-        Theme theme,
         SettingsStore settings,
         LyricsService lyrics)
     {
         _tracker = tracker;
         _media = media;
-        _theme = theme;
         _settings = settings;
         _lyrics = lyrics;
-        _accent = new BarColorResolver(theme, settings);
 
         InitializeComponent();
 
-        Width = PanelLogicalWidth;
-        Height = PanelLogicalHeight;
+        _hideDebounce = new DispatcherTimer(DispatcherPriority.Normal) { Interval = HideGrace };
+        _hideDebounce.Tick += (_, _) =>
+        {
+            _hideDebounce.Stop();
+            _shown = false;
+            Place(_tracker.Current);
+            StopSweep();
+        };
 
         _tracker.Changed += (_, state) => Place(state);
-        _theme.Changed += (_, _) => ApplyTheme();
-        _settings.Changed += (_, _) => ApplyTheme();
+        _settings.Changed += (_, _) =>
+        {
+            ApplyAppearance();
+            Place(_tracker.Current);
+        };
 
-        ApplyTheme();
+        ApplyAppearance();
     }
 
     protected override void OnSourceInitialized(EventArgs e)
@@ -134,133 +127,89 @@ internal partial class LyricsPanel : Window
         ex |= WS_EX_NOACTIVATE | WS_EX_TOOLWINDOW | WS_EX_TRANSPARENT;
         SetWindowLongPtr(_hwnd, GWL_EXSTYLE, new IntPtr(ex));
 
-        var source = HwndSource.FromHwnd(_hwnd);
-        if (source?.CompositionTarget is not null)
-        {
-            // Without this WPF clears the client area to opaque black and the
-            // extended frame never shows through.
-            source.CompositionTarget.BackgroundColor = Colors.Transparent;
-        }
-
-        ApplyBackdrop();
+        ApplyAppearance();
         Place(_tracker.Current);
     }
 
     // ---- Appearance --------------------------------------------------------
 
-    private void ApplyBackdrop()
+    /// <summary>
+    /// Realises the current appearance: surface, type, colour and effect.
+    /// </summary>
+    private void ApplyAppearance()
     {
-        _acrylic = SystemBackdrop.TryApply(_hwnd, _theme.IsLight);
-        ApplyTheme();
-    }
+        var appearance = Appearance;
 
-    private void ApplyTheme()
-    {
-        if (_hwnd != IntPtr.Zero)
-            _acrylic = SystemBackdrop.TryApply(_hwnd, _theme.IsLight);
+        ApplySurface(appearance);
 
-        _accent.Update(_media.Current?.AlbumArt);
+        LyricsTypography.ApplyFont(CurrentLine, appearance);
+        LyricsTypography.ApplyFont(HaloLine, appearance);
 
-        ApplyStyle();
+        // The ellipsis a trimmed line ends with is drawn in the TextBlock's own
+        // Foreground, not in the runs' — leaving it unset drew it in the inherited
+        // default, which is black and effectively invisible on a dark panel.
+        CurrentLine.Foreground = new SolidColorBrush(LyricsTypography.TextColor(appearance));
 
-        // Force the line to be rebuilt on the next poll. A style change alters the
-        // text itself, not just its colour, so repainting the existing runs would
-        // leave the old casing on screen until the line happened to change.
+        var effect = LyricsTypography.BuildEffect(appearance);
+
+        if (effect is null)
+        {
+            HaloLine.Visibility = Visibility.Collapsed;
+            HaloLine.Effect = null;
+        }
+        else
+        {
+            HaloLine.Visibility = Visibility.Visible;
+            HaloLine.Effect = effect;
+            HaloLine.Foreground = new SolidColorBrush(LyricsTypography.EffectColor(appearance));
+        }
+
+        // The text itself changes with the appearance (casing), so the line has to be
+        // rebuilt rather than merely recoloured.
         _lineIndex = -2;
         _activeWord = -1;
         PaintWords(0d);
     }
 
-    /// <summary>
-    /// Applies the chosen style: the panel surface, the typeface, and whether the
-    /// halo layer is used.
-    /// </summary>
-    private void ApplyStyle()
+    private void ApplySurface(LyricsAppearance appearance)
     {
-        var style = _settings.Current.LyricsStyle;
+        Root.CornerRadius = new CornerRadius(appearance.CornerRadius);
 
-        bool lime = style == LyricsStyle.Lime;
+        var color = LyricsTypography.Parse(appearance.BackgroundColor, Color.FromRgb(0x2C, 0x2C, 0x2C));
+        byte alpha = (byte)Math.Round(255d * Math.Clamp(appearance.BackgroundOpacity, 0d, 1d));
 
-        // Lime replaces the system surface outright — a flat colour is the look, and
-        // it also means the black text has a known background rather than acrylic.
-        Root.Background = lime
-            ? new SolidColorBrush(LimePanel)
-            : _acrylic
-                ? Brushes.Transparent
-                : new SolidColorBrush(SystemBackdrop.Fallback(_theme.BackdropEstimate));
-
-        var context = lime
-            ? new SolidColorBrush(Color.FromArgb(0x99, LimeInk.R, LimeInk.G, LimeInk.B))
-            : _theme.TextSecondary;
-
-        PreviousLine.Foreground = context;
-        NextLine.Foreground = context;
-
-        var typeface = lime
-            ? new FontFamily("Arial Narrow, Segoe UI Variable Display, Segoe UI")
-            : new FontFamily("Segoe UI Variable Display, Segoe UI");
-
-        CurrentLine.FontFamily = typeface;
-        HaloLine.FontFamily = typeface;
-        PreviousLine.FontFamily = typeface;
-        NextLine.FontFamily = typeface;
-
-        // The halo carries the effect so the live text never does. An effect on the
-        // text itself would be re-rendered every frame as the word highlight moves,
-        // where this rasterises once per line and then sits there.
-        if (style == LyricsStyle.Glow)
+        // Every background is painted by WPF, into a window that is transparent by
+        // per-pixel alpha. That is what lets the corner radius apply to all of them
+        // alike — the compositor-blurred option that could not be rounded is gone.
+        Root.Background = appearance.Background switch
         {
-            HaloLine.Visibility = Visibility.Visible;
-            HaloLine.Foreground = new SolidColorBrush(WordBrush(sung: true).Color);
-            HaloLine.Effect = new BlurEffect { Radius = 16d, KernelType = KernelType.Gaussian };
-        }
-        else if (lime)
-        {
-            // Softens the edges into the flat colour, which is most of what makes the
-            // look read as printed rather than rendered.
-            HaloLine.Visibility = Visibility.Visible;
-            HaloLine.Foreground = new SolidColorBrush(LimeInk);
-            HaloLine.Effect = new BlurEffect { Radius = 4d, KernelType = KernelType.Gaussian };
-        }
-        else
-        {
-            HaloLine.Visibility = Visibility.Collapsed;
-            HaloLine.Effect = null;
-        }
-    }
-
-    /// <summary>
-    /// The colour a word takes before and after it is sung.
-    /// </summary>
-    /// <remarks>
-    /// Outside the lime style this is the same colour the bars use, corrected against
-    /// the same backdrop estimate the acrylic approximates — which ties the two halves
-    /// of the widget together and is already guaranteed to clear 3:1, the right
-    /// threshold for text this large.
-    /// </remarks>
-    private SolidColorBrush WordBrush(bool sung)
-    {
-        var color = _settings.Current.LyricsStyle == LyricsStyle.Lime
-            ? LimeInk
-            : ((SolidColorBrush)_accent.Brush).Color;
-
-        if (sung) return new SolidColorBrush(color);
-
-        return new SolidColorBrush(
-            Color.FromArgb((byte)(0xFF * UnsungOpacity), color.R, color.G, color.B));
+            LyricsBackground.None => Brushes.Transparent,
+            LyricsBackground.Solid => new SolidColorBrush(color),
+            _ => new SolidColorBrush(Color.FromArgb(alpha, color.R, color.G, color.B)),
+        };
     }
 
     // ---- Placement ---------------------------------------------------------
 
     /// <summary>
-    /// Sits the panel directly above the widget, tracking the taskbar exactly as the
-    /// widget does so the two move as one.
+    /// Positions the panel according to the chosen anchor, at the chosen size.
     /// </summary>
+    /// <remarks>
+    /// Every anchor is measured from the taskbar's own monitor, so the panel follows
+    /// the taskbar rather than assuming the primary screen — and it moves with the
+    /// taskbar when it is auto-hidden or the resolution changes.
+    /// </remarks>
     private void Place(TaskbarState state)
     {
         if (_hwnd == IntPtr.Zero) return;
 
-        if (!_wantVisible || !state.IsAvailable || !state.ShouldShow)
+        bool hidden =
+            !_shown ||
+            !state.IsAvailable ||
+            !state.ShouldShow ||
+            (_hovered && _settings.Current.LyricsHover == LyricsHoverBehavior.Hide);
+
+        if (hidden)
         {
             SetWindowPos(_hwnd, HWND_TOPMOST, 0, 0, 0, 0,
                 SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_HIDEWINDOW);
@@ -270,16 +219,76 @@ internal partial class LyricsPanel : Window
         EnsureTaskbarOwnership();
 
         double scale = state.Dpi / 96d;
+        var current = _settings.Current;
 
-        int width = (int)Math.Round(PanelLogicalWidth * scale);
-        int height = (int)Math.Round(PanelLogicalHeight * scale);
-        int gap = (int)Math.Round(GapLogical * scale);
+        int width = (int)Math.Round(current.LyricsPanelWidth * scale);
+        int height = (int)Math.Round(current.LyricsPanelHeight * scale);
+        int margin = (int)Math.Round(MarginLogical * scale);
 
-        int x = state.Rect.Left;
-        int y = state.Rect.Top - gap - height;
+        var screen = ScreenOf(state);
+
+        int x;
+        int y;
+
+        switch (current.LyricsPosition)
+        {
+            case LyricsPanelPosition.BottomCenter:
+                x = screen.Left + ((screen.Width - width) / 2);
+                y = state.Rect.Top - margin - height;
+                break;
+
+            case LyricsPanelPosition.TopCenter:
+                x = screen.Left + ((screen.Width - width) / 2);
+                y = screen.Top + margin;
+                break;
+
+            case LyricsPanelPosition.Custom:
+                // The panel's own size comes off the travel, so 100% is flush with the
+                // far edge rather than one panel-width past it.
+                x = screen.Left + (int)Math.Round((screen.Width - width) * current.LyricsCustomX / 100d);
+                y = screen.Top + (int)Math.Round((screen.Height - height) * current.LyricsCustomY / 100d);
+                break;
+
+            default:
+                // Directly above the widget, sharing its left edge.
+                x = state.Rect.Left;
+                y = state.Rect.Top - margin - height;
+                break;
+        }
 
         SetWindowPos(_hwnd, HWND_TOPMOST, x, y, width, height,
             SWP_NOACTIVATE | SWP_SHOWWINDOW);
+
+        _placedX = x;
+        _placedY = y;
+        _placedWidth = width;
+        _placedHeight = height;
+
+        // Bound the text to what the panel can actually show, so a line that wraps
+        // further than the panel is trimmed rather than spilling past its edge.
+        CurrentLine.MaxHeight = Math.Max(
+            Appearance.FontSize,
+            current.LyricsPanelHeight - (Root.Padding.Top + Root.Padding.Bottom));
+
+        HaloLine.MaxHeight = CurrentLine.MaxHeight;
+    }
+
+    /// <summary>Bounds of the monitor the taskbar is on.</summary>
+    /// <remarks>
+    /// Resolved from the taskbar's own window rather than the primary monitor, so the
+    /// panel lands on the same screen as the widget wherever that turns out to be.
+    /// </remarks>
+    private RECT ScreenOf(TaskbarState state)
+    {
+        var info = new MONITORINFO { cbSize = Marshal.SizeOf<MONITORINFO>() };
+
+        IntPtr monitor = MonitorFromWindow(_tracker.TaskbarHandle, MONITOR_DEFAULTTONEAREST);
+        if (monitor != IntPtr.Zero && GetMonitorInfo(monitor, ref info))
+            return info.rcMonitor;
+
+        // The taskbar spans its monitor horizontally, so its own rect is a usable
+        // approximation if the monitor cannot be queried.
+        return state.Rect;
     }
 
     /// <summary>
@@ -296,6 +305,60 @@ internal partial class LyricsPanel : Window
         _ownerHandle = taskbar;
     }
 
+    // ---- Hover -------------------------------------------------------------
+
+    /// <summary>
+    /// Notices the pointer entering and leaving the panel's rectangle.
+    /// </summary>
+    /// <remarks>
+    /// Polled from the lyric tick rather than handled as mouse events, because
+    /// <c>WS_EX_TRANSPARENT</c> means this window never receives any. That is also
+    /// what makes the behaviour worth having: the panel cannot be clicked away, so it
+    /// needs some way to stop covering what is under it.
+    /// </remarks>
+    private void UpdateHover()
+    {
+        var behaviour = _settings.Current.LyricsHover;
+
+        // Against the rect actually passed to SetWindowPos, in physical pixels. The
+        // window's own Left/Top are WPF's idea of where it is and do not follow a
+        // position set through the Win32 call.
+        bool over = behaviour != LyricsHoverBehavior.None &&
+            _shown &&
+            _placedWidth > 0 &&
+            GetCursorPos(out var cursor) &&
+            cursor.X >= _placedX && cursor.X < _placedX + _placedWidth &&
+            cursor.Y >= _placedY && cursor.Y < _placedY + _placedHeight;
+
+        if (over == _hovered) return;
+        _hovered = over;
+
+        switch (behaviour)
+        {
+            case LyricsHoverBehavior.Hide:
+                Place(_tracker.Current);
+                break;
+
+            case LyricsHoverBehavior.Fade:
+                Fade(over ? HoverFadeOpacity : 1d);
+                break;
+        }
+    }
+
+    /// <summary>Physical pixels per logical pixel, from the taskbar's DPI.</summary>
+    private double DpiScale => _tracker.Current.Dpi / 96d;
+
+    private void Fade(double to)
+    {
+        var animation = new DoubleAnimationUsingKeyFrames();
+        animation.KeyFrames.Add(new SplineDoubleKeyFrame(
+            to,
+            KeyTime.FromTimeSpan(TimeSpan.FromMilliseconds(Motion.FastMs)),
+            Motion.Standard));
+
+        Root.BeginAnimation(OpacityProperty, animation);
+    }
+
     // ---- Content -----------------------------------------------------------
 
     /// <summary>
@@ -306,23 +369,52 @@ internal partial class LyricsPanel : Window
     {
         var document = _lyrics.Current;
 
-        bool wanted =
+        // Whether the panel is wanted at all, as against merely having nothing to show
+        // this instant. Turning lyrics off, or moving them into the widget, is a
+        // decision — it should take effect at once rather than linger for the grace
+        // period that exists to cover the gap between songs.
+        bool enabled =
             _settings.Current.LyricsEnabled &&
-            _settings.Current.LyricsDisplay == LyricsDisplayMode.Panel &&
+            _settings.Current.LyricsDisplay == LyricsDisplayMode.Panel;
+
+        bool wanted =
+            enabled &&
             document.IsSynced &&
             !document.IsEmpty &&
             playing &&
             _media.Clock.IsUsable;
 
+        if (!enabled && _shown)
+        {
+            _hideDebounce.Stop();
+            _wantVisible = false;
+            _shown = false;
+            Place(_tracker.Current);
+            StopSweep();
+            return;
+        }
+
         if (wanted != _wantVisible)
         {
             _wantVisible = wanted;
-            _lineIndex = -2;
-            Place(_tracker.Current);
 
-            if (wanted) StartSweep();
-            else StopSweep();
+            if (wanted)
+            {
+                // Showing is immediate, and cancels any pending hide — which is what
+                // carries the panel across a song change without a blink.
+                _hideDebounce.Stop();
+                _lineIndex = -2;
+                _shown = true;
+                Place(_tracker.Current);
+                StartSweep();
+            }
+            else if (!_hideDebounce.IsEnabled)
+            {
+                _hideDebounce.Start();
+            }
         }
+
+        UpdateHover();
 
         if (!wanted) return;
 
@@ -330,9 +422,6 @@ internal partial class LyricsPanel : Window
         if (index == _lineIndex) return;
 
         _lineIndex = index;
-
-        PreviousLine.Text = TextAt(document, index - 1);
-        NextLine.Text = TextAt(document, index + 1);
 
         BuildLine(document, index);
 
@@ -357,9 +446,9 @@ internal partial class LyricsPanel : Window
     /// </summary>
     /// <remarks>
     /// Runs rather than a gradient mask over the whole line. A horizontal gradient
-    /// assumes the line is one row, and this one wraps to two — the sweep would run
-    /// across both at once. Runs also cost nothing to re-colour, where a mask would
-    /// need the pixel position of every word measured.
+    /// assumes the line is one row, and this one can wrap — the sweep would run across
+    /// both at once. Runs also cost nothing to re-colour, where a mask would need the
+    /// pixel position of every word measured.
     /// </remarks>
     private void BuildLine(LyricsDocument document, int index)
     {
@@ -378,6 +467,18 @@ internal partial class LyricsPanel : Window
 
         var line = document.Lines[index];
 
+        if (!_settings.Current.LyricsWordByWord)
+        {
+            // Line at a time: one run for the whole line, lit from the moment it
+            // starts. The sweep machinery below then has nothing to do.
+            _words = [new LyricWord(line.Start, text)];
+            _runs = [new Run(text)];
+            CurrentLine.Inlines.Add(_runs[0]);
+            _activeWord = -1;
+            PaintWords(1d);
+            return;
+        }
+
         // A file that timed its own words is always right; ours is an estimate.
         _words = line.Words ?? WordTiming.Estimate(text, line.Start, document.EndOf(index));
 
@@ -387,7 +488,7 @@ internal partial class LyricsPanel : Window
         {
             // The trailing space belongs to the run, so word spacing survives being
             // split up and the line measures exactly as the unsplit text would.
-            string word = Present(_words[i].Text);
+            string word = LyricsTypography.Present(_words[i].Text, Appearance);
             _runs[i] = new Run(i + 1 < _words.Count ? word + " " : word);
             CurrentLine.Inlines.Add(_runs[i]);
         }
@@ -405,8 +506,9 @@ internal partial class LyricsPanel : Window
     {
         if (_runs.Length == 0) return;
 
-        var sung = WordBrush(sung: true);
-        var unsung = WordBrush(sung: false);
+        var appearance = Appearance;
+        var sung = new SolidColorBrush(LyricsTypography.TextColor(appearance));
+        var unsung = new SolidColorBrush(LyricsTypography.UnsungColor(appearance));
 
         int active = ActiveWordAt(_media.Clock.PositionAt(DateTimeOffset.UtcNow));
 
@@ -460,7 +562,7 @@ internal partial class LyricsPanel : Window
 
     private void OnRendering(object? sender, EventArgs e)
     {
-        if (!_wantVisible)
+        if (!_shown)
         {
             StopSweep();
             return;
@@ -471,7 +573,9 @@ internal partial class LyricsPanel : Window
 
     private void StartSweep()
     {
-        if (_sweeping) return;
+        // Line at a time needs no per-frame work at all.
+        if (_sweeping || !_settings.Current.LyricsWordByWord) return;
+
         _sweeping = true;
         CompositionTarget.Rendering += OnRendering;
     }
@@ -490,21 +594,7 @@ internal partial class LyricsPanel : Window
         (byte)(from.B + ((to.B - from.B) * amount)));
 
     private string TextAt(LyricsDocument document, int index) =>
-        Present(index >= 0 && index < document.Lines.Count
-            ? document.Lines[index].Text
-            : string.Empty);
-
-    /// <summary>
-    /// Applies any casing the style calls for. The lime look is lowercase throughout —
-    /// it is as much a part of it as the colour is.
-    /// </summary>
-    private string Present(string text) =>
-        _settings.Current.LyricsStyle == LyricsStyle.Lime ? text.ToLowerInvariant() : text;
-
-    /// <summary>Re-resolves the accent when the track, and so the artwork, changes.</summary>
-    public void OnTrackChanged()
-    {
-        _accent.Update(_media.Current?.AlbumArt);
-        DebugLog.Write($"lyrics panel: acrylic={_acrylic}");
-    }
+        LyricsTypography.Present(
+            index >= 0 && index < document.Lines.Count ? document.Lines[index].Text : string.Empty,
+            Appearance);
 }

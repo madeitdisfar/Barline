@@ -15,6 +15,17 @@ internal sealed record LyricLine
 {
     public TimeSpan Start { get; init; }
 
+    /// <summary>
+    /// When the line stops being sung, if the source said so.
+    /// </summary>
+    /// <remarks>
+    /// LRC cannot express this — a line implicitly runs until the next one starts,
+    /// which is wrong whenever an instrumental stretch follows. LRCLIB's lyricsfile
+    /// format states it outright, and it is the single biggest accuracy win available
+    /// to the word-timing estimate.
+    /// </remarks>
+    public TimeSpan? End { get; init; }
+
     public string Text { get; init; } = string.Empty;
 
     /// <summary>Word timings, or null when the source only timed the line.</summary>
@@ -84,9 +95,18 @@ internal sealed class LyricsDocument
     }
 
     /// <summary>
-    /// When the line at <paramref name="index"/> gives way to the next one. Returns
-    /// null for the final line, whose end is not knowable from the file.
+    /// When the line at <paramref name="index"/> stops being sung.
     /// </summary>
-    public TimeSpan? EndOf(int index) =>
-        index >= 0 && index + 1 < Lines.Count ? Lines[index + 1].Start : null;
+    /// <remarks>
+    /// A stated end always wins. Falling back to the next line's start is only an
+    /// approximation — it silently stretches a line across whatever instrumental gap
+    /// follows it — so it is used solely when the source gave nothing better.
+    /// </remarks>
+    public TimeSpan? EndOf(int index)
+    {
+        if (index < 0 || index >= Lines.Count) return null;
+        if (Lines[index].End is { } stated) return stated;
+
+        return index + 1 < Lines.Count ? Lines[index + 1].Start : null;
+    }
 }

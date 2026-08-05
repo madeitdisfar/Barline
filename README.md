@@ -63,31 +63,43 @@ There are two places to put them:
 
 Inline, instrumental gaps are timed too, and during one the title returns rather than the previous line hanging around.
 
-The panel uses Windows' own **acrylic material** rather than trying to adapt to the desktop behind it. Sampling the screen would cost a capture every frame and is self-referential — the window would capture itself — whereas the compositor blurs and tints for free on the GPU, and bounds the luminance the text has to survive to roughly the same range the taskbar occupies. That means the same contrast correction the bars use applies unchanged, and the panel reads as a system surface. Where the material is unavailable (before Windows 11 22H2) it paints a solid panel of the same shade instead, so the contrast guarantee holds either way.
+The panel's **position** and **size** are configurable. The anchors — above the widget, bottom centre, top centre — are measured from the taskbar's own monitor, so the panel follows the taskbar rather than assuming the primary screen. **Free** puts it wherever you like, stored as a share of the screen rather than in pixels so it stays put when the resolution changes.
 
-The current line is drawn in the album art's colour, at a size that qualifies as large text — which is what makes the 3:1 ratio the correction guarantees the right threshold for it. The panel never takes input: clicks pass straight through to whatever is behind, and it is owned by the taskbar, so it hides for fullscreen apps and slides away with auto-hide by the same mechanism the widget does.
+The panel is a genuinely transparent window: WPF gives it real per-pixel alpha, and the background is painted over whatever is behind it at the opacity you choose.
+
+The panel never takes input: clicks pass straight through to whatever is behind, and it is owned by the taskbar, so it hides for fullscreen apps and slides away with auto-hide by the same mechanism the widget does. Because it cannot be clicked away, it can instead **fade or hide while the pointer is over it** — the pointer is polled rather than handled as an event, since a click-through window never receives one.
+
+It also **waits a few seconds before disappearing**. Between tracks there is a moment with no lyrics — the old ones dropped, the new ones not yet fetched — and hiding immediately made the panel blink out and back on every song change. Showing is never delayed; only hiding.
 
 ### Word by word
 
-The panel highlights each word as it is sung. No free source carries word-level timing, so it is inferred: the line's span is divided by **syllable count**, which tracks singing time far better than character count — *strength* and *a potato* are the same length and nothing alike to sing. Vowel-group counting is an English heuristic, so scripts that write a syllable per character (Hangul, kana, CJK) are counted that way instead; otherwise a Korean line would come back as one syllable per word and the sweep would be worthless. A file that carries real word timings always overrides the estimate.
+The panel highlights either **each word as it is sung** or the whole line at once, whichever you prefer — word timing is estimated for almost every track, and on one it fits badly a line at a time is calmer. No free source carries word-level timing, so it is inferred: the line's span is divided by **syllable count**, which tracks singing time far better than character count — *strength* and *a potato* are the same length and nothing alike to sing. Vowel-group counting is an English heuristic, so scripts that write a syllable per character (Hangul, kana, CJK) are counted that way instead; otherwise a Korean line would come back as one syllable per word and the sweep would be worthless. A file that carries real word timings always overrides the estimate.
 
 Aligning the words to the audio properly was considered and rejected — not because it is slow, but because it is **causal**. A forced aligner cannot know where a word lands until after it has been sung, so using one would mean running the lyrics behind the music, which defeats the point at any speed.
 
-Three styles, all of which sweep:
+### Appearance and presets
 
-| Style | Look |
-|---|---|
-| `Clean` | The album art's colour on acrylic. No effects. |
-| `Glow` | Adds a soft halo behind the current line. |
-| `Lime` | Flat lime panel, condensed black lowercase — the lo-fi album-cover look. |
+Font family, size, weight and italic, text colour, unsung-word opacity, casing, effect, background and corner radius are all settings. Controls that a choice makes meaningless are hidden rather than left to do nothing — an effect radius with no effect, an opacity for an opaque fill, a corner radius with no surface to round. The inline display has its own set, minus the background: the widget deliberately paints none so the taskbar's own material shows through, and that is the decision the whole widget is built around.
 
 Effects are carried on a **separate, bitmap-cached layer** behind the live text rather than on the text itself. An effect on the text would be re-rendered every frame as the highlight moves; on a static layer it rasterises once per line. Measured with the visualiser and the sweep both running, the whole widget sits near 2% CPU, so there is no performance trade-off to warn about.
+
+**Backgrounds** are `Tinted` (see-through colour at the opacity you choose), `Solid`, or `None`. A compositor-blurred acrylic option existed briefly and was removed: Windows composites that blur across the whole window rectangle, and a transparent window takes its shape from per-pixel alpha rather than from a region, so acrylic could never honour a corner radius. One background behaving differently from the rest was not worth what it bought — every background is now painted by the app, and the corner radius applies to all of them alike.
+
+Colours can be typed as hex or picked from a palette, and the font list previews each family in its own typeface.
+
+**Presets are files**, in `%LocalAppData%\TaskbarMusicWidget\presets`. They are saved copies of the appearance values, not a separate source of truth: the settings window edits the appearance directly and you see it immediately, and a preset is that snapshot under a name. The alternative — the file being the only home for these values — would mean every tweak was a file edit and the UI could only pick between whole files.
+
+The three original looks (`Clean`, `Glow`, `Lime`) now ship as ordinary preset files, written on first run and never overwritten. That makes them readable, copyable and editable, and means writing your own starts from a working example rather than an empty file. Drop a preset someone sends you into that folder and it appears in the list.
 
 LRCLIB was chosen because it is the only free source serving timed lyrics with no API key, no paid tier, and no terms forbidding this use. It is run at no charge for exactly this purpose, which is a reason to be a careful client: **every result is cached to disk, misses included**, so a track is fetched once rather than once per play. Misses expire after two weeks, since the database grows and today's gap may be filled next month.
 
 Matching is the hard part, not coverage. Spotify reports `Creep - Remastered 2011` and a browser reports `Creep (Official Video)`; neither string is filed under that name anywhere. Lookups therefore widen in stages — the name exactly as reported first, since stripping is a guess and a track really can be called `Live`, then with packaging removed, then with only the first credited artist, and finally a duration-matched search that tolerates a source reporting the length a second or two out.
 
-To supply your own, drop an `.lrc` file named `Artist - Title.lrc` into `%LocalAppData%\TaskbarMusicWidget\lyrics`. A file always wins over the network — it is the only route for tracks the database has never heard of, and the way to fix timings you disagree with. Both standard and word-level (enhanced) LRC are read.
+Where a record has one, LRCLIB's own **lyricsfile** form is preferred over the LRC. It is the same lyrics as YAML, and it states each line's *end* — which LRC cannot express, leaving a line to implicitly run until the next one starts. That is wrong across every instrumental gap, and it is precisely the span the word timing divides up. The format is documented as supporting word-level timing as well, but no contributed data appears to use it yet: a sample of roughly a hundred records carried only line-level fields, so nothing here guesses at a schema that isn't in the data.
+
+To supply your own, use **Import for this track…** in settings, or drop an `.lrc` file named `Artist - Title.lrc` into `%LocalAppData%\TaskbarMusicWidget\lyrics` (the settings window names the exact file the current track expects). A file always wins over the network — it is the only route for tracks the database has never heard of, and the way to fix timings you disagree with. Imports are parsed before being kept, so an unreadable file is refused rather than silently replacing working lyrics with nothing. Both standard and word-level (enhanced) LRC are read.
+
+Fetched lyrics are cached under that same folder, one JSON file per track.
 
 ## How it works
 

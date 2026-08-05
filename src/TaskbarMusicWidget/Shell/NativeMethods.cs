@@ -147,6 +147,27 @@ internal static class NativeMethods
     [DllImport("user32.dll")]
     internal static extern uint GetDpiForWindow(IntPtr hWnd);
 
+    // ---- Pointer ----------------------------------------------------------
+
+    [StructLayout(LayoutKind.Sequential)]
+    internal struct POINT
+    {
+        public int X;
+        public int Y;
+    }
+
+    /// <summary>
+    /// Where the pointer is, in physical screen pixels.
+    /// </summary>
+    /// <remarks>
+    /// Polled rather than handled as an event: the lyrics panel is
+    /// <c>WS_EX_TRANSPARENT</c>, so mouse messages pass straight through it and it
+    /// never receives an enter or leave of its own.
+    /// </remarks>
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static extern bool GetCursorPos(out POINT point);
+
     // ---- Monitors ---------------------------------------------------------
 
     [DllImport("user32.dll")]

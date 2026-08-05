@@ -27,8 +27,10 @@ internal sealed class SettingsStore
     private static readonly JsonSerializerOptions SerializerOptions = new()
     {
         WriteIndented = true,
-        // By name, so the file reads as configuration rather than as magic numbers.
-        Converters = { new JsonStringEnumConverter() },
+        // By name, so the file reads as configuration rather than as magic numbers —
+        // and tolerantly, so a value this build no longer recognises costs one setting
+        // rather than the whole file.
+        Converters = { new TolerantEnumConverterFactory() },
     };
 
     private readonly string _directory;

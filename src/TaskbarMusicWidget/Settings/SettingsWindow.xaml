@@ -241,6 +241,286 @@
             </Setter>
         </Style>
 
+        <!-- The pill that holds a row of segments. Extracted because there are now
+             four of them and they must stay identical. -->
+        <Style x:Key="SegmentGroup" TargetType="Border">
+            <Setter Property="Margin" Value="16,0,0,0" />
+            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="Padding" Value="2" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Background" Value="{DynamicResource ControlAltFillBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource CardStrokeBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="SnapsToDevicePixels" Value="True" />
+        </Style>
+
+        <!-- Windows 11 standard button: a faint filled rounded rect that lifts on
+             hover and sinks on press. -->
+        <Style x:Key="CardButton" TargetType="Button">
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Padding" Value="14,6" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Fill"
+                                CornerRadius="4"
+                                Background="{DynamicResource ControlAltFillBrush}"
+                                BorderBrush="{DynamicResource CardStrokeBrush}"
+                                BorderThickness="1"
+                                Padding="{TemplateBinding Padding}"
+                                SnapsToDevicePixels="True">
+                            <TextBlock Text="{TemplateBinding Content}"
+                                       FontFamily="Segoe UI Variable Text, Segoe UI"
+                                       FontSize="12"
+                                       Foreground="{DynamicResource TextPrimaryBrush}" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Fill" Property="Background"
+                                        Value="{DynamicResource SubtleHoverBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Fill" Property="Background"
+                                        Value="{DynamicResource SubtlePressedBrush}" />
+                            </Trigger>
+                            <!-- Import is unavailable with nothing playing, and has to
+                                 look it — an enabled button that does nothing reads as
+                                 broken. -->
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="Fill" Property="Opacity" Value="0.4" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- A colour well that opens the palette. Its own fill is set from code, so the
+             template only supplies the frame and the hover state. -->
+        <Style x:Key="SwatchButton" TargetType="Button">
+            <Setter Property="Width" Value="44" />
+            <Setter Property="Height" Value="24" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Grid>
+                            <!-- Chequerboard behind, so a partly transparent colour
+                                 reads as transparent rather than as a darker one. -->
+                            <Border CornerRadius="3" SnapsToDevicePixels="True">
+                                <Border.Background>
+                                    <DrawingBrush TileMode="Tile" Viewport="0,0,8,8"
+                                                  ViewportUnits="Absolute" Stretch="None">
+                                        <DrawingBrush.Drawing>
+                                            <GeometryDrawing Brush="#20808080">
+                                                <GeometryDrawing.Geometry>
+                                                    <GeometryGroup>
+                                                        <RectangleGeometry Rect="0,0,4,4" />
+                                                        <RectangleGeometry Rect="4,4,4,4" />
+                                                    </GeometryGroup>
+                                                </GeometryDrawing.Geometry>
+                                            </GeometryDrawing>
+                                        </DrawingBrush.Drawing>
+                                    </DrawingBrush>
+                                </Border.Background>
+                            </Border>
+                            <Border x:Name="Fill"
+                                    CornerRadius="3"
+                                    Background="{TemplateBinding Background}"
+                                    BorderBrush="{DynamicResource ControlStrongStrokeBrush}"
+                                    BorderThickness="1"
+                                    SnapsToDevicePixels="True" />
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Fill" Property="BorderBrush"
+                                        Value="{DynamicResource AccentFillBrush}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Windows 11 combo box. WPF's default is still the Windows 7 look, so the
+             whole thing is retemplated: a rounded field with a chevron, and a rounded
+             popup list. -->
+        <Style x:Key="CardComboItem" TargetType="ComboBoxItem">
+            <Setter Property="Padding" Value="10,6" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBoxItem">
+                        <Border x:Name="Fill"
+                                CornerRadius="4"
+                                Margin="4,1"
+                                Background="Transparent"
+                                Padding="{TemplateBinding Padding}"
+                                SnapsToDevicePixels="True">
+                            <ContentPresenter />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsHighlighted" Value="True">
+                                <Setter TargetName="Fill" Property="Background"
+                                        Value="{DynamicResource SubtleHoverBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="Fill" Property="Background"
+                                        Value="{DynamicResource AccentFillBrush}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="CardCombo" TargetType="ComboBox">
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="FontFamily" Value="Segoe UI Variable Text, Segoe UI" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+            <Setter Property="ItemContainerStyle" Value="{StaticResource CardComboItem}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBox">
+                        <Grid>
+                            <!-- Foreground is set here, not left to inherit. A
+                                 ToggleButton picks up the stock theme style, which
+                                 sets its own near-black Foreground and so breaks the
+                                 chain from the ComboBox — leaving the box's label
+                                 black on a dark card while the drop-down list, which
+                                 inherits from the ComboBox directly, stayed correct. -->
+                            <ToggleButton x:Name="Toggle"
+                                          Focusable="False"
+                                          ClickMode="Press"
+                                          Foreground="{DynamicResource TextPrimaryBrush}"
+                                          TextElement.Foreground="{DynamicResource TextPrimaryBrush}"
+                                          IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}">
+                                <ToggleButton.Template>
+                                    <ControlTemplate TargetType="ToggleButton">
+                                        <Border x:Name="Fill"
+                                                CornerRadius="4"
+                                                Background="{DynamicResource ControlAltFillBrush}"
+                                                BorderBrush="{DynamicResource CardStrokeBrush}"
+                                                BorderThickness="1"
+                                                Padding="10,5"
+                                                SnapsToDevicePixels="True">
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <ContentPresenter Grid.Column="0"
+                                                                  VerticalAlignment="Center" />
+                                                <!-- Segoe Fluent Icons ChevronDown, as
+                                                     the rest of the widget uses. -->
+                                                <TextBlock Grid.Column="1"
+                                                           Margin="8,0,0,0"
+                                                           FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
+                                                           FontSize="10"
+                                                           VerticalAlignment="Center"
+                                                           Foreground="{DynamicResource TextSecondaryBrush}"
+                                                           Text="&#xE70D;" />
+                                            </Grid>
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter TargetName="Fill" Property="Background"
+                                                        Value="{DynamicResource SubtleHoverBrush}" />
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </ToggleButton.Template>
+                                <ContentPresenter
+                                    Content="{TemplateBinding SelectionBoxItem}"
+                                    ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
+                                    VerticalAlignment="Center" />
+                            </ToggleButton>
+
+                            <Popup IsOpen="{TemplateBinding IsDropDownOpen}"
+                                   Placement="Bottom"
+                                   AllowsTransparency="True"
+                                   PopupAnimation="Fade"
+                                   Focusable="False">
+                                <Border MinWidth="{TemplateBinding ActualWidth}"
+                                        MaxHeight="260"
+                                        Margin="0,4,0,0"
+                                        CornerRadius="6"
+                                        Background="{DynamicResource WindowBackgroundBrush}"
+                                        BorderBrush="{DynamicResource CardStrokeBrush}"
+                                        BorderThickness="1"
+                                        SnapsToDevicePixels="True">
+                                    <!-- CanContentScroll is what lets the items panel
+                                         virtualise; without it every item is realised
+                                         up front. -->
+                                    <ScrollViewer Style="{DynamicResource OverlayScrollViewer}"
+                                                  CanContentScroll="True"
+                                                  Margin="0,4">
+                                        <ItemsPresenter />
+                                    </ScrollViewer>
+                                </Border>
+                            </Popup>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Windows 11 slider: a thin track with the filled portion in the accent and
+             a ringed knob that grows on hover. -->
+        <Style x:Key="CardSlider" TargetType="Slider">
+            <Setter Property="Width" Value="170" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="IsMoveToPointEnabled" Value="True" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Slider">
+                        <Grid Height="28" Background="Transparent" VerticalAlignment="Center">
+                            <Border Height="4" CornerRadius="2" VerticalAlignment="Center"
+                                    Background="{DynamicResource ControlStrongStrokeBrush}"
+                                    Opacity="0.45" />
+                            <Track x:Name="PART_Track">
+                                <Track.DecreaseRepeatButton>
+                                    <!-- Dynamic, not static: this style is declared
+                                         further down the dictionary, and a static
+                                         reference only sees what precedes it. -->
+                                    <RepeatButton Style="{DynamicResource ScrollPageButton}"
+                                                  Command="Slider.DecreaseLarge" />
+                                </Track.DecreaseRepeatButton>
+                                <Track.IncreaseRepeatButton>
+                                    <!-- Dynamic, not static: this style is declared
+                                         further down the dictionary, and a static
+                                         reference only sees what precedes it. -->
+                                    <RepeatButton Style="{DynamicResource ScrollPageButton}"
+                                                  Command="Slider.IncreaseLarge" />
+                                </Track.IncreaseRepeatButton>
+                                <Track.Thumb>
+                                    <Thumb x:Name="Knob">
+                                        <Thumb.Template>
+                                            <ControlTemplate TargetType="Thumb">
+                                                <Grid Width="20" Height="20" Background="Transparent">
+                                                    <Ellipse Fill="{DynamicResource AccentFillBrush}" />
+                                                    <Ellipse x:Name="Core"
+                                                             Width="9" Height="9"
+                                                             Fill="{DynamicResource TextOnAccentBrush}" />
+                                                </Grid>
+                                                <ControlTemplate.Triggers>
+                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                        <Setter TargetName="Core" Property="Width" Value="11" />
+                                                        <Setter TargetName="Core" Property="Height" Value="11" />
+                                                    </Trigger>
+                                                </ControlTemplate.Triggers>
+                                            </ControlTemplate>
+                                        </Thumb.Template>
+                                    </Thumb>
+                                </Track.Thumb>
+                            </Track>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <!-- Swatch button for the custom palette. Content is the colour itself, so
              the template is just a rounded fill with a selection ring. -->
         <!-- Sized so all twelve hues fit one row inside the card at the default window
@@ -337,11 +617,17 @@
                         <Grid x:Name="Root" Background="Transparent">
                             <Track x:Name="PART_Track" IsDirectionReversed="True">
                                 <Track.DecreaseRepeatButton>
-                                    <RepeatButton Style="{StaticResource ScrollPageButton}"
+                                    <!-- Dynamic, not static: this style is declared
+                                         further down the dictionary, and a static
+                                         reference only sees what precedes it. -->
+                                    <RepeatButton Style="{DynamicResource ScrollPageButton}"
                                                   Command="ScrollBar.PageUpCommand" />
                                 </Track.DecreaseRepeatButton>
                                 <Track.IncreaseRepeatButton>
-                                    <RepeatButton Style="{StaticResource ScrollPageButton}"
+                                    <!-- Dynamic, not static: this style is declared
+                                         further down the dictionary, and a static
+                                         reference only sees what precedes it. -->
+                                    <RepeatButton Style="{DynamicResource ScrollPageButton}"
                                                   Command="ScrollBar.PageDownCommand" />
                                 </Track.IncreaseRepeatButton>
                                 <Track.Thumb>
@@ -625,18 +911,10 @@
                         <StackPanel Grid.Column="0" VerticalAlignment="Center">
                             <TextBlock Style="{StaticResource CardLabel}" Text="Where to show them" />
                             <TextBlock Style="{StaticResource CardDescription}"
-                                       Text="The widget has room for about 25 characters. The panel floats above the taskbar with the lines either side, and never takes clicks." />
+                                       Text="The widget has room for about 25 characters. The panel is a floating window with room for a full line, and never takes clicks." />
                         </StackPanel>
 
-                        <Border Grid.Column="1"
-                                Margin="16,0,0,0"
-                                CornerRadius="4"
-                                Padding="2"
-                                VerticalAlignment="Center"
-                                Background="{DynamicResource ControlAltFillBrush}"
-                                BorderBrush="{DynamicResource CardStrokeBrush}"
-                                BorderThickness="1"
-                                SnapsToDevicePixels="True">
+                        <Border Grid.Column="1" Style="{StaticResource SegmentGroup}">
                             <UniformGrid Rows="1">
                                 <RadioButton x:Name="InlineOption"
                                              GroupName="LyricsDisplay"
@@ -650,44 +928,598 @@
                         </Border>
                     </Grid>
 
-                    <Border x:Name="StyleDivider" Style="{StaticResource RowDivider}" />
+                    <StackPanel x:Name="PanelOnlySettings">
+                        <Border Style="{StaticResource RowDivider}" />
 
-                    <Grid x:Name="StyleRow">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+
+                            <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                <TextBlock Style="{StaticResource CardLabel}" Text="Highlight" />
+                                <TextBlock Style="{StaticResource CardDescription}"
+                                           Text="Word timing is estimated from the line, since almost no source carries it. On a track it fits badly, a line at a time is calmer." />
+                            </StackPanel>
+
+                            <Border Grid.Column="1" Style="{StaticResource SegmentGroup}">
+                                <UniformGrid Rows="1">
+                                    <RadioButton x:Name="WordByWordOption"
+                                                 GroupName="LyricsHighlight"
+                                                 Style="{StaticResource SegmentOption}"
+                                                 Content="Word" />
+                                    <RadioButton x:Name="LineAtATimeOption"
+                                                 GroupName="LyricsHighlight"
+                                                 Style="{StaticResource SegmentOption}"
+                                                 Content="Line" />
+                                </UniformGrid>
+                            </Border>
+                        </Grid>
+
+                        <Border Style="{StaticResource RowDivider}" />
+
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+
+                            <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                <TextBlock Style="{StaticResource CardLabel}" Text="When hovered" />
+                                <TextBlock Style="{StaticResource CardDescription}"
+                                           Text="The panel never takes clicks, but it can still cover something. This gets it out of the way." />
+                            </StackPanel>
+
+                            <Border Grid.Column="1" Style="{StaticResource SegmentGroup}">
+                                <UniformGrid Rows="1">
+                                    <RadioButton x:Name="HoverNoneOption"
+                                                 GroupName="LyricsHover"
+                                                 Style="{StaticResource SegmentOption}"
+                                                 Content="Stay" />
+                                    <RadioButton x:Name="HoverFadeOption"
+                                                 GroupName="LyricsHover"
+                                                 Style="{StaticResource SegmentOption}"
+                                                 Content="Fade" />
+                                    <RadioButton x:Name="HoverHideOption"
+                                                 GroupName="LyricsHover"
+                                                 Style="{StaticResource SegmentOption}"
+                                                 Content="Hide" />
+                                </UniformGrid>
+                            </Border>
+                        </Grid>
+
+                        <Border Style="{StaticResource RowDivider}" />
+
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+
+                            <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                <TextBlock Style="{StaticResource CardLabel}" Text="Position" />
+                                <TextBlock Style="{StaticResource CardDescription}"
+                                           Text="Measured from the taskbar's own monitor, so the panel stays with the widget." />
+                            </StackPanel>
+
+                            <Border Grid.Column="1" Style="{StaticResource SegmentGroup}">
+                                <UniformGrid Rows="1">
+                                    <RadioButton x:Name="AboveWidgetOption"
+                                                 GroupName="LyricsPosition"
+                                                 Style="{StaticResource SegmentOption}"
+                                                 Content="Widget" />
+                                    <RadioButton x:Name="BottomCenterOption"
+                                                 GroupName="LyricsPosition"
+                                                 Style="{StaticResource SegmentOption}"
+                                                 Content="Bottom" />
+                                    <RadioButton x:Name="TopCenterOption"
+                                                 GroupName="LyricsPosition"
+                                                 Style="{StaticResource SegmentOption}"
+                                                 Content="Top" />
+                                    <RadioButton x:Name="CustomPositionOption"
+                                                 GroupName="LyricsPosition"
+                                                 Style="{StaticResource SegmentOption}"
+                                                 Content="Free" />
+                                </UniformGrid>
+                            </Border>
+                        </Grid>
+
+                        <StackPanel x:Name="CustomPositionRow" Visibility="Collapsed">
+                            <Border Style="{StaticResource RowDivider}" />
+
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+
+                                <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                    <TextBlock Style="{StaticResource CardLabel}" Text="Where exactly" />
+                                    <TextBlock Style="{StaticResource CardDescription}"
+                                               Text="Across and down, as a share of the screen — so it stays put if the resolution changes." />
+                                </StackPanel>
+
+                                <StackPanel Grid.Column="1" Margin="16,0,0,0" VerticalAlignment="Center">
+                                    <Slider x:Name="CustomXSlider" Style="{StaticResource CardSlider}" />
+                                    <Slider x:Name="CustomYSlider" Style="{StaticResource CardSlider}" Margin="0,2,0,0" />
+                                </StackPanel>
+
+                                <StackPanel Grid.Column="2" Margin="10,0,0,0" VerticalAlignment="Center">
+                                    <TextBlock x:Name="CustomXText"
+                                               Width="44" Height="28"
+                                               TextAlignment="Right" Padding="0,6,0,0"
+                                               FontSize="11"
+                                               FontFamily="Cascadia Mono, Consolas, monospace"
+                                               Foreground="{DynamicResource TextTertiaryBrush}" />
+                                    <TextBlock x:Name="CustomYText"
+                                               Width="44" Height="28"
+                                               Margin="0,2,0,0"
+                                               TextAlignment="Right" Padding="0,6,0,0"
+                                               FontSize="11"
+                                               FontFamily="Cascadia Mono, Consolas, monospace"
+                                               Foreground="{DynamicResource TextTertiaryBrush}" />
+                                </StackPanel>
+                            </Grid>
+                        </StackPanel>
+
+                        <Border Style="{StaticResource RowDivider}" />
+
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+
+                            <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                <TextBlock Style="{StaticResource CardLabel}" Text="Size" />
+                                <TextBlock Style="{StaticResource CardDescription}"
+                                           Text="Width and height of the panel, in pixels." />
+                            </StackPanel>
+
+                            <StackPanel Grid.Column="1" Margin="16,0,0,0" VerticalAlignment="Center">
+                                <Slider x:Name="PanelWidthSlider" Style="{StaticResource CardSlider}" />
+                                <Slider x:Name="PanelHeightSlider" Style="{StaticResource CardSlider}" Margin="0,2,0,0" />
+                            </StackPanel>
+
+                            <StackPanel Grid.Column="2" Margin="10,0,0,0" VerticalAlignment="Center">
+                                <TextBlock x:Name="PanelWidthText"
+                                           Width="44" Height="28"
+                                           TextAlignment="Right"
+                                           Padding="0,6,0,0"
+                                           FontSize="11"
+                                           FontFamily="Cascadia Mono, Consolas, monospace"
+                                           Foreground="{DynamicResource TextTertiaryBrush}" />
+                                <TextBlock x:Name="PanelHeightText"
+                                           Width="44" Height="28"
+                                           Margin="0,2,0,0"
+                                           TextAlignment="Right"
+                                           Padding="0,6,0,0"
+                                           FontSize="11"
+                                           FontFamily="Cascadia Mono, Consolas, monospace"
+                                           Foreground="{DynamicResource TextTertiaryBrush}" />
+                            </StackPanel>
+                        </Grid>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- === Appearance === -->
+
+            <Border x:Name="LyricsAppearanceCard"
+                    Style="{StaticResource Card}"
+                    Margin="0,12,0,0"
+                    Visibility="Collapsed">
+                <StackPanel>
+                    <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
 
                         <StackPanel Grid.Column="0" VerticalAlignment="Center">
-                            <TextBlock Style="{StaticResource CardLabel}" Text="Style" />
-                            <TextBlock Style="{StaticResource CardDescription}"
-                                       Text="Every style highlights word by word. Glow adds a halo; Lime is a flat lime panel with condensed black type." />
+                            <TextBlock Style="{StaticResource CardLabel}" Text="Appearance" />
+                            <TextBlock x:Name="AppearanceScopeText"
+                                       Style="{StaticResource CardDescription}"
+                                       Text="Presets are saved copies of these values, kept as files you can share." />
                         </StackPanel>
 
-                        <Border Grid.Column="1"
+                        <StackPanel Grid.Column="1" Orientation="Horizontal"
+                                    Margin="16,0,0,0" VerticalAlignment="Center">
+                            <ComboBox x:Name="PresetPicker"
+                                      Style="{StaticResource CardCombo}"
+                                      Width="130" />
+                            <Button x:Name="SavePresetButton"
+                                    Style="{StaticResource CardButton}"
+                                    Margin="8,0,0,0"
+                                    Content="Save as…" />
+                        </StackPanel>
+                    </Grid>
+
+                    <Border Style="{StaticResource RowDivider}" />
+
+                    <!-- Type -->
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                            <TextBlock Style="{StaticResource CardLabel}" Text="Font" />
+                            <TextBlock Style="{StaticResource CardDescription}"
+                                       Text="Family, size and weight." />
+                        </StackPanel>
+
+                        <StackPanel Grid.Column="1" Margin="16,0,0,0" VerticalAlignment="Center">
+                            <!-- Each family is drawn in itself, which is how every
+                                 other font picker works and the only way to choose one
+                                 without trying it. Virtualised, because there are
+                                 several hundred and each carries its own typeface. -->
+                            <ComboBox x:Name="FontPicker"
+                                      Style="{StaticResource CardCombo}"
+                                      Width="196"
+                                      VirtualizingStackPanel.IsVirtualizing="True"
+                                      VirtualizingStackPanel.VirtualizationMode="Recycling">
+                                <ComboBox.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <VirtualizingStackPanel />
+                                    </ItemsPanelTemplate>
+                                </ComboBox.ItemsPanel>
+                                <ComboBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding}"
+                                                   FontFamily="{Binding}"
+                                                   FontSize="13"
+                                                   TextTrimming="CharacterEllipsis" />
+                                    </DataTemplate>
+                                </ComboBox.ItemTemplate>
+                            </ComboBox>
+                            <Slider x:Name="FontSizeSlider"
+                                    Style="{StaticResource CardSlider}"
+                                    Margin="0,4,0,0" />
+                        </StackPanel>
+
+                        <StackPanel Grid.Column="2" Margin="10,0,0,0" VerticalAlignment="Center">
+                            <Border Style="{StaticResource SegmentGroup}" Margin="0">
+                                <UniformGrid Rows="1">
+                                    <RadioButton x:Name="WeightNormalOption"
+                                                 GroupName="LyricsWeight"
+                                                 Style="{StaticResource SegmentOption}"
+                                                 Content="R" />
+                                    <RadioButton x:Name="WeightSemiBoldOption"
+                                                 GroupName="LyricsWeight"
+                                                 Style="{StaticResource SegmentOption}"
+                                                 Content="SB" />
+                                    <RadioButton x:Name="WeightBoldOption"
+                                                 GroupName="LyricsWeight"
+                                                 Style="{StaticResource SegmentOption}"
+                                                 Content="B" />
+                                </UniformGrid>
+                            </Border>
+                            <TextBlock x:Name="FontSizeText"
+                                       Margin="0,6,0,0"
+                                       TextAlignment="Right"
+                                       FontSize="11"
+                                       FontFamily="Cascadia Mono, Consolas, monospace"
+                                       Foreground="{DynamicResource TextTertiaryBrush}" />
+                        </StackPanel>
+                    </Grid>
+
+                    <Border Style="{StaticResource RowDivider}" />
+
+                    <!-- Colour -->
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                            <TextBlock Style="{StaticResource CardLabel}" Text="Text color" />
+                            <TextBlock Style="{StaticResource CardDescription}"
+                                       Text="Used as written — no contrast correction, so pick something you can read." />
+                        </StackPanel>
+
+                        <TextBox x:Name="TextColorInput"
+                                 Grid.Column="1"
+                                 Style="{StaticResource HexBox}"
+                                 Margin="16,0,0,0"
+                                 VerticalAlignment="Center" />
+
+                        <Button x:Name="TextColorSwatch"
+                                Grid.Column="2"
+                                Style="{StaticResource SwatchButton}"
+                                Margin="10,0,0,0"
+                                ToolTip="Pick a color" />
+                    </Grid>
+
+                    <Border Style="{StaticResource RowDivider}" />
+
+                    <!-- Unsung opacity and casing -->
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                            <TextBlock Style="{StaticResource CardLabel}" Text="Unsung words" />
+                            <TextBlock Style="{StaticResource CardDescription}"
+                                       Text="How visible a word is before it is sung." />
+                        </StackPanel>
+
+                        <Slider x:Name="UnsungSlider"
+                                Grid.Column="1"
+                                Style="{StaticResource CardSlider}"
+                                Margin="16,0,0,0" />
+
+                        <TextBlock x:Name="UnsungText"
+                                   Grid.Column="2"
+                                   Width="44"
+                                   Margin="10,0,0,0"
+                                   TextAlignment="Right"
+                                   VerticalAlignment="Center"
+                                   FontSize="11"
+                                   FontFamily="Cascadia Mono, Consolas, monospace"
+                                   Foreground="{DynamicResource TextTertiaryBrush}" />
+                    </Grid>
+
+                    <Border Style="{StaticResource RowDivider}" />
+
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                            <TextBlock Style="{StaticResource CardLabel}" Text="Lowercase" />
+                            <TextBlock Style="{StaticResource CardDescription}"
+                                       Text="Some looks depend on it." />
+                        </StackPanel>
+
+                        <CheckBox x:Name="LowercaseToggle" Grid.Column="1"
+                                  Style="{StaticResource ToggleSwitch}" />
+                    </Grid>
+
+                    <Border Style="{StaticResource RowDivider}" />
+
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                            <TextBlock Style="{StaticResource CardLabel}" Text="Italic" />
+                            <TextBlock Style="{StaticResource CardDescription}"
+                                       Text="Uses the family's italic face, or slants the upright one if it has none." />
+                        </StackPanel>
+
+                        <CheckBox x:Name="ItalicToggle" Grid.Column="1"
+                                  Style="{StaticResource ToggleSwitch}" />
+                    </Grid>
+
+                    <Border Style="{StaticResource RowDivider}" />
+
+                    <!-- Effect -->
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                            <TextBlock Style="{StaticResource CardLabel}" Text="Effect" />
+                            <TextBlock Style="{StaticResource CardDescription}"
+                                       Text="Drawn on a cached layer behind the text, so it costs nothing per frame." />
+                        </StackPanel>
+
+                        <StackPanel Grid.Column="1" Margin="16,0,0,0" VerticalAlignment="Center">
+                            <Border Style="{StaticResource SegmentGroup}" Margin="0">
+                                <UniformGrid Rows="1">
+                                    <RadioButton x:Name="EffectNoneOption"
+                                                 GroupName="LyricsEffect"
+                                                 Style="{StaticResource SegmentOption}"
+                                                 Content="None" />
+                                    <RadioButton x:Name="EffectGlowOption"
+                                                 GroupName="LyricsEffect"
+                                                 Style="{StaticResource SegmentOption}"
+                                                 Content="Glow" />
+                                </UniformGrid>
+                            </Border>
+                            <Slider x:Name="EffectRadiusSlider"
+                                    Style="{StaticResource CardSlider}"
+                                    Margin="0,4,0,0" />
+                        </StackPanel>
+
+                        <TextBlock x:Name="EffectRadiusText"
+                                   Grid.Column="2"
+                                   Width="44"
+                                   Margin="10,0,0,0"
+                                   TextAlignment="Right"
+                                   VerticalAlignment="Bottom"
+                                   FontSize="11"
+                                   FontFamily="Cascadia Mono, Consolas, monospace"
+                                   Foreground="{DynamicResource TextTertiaryBrush}" />
+                    </Grid>
+
+                    <!-- Panel-only surface settings -->
+                    <StackPanel x:Name="SurfaceSettings">
+                        <Border Style="{StaticResource RowDivider}" />
+
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+
+                            <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                <TextBlock Style="{StaticResource CardLabel}" Text="Background" />
+                                <TextBlock x:Name="BackgroundHint"
+                                           Style="{StaticResource CardDescription}"
+                                           Text="Tinted is see-through at the opacity below; None leaves the text over the bare desktop." />
+                            </StackPanel>
+
+                            <StackPanel Grid.Column="1" Margin="16,0,0,0" VerticalAlignment="Center">
+                                <Border Style="{StaticResource SegmentGroup}" Margin="0">
+                                    <UniformGrid Rows="1">
+                                        <RadioButton x:Name="BackgroundTintedOption"
+                                                     GroupName="LyricsBackground"
+                                                     Style="{StaticResource SegmentOption}"
+                                                     Content="Tinted" />
+                                        <RadioButton x:Name="BackgroundSolidOption"
+                                                     GroupName="LyricsBackground"
+                                                     Style="{StaticResource SegmentOption}"
+                                                     Content="Solid" />
+                                        <RadioButton x:Name="BackgroundNoneOption"
+                                                     GroupName="LyricsBackground"
+                                                     Style="{StaticResource SegmentOption}"
+                                                     Content="None" />
+                                    </UniformGrid>
+                                </Border>
+                                <Slider x:Name="BackgroundOpacitySlider"
+                                        Style="{StaticResource CardSlider}"
+                                        Margin="0,4,0,0" />
+                            </StackPanel>
+
+                            <TextBlock x:Name="BackgroundOpacityText"
+                                       Grid.Column="2"
+                                       Width="44"
+                                       Margin="10,0,0,0"
+                                       TextAlignment="Right"
+                                       VerticalAlignment="Bottom"
+                                       FontSize="11"
+                                       FontFamily="Cascadia Mono, Consolas, monospace"
+                                       Foreground="{DynamicResource TextTertiaryBrush}" />
+                        </Grid>
+
+                        <StackPanel x:Name="BackgroundColorRow">
+                            <Border Style="{StaticResource RowDivider}" />
+
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+
+                                <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                    <TextBlock Style="{StaticResource CardLabel}" Text="Background color" />
+                                    <TextBlock Style="{StaticResource CardDescription}"
+                                               Text="Tints the panel, or fills it outright." />
+                                </StackPanel>
+
+                                <TextBox x:Name="BackgroundColorInput"
+                                         Grid.Column="1"
+                                         Style="{StaticResource HexBox}"
+                                         Margin="16,0,0,0"
+                                         VerticalAlignment="Center" />
+
+                                <Button x:Name="BackgroundSwatch"
+                                        Grid.Column="2"
+                                        Style="{StaticResource SwatchButton}"
+                                        Margin="10,0,0,0"
+                                        ToolTip="Pick a color" />
+                            </Grid>
+                        </StackPanel>
+
+                        <StackPanel x:Name="CornerRadiusRow">
+                            <Border Style="{StaticResource RowDivider}" />
+
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+
+                                <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                    <TextBlock Style="{StaticResource CardLabel}" Text="Corner radius" />
+                                    <TextBlock Style="{StaticResource CardDescription}"
+                                               Text="How far the panel's corners are rounded." />
+                                </StackPanel>
+
+                                <Slider x:Name="CornerRadiusSlider"
+                                        Grid.Column="1"
+                                        Style="{StaticResource CardSlider}"
+                                        Margin="16,0,0,0" />
+
+                                <TextBlock x:Name="CornerRadiusText"
+                                           Grid.Column="2"
+                                           Width="44"
+                                           Margin="10,0,0,0"
+                                           TextAlignment="Right"
+                                           VerticalAlignment="Center"
+                                           FontSize="11"
+                                           FontFamily="Cascadia Mono, Consolas, monospace"
+                                           Foreground="{DynamicResource TextTertiaryBrush}" />
+                            </Grid>
+                        </StackPanel>
+                    </StackPanel>
+
+                    <TextBlock x:Name="PresetStatus"
+                               Style="{StaticResource CardDescription}"
+                               Margin="0,12,0,0"
+                               Foreground="{DynamicResource TextTertiaryBrush}" />
+                </StackPanel>
+            </Border>
+
+            <!-- === Your own lyrics === -->
+
+            <Border x:Name="LyricsImportCard"
+                    Style="{StaticResource Card}"
+                    Margin="0,12,0,0"
+                    Visibility="Collapsed">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource CardLabel}" Text="Use your own file" />
+                    <TextBlock x:Name="ImportDescription"
+                               Style="{StaticResource CardDescription}"
+                               Text="An imported .lrc always wins over the network — the way to fix bad timings, or to add a track the database has never heard of." />
+
+                    <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+                        <Button x:Name="ImportButton"
+                                Style="{StaticResource CardButton}"
+                                Content="Import for this track…" />
+                        <Button x:Name="OpenFolderButton"
+                                Style="{StaticResource CardButton}"
+                                Margin="8,0,0,0"
+                                Content="Open folder" />
+                    </StackPanel>
+
+                    <TextBlock x:Name="ImportStatus"
+                               Style="{StaticResource CardDescription}"
+                               Margin="0,8,0,0"
+                               Foreground="{DynamicResource TextTertiaryBrush}" />
+
+                    <Border Style="{StaticResource RowDivider}" />
+
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                            <TextBlock Style="{StaticResource CardLabel}" Text="Fetched lyrics" />
+                            <TextBlock x:Name="CacheSizeText"
+                                       Style="{StaticResource CardDescription}" />
+                        </StackPanel>
+
+                        <Button x:Name="ClearCacheButton"
+                                Grid.Column="1"
+                                Style="{StaticResource CardButton}"
                                 Margin="16,0,0,0"
-                                CornerRadius="4"
-                                Padding="2"
                                 VerticalAlignment="Center"
-                                Background="{DynamicResource ControlAltFillBrush}"
-                                BorderBrush="{DynamicResource CardStrokeBrush}"
-                                BorderThickness="1"
-                                SnapsToDevicePixels="True">
-                            <UniformGrid Rows="1">
-                                <RadioButton x:Name="CleanStyleOption"
-                                             GroupName="LyricsStyle"
-                                             Style="{StaticResource SegmentOption}"
-                                             Content="Clean" />
-                                <RadioButton x:Name="GlowStyleOption"
-                                             GroupName="LyricsStyle"
-                                             Style="{StaticResource SegmentOption}"
-                                             Content="Glow" />
-                                <RadioButton x:Name="LimeStyleOption"
-                                             GroupName="LyricsStyle"
-                                             Style="{StaticResource SegmentOption}"
-                                             Content="Lime" />
-                            </UniformGrid>
-                        </Border>
+                                Content="Clear" />
                     </Grid>
                 </StackPanel>
             </Border>
@@ -734,6 +1566,31 @@
                        Style="{StaticResource CardDescription}"
                        Margin="4,16,0,0"
                        Foreground="{DynamicResource TextTertiaryBrush}" />
+
+            <!-- One palette, retargeted to whichever well opened it. Two identical
+                 popups would be two things to keep in step. -->
+            <Popup x:Name="ColorPopup"
+                   Placement="Bottom"
+                   StaysOpen="False"
+                   AllowsTransparency="True"
+                   PopupAnimation="Fade">
+                <!-- Opaque, not the card fill: that token is semi-transparent by
+                     design, and a popup that lets the page show through it is
+                     unreadable. -->
+                <Border CornerRadius="6"
+                        Margin="0,4,0,0"
+                        Padding="10"
+                        Background="{DynamicResource WindowBackgroundBrush}"
+                        BorderBrush="{DynamicResource CardStrokeBrush}"
+                        BorderThickness="1">
+                    <StackPanel>
+                        <WrapPanel x:Name="ColorPalette" Width="242" />
+                        <TextBlock Style="{StaticResource CardDescription}"
+                                   Margin="2,8,0,0"
+                                   Text="Or type any hex value in the box." />
+                    </StackPanel>
+                </Border>
+            </Popup>
         </StackPanel>
     </ScrollViewer>
 </Window>

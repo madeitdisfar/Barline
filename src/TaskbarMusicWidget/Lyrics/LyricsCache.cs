@@ -13,12 +13,26 @@ internal sealed class CachedLyrics
     public string? PlainLyrics { get; set; }
 
     /// <summary>
+    /// LRCLIB's YAML form, kept because it states each line's end and the LRC does
+    /// not. Absent from entries written before it was used, which read back as null
+    /// and fall through to the LRC.
+    /// </summary>
+    public string? LyricsFile { get; set; }
+
+    /// <summary>
     /// False when the lookup succeeded but the track has no lyrics filed. Recorded
     /// rather than left absent, so a miss is not re-fetched on every play.
     /// </summary>
     public bool Found { get; set; }
 
     public DateTimeOffset FetchedUtc { get; set; }
+
+    /// <summary>
+    /// What the entry was written by. Bumped when a new field starts being stored, so
+    /// entries missing it are fetched once more and then left alone — rather than
+    /// either staying permanently degraded or being re-fetched on every play.
+    /// </summary>
+    public int Schema { get; set; }
 
     /// <summary>Kept for reading the cache by hand; nothing depends on it.</summary>
     public string? TrackName { get; set; }
@@ -48,6 +62,12 @@ internal sealed class LyricsCache
     /// user having to clear anything.
     /// </summary>
     private static readonly TimeSpan MissLifetime = TimeSpan.FromDays(14);
+
+    /// <summary>
+    /// Current entry schema. Version 2 added the lyricsfile form, which carries each
+    /// line's end and so improves the word-timing estimate.
+    /// </summary>
+    public const int CurrentSchema = 2;
 
     private static readonly JsonSerializerOptions SerializerOptions = new()
     {
@@ -99,6 +119,11 @@ internal sealed class LyricsCache
             var entry = JsonSerializer.Deserialize<CachedLyrics>(File.ReadAllText(path));
             if (entry is null) return null;
 
+            // Written before a field we now store existed. Treated as absent so it is
+            // fetched once more; the rewrite stamps the current schema, so this cannot
+            // turn into a re-fetch on every play.
+            if (entry.Schema < CurrentSchema) return null;
+
             // A hit is kept forever: lyrics for a released track do not change.
             if (entry.Found) return entry;
 
@@ -130,6 +155,61 @@ internal sealed class LyricsCache
             // A cache that cannot be written is a slow cache, not a broken widget.
             DebugLog.Write($"lyrics cache: write failed: {ex.Message}");
         }
+    }
+
+    /// <summary>How many fetched entries are stored, and how much they take up.</summary>
+    public (int Count, long Bytes) Measure()
+    {
+        try
+        {
+            if (!Directory.Exists(_directory)) return (0, 0L);
+
+            var files = Directory.EnumerateFiles(_directory, "*.json").ToList();
+
+            return (files.Count, files.Sum(file => new FileInfo(file).Length));
+        }
+        catch (Exception ex)
+        {
+            DebugLog.Write($"lyrics cache: could not measure: {ex.Message}");
+            return (0, 0L);
+        }
+    }
+
+    /// <summary>
+    /// Deletes every fetched entry.
+    /// </summary>
+    /// <remarks>
+    /// Only the <c>.json</c> entries. Hand-supplied <c>.lrc</c> files live in the same
+    /// folder and are not cache — they cannot be re-fetched, so clearing the cache
+    /// must never take them with it.
+    /// </remarks>
+    public int Clear()
+    {
+        int removed = 0;
+
+        try
+        {
+            if (!Directory.Exists(_directory)) return 0;
+
+            foreach (string file in Directory.EnumerateFiles(_directory, "*.json").ToList())
+            {
+                try
+                {
+                    File.Delete(file);
+                    removed++;
+                }
+                catch (Exception ex)
+                {
+                    DebugLog.Write($"lyrics cache: could not delete {Path.GetFileName(file)}: {ex.Message}");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            DebugLog.Write($"lyrics cache: clear failed: {ex.Message}");
+        }
+
+        return removed;
     }
 
     private string PathFor(string key) => Path.Combine(_directory, $"{key}.json");

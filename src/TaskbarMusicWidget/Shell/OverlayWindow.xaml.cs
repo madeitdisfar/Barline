@@ -158,6 +158,8 @@ internal partial class OverlayWindow : Window, IAlbumArtSource
             // panel down — which the poll cannot do, because switching off is exactly
             // what stops the poll. Both are handled here, before polling is reassessed.
             _lyrics.SetTrack(_track, _media.Clock.Duration);
+            ApplyLyricAppearance();
+            _lyricLine = string.Empty;
             UpdateLyricLine();
             UpdateLyricPolling();
         };
@@ -172,6 +174,7 @@ internal partial class OverlayWindow : Window, IAlbumArtSource
         ArtistText.SizeChanged += (_, _) => UpdateTextFades();
 
         ApplyTheme();
+        ApplyLyricAppearance();
     }
 
     protected override void OnSourceInitialized(EventArgs e)
@@ -355,7 +358,6 @@ internal partial class OverlayWindow : Window, IAlbumArtSource
         // The clock is anchored by the session service before this runs, so the
         // duration is already the new track's.
         _lyrics.SetTrack(track, _media.Clock.Duration);
-        _panel?.OnTrackChanged();
         UpdateLyricLine();
         UpdateLyricPolling();
 
@@ -495,6 +497,8 @@ internal partial class OverlayWindow : Window, IAlbumArtSource
             if (index >= 0) line = document.Lines[index].Text;
         }
 
+        line = LyricsTypography.Present(line, _settings.Current.InlineAppearance);
+
         if (line == _lyricLine) return;
 
         _lyricLine = line;
@@ -502,6 +506,23 @@ internal partial class OverlayWindow : Window, IAlbumArtSource
 
         UpdateTextFades();
         UpdateTextLayer();
+    }
+
+    /// <summary>
+    /// Applies the inline lyric appearance.
+    /// </summary>
+    /// <remarks>
+    /// Everything except the surface: the widget paints no background at all, so the
+    /// taskbar's own material shows through — the single decision the whole widget is
+    /// built around. A lyric drawn here inherits that rather than overriding it.
+    /// </remarks>
+    private void ApplyLyricAppearance()
+    {
+        var appearance = _settings.Current.InlineAppearance;
+
+        LyricsTypography.ApplyFont(LyricsText, appearance);
+        LyricsText.Foreground = new SolidColorBrush(LyricsTypography.TextColor(appearance));
+        LyricsText.Effect = LyricsTypography.BuildEffect(appearance);
     }
 
     private void ApplyBarColor() => _barColor.Update(_track?.AlbumArt);

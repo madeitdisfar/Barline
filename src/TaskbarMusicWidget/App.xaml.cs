@@ -55,7 +55,7 @@ public partial class App : Application
 
         tray.ExitRequested += (_, _) => Shutdown();
         tray.RestartVisualizerRequested += (_, _) => analyzer.Restart();
-        tray.SettingsRequested += (_, _) => ShowSettings(theme, settings, autoStart, window);
+        tray.SettingsRequested += (_, _) => ShowSettings(theme, settings, autoStart, window, media, lyrics);
         window.ContextMenuRequested += (_, _) => tray.ShowContextMenu();
 
         tray.VisualizerToggled += (_, enabled) =>
@@ -88,7 +88,7 @@ public partial class App : Application
 
         // Same pattern: shown so the handle exists, then it hides itself until there
         // is a lyric to put in it.
-        var panel = new LyricsPanel(tracker, media, theme, settings, lyrics);
+        var panel = new LyricsPanel(tracker, media, settings, lyrics);
         panel.Show();
         window.AttachPanel(panel);
 
@@ -115,7 +115,7 @@ public partial class App : Application
         // Opened last, after a track exists: iterating on this window otherwise means
         // a tray right-click on every rebuild, and the tray menu is awkward to script.
         if (Environment.GetEnvironmentVariable("TMW_SETTINGS") == "1")
-            ShowSettings(theme, settings, autoStart, window);
+            ShowSettings(theme, settings, autoStart, window, media, lyrics);
     }
 
     /// <summary>
@@ -131,11 +131,14 @@ public partial class App : Application
         Ui.Theme theme,
         SettingsStore settings,
         AutoStartService autoStart,
-        OverlayWindow window)
+        OverlayWindow window,
+        MediaSessionService media,
+        LyricsService lyrics)
     {
         if (_settingsWindow is null)
         {
-            _settingsWindow = new SettingsWindow(theme, settings, autoStart, window);
+            _settingsWindow = new SettingsWindow(
+                theme, settings, autoStart, window, media, lyrics);
 
             _settingsWindow.Closed += (_, _) => _settingsWindow = null;
             _settingsWindow.Show();

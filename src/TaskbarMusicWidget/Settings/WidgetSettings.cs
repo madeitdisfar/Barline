@@ -1,3 +1,5 @@
+using TaskbarMusicWidget.Lyrics;
+
 namespace TaskbarMusicWidget.Settings;
 
 /// <summary>
@@ -45,23 +47,40 @@ internal enum LyricsDisplayMode
     Panel,
 }
 
-/// <summary>
-/// How the lyrics panel is styled. Every style sweeps word by word; they differ in
-/// the treatment around it.
-/// </summary>
-internal enum LyricsStyle
+/// <summary>Where the lyrics panel sits on screen.</summary>
+internal enum LyricsPanelPosition
 {
-    /// <summary>The album art's colour on the system's acrylic. No effects.</summary>
-    Clean,
+    /// <summary>Directly above the widget, tracking the taskbar's left edge.</summary>
+    AboveWidget,
 
-    /// <summary>Adds a soft halo behind the current line, in the same colour.</summary>
-    Glow,
+    /// <summary>Centred horizontally, just above the taskbar.</summary>
+    BottomCenter,
+
+    /// <summary>Centred horizontally, near the top of the screen.</summary>
+    TopCenter,
 
     /// <summary>
-    /// Lime panel, black condensed lowercase — the flat, lo-fi album-cover look.
-    /// Named for what it is rather than for the record it evokes.
+    /// Wherever <see cref="WidgetSettings.LyricsCustomX"/> and
+    /// <see cref="WidgetSettings.LyricsCustomY"/> put it.
     /// </summary>
-    Lime,
+    Custom,
+}
+
+/// <summary>What the panel does while the pointer is over it.</summary>
+/// <remarks>
+/// The panel passes clicks through, so it never blocks anything — but it can still sit
+/// on top of something you are trying to read.
+/// </remarks>
+internal enum LyricsHoverBehavior
+{
+    /// <summary>Stay as it is.</summary>
+    None,
+
+    /// <summary>Fade most of the way out, so what is underneath can be read through it.</summary>
+    Fade,
+
+    /// <summary>Get out of the way entirely until the pointer leaves.</summary>
+    Hide,
 }
 
 /// <summary>
@@ -104,8 +123,66 @@ internal sealed class WidgetSettings
     /// <summary>Where lyrics are drawn, when they are enabled.</summary>
     public LyricsDisplayMode LyricsDisplay { get; set; } = LyricsDisplayMode.Inline;
 
-    /// <summary>How the lyrics panel is styled. Ignored in inline mode.</summary>
-    public LyricsStyle LyricsStyle { get; set; } = LyricsStyle.Clean;
+    /// <summary>
+    /// How the floating panel looks. Edited directly by the settings window; a preset
+    /// is a named copy of it rather than a separate source of truth.
+    /// </summary>
+    public LyricsAppearance PanelAppearance { get; set; } = new();
+
+    /// <summary>
+    /// How the inline display looks. Carries no background: the widget paints none by
+    /// design, so the taskbar's own material shows through.
+    /// </summary>
+    public LyricsAppearance InlineAppearance { get; set; } = LyricsAppearance.DefaultInline();
+
+    /// <summary>What the panel does when the pointer is over it.</summary>
+    public LyricsHoverBehavior LyricsHover { get; set; } = LyricsHoverBehavior.Fade;
+
+    /// <summary>
+    /// Whether the panel lights each word as it is sung, or the whole line at once.
+    /// </summary>
+    /// <remarks>
+    /// Word timing is estimated from the line for almost every track, since virtually
+    /// no source carries it. The estimate is good but it is an estimate, and on a
+    /// track it fits badly the whole line at once is the calmer choice.
+    /// </remarks>
+    public bool LyricsWordByWord { get; set; } = true;
+
+    /// <summary>Where the panel sits on screen.</summary>
+    public LyricsPanelPosition LyricsPosition { get; set; } = LyricsPanelPosition.AboveWidget;
+
+    /// <summary>
+    /// Free position, as a percentage across and down the monitor's usable area.
+    /// </summary>
+    /// <remarks>
+    /// Stored as a proportion rather than in pixels so a panel placed by hand stays
+    /// where it was put when the resolution changes or the widget moves to a different
+    /// screen. Zero is flush with the top-left, one hundred flush with the
+    /// bottom-right — the panel's own size is taken off, so it never lands part-way
+    /// off the edge.
+    /// </remarks>
+    public double LyricsCustomX { get; set; } = 50d;
+    public double LyricsCustomY { get; set; } = 70d;
+
+    /// <summary>Panel size in logical pixels.</summary>
+    public int LyricsPanelWidth { get; set; } = DefaultPanelWidth;
+    public int LyricsPanelHeight { get; set; } = DefaultPanelHeight;
+
+    public const int DefaultPanelWidth = 520;
+    public const int DefaultPanelHeight = 96;
+
+    /// <summary>
+    /// Bounds for the panel size.
+    /// </summary>
+    /// <remarks>
+    /// The floor is low enough to suit the smallest font on offer — a 9px line needs
+    /// very little room — and the ceiling keeps the panel from covering so much of the
+    /// screen that it stops reading as an overlay.
+    /// </remarks>
+    public const int MinPanelWidth = 180;
+    public const int MaxPanelWidth = 1400;
+    public const int MinPanelHeight = 36;
+    public const int MaxPanelHeight = 400;
 
     /// <summary>
     /// Whether to look up lyrics for what is playing.
@@ -155,6 +232,16 @@ internal sealed class WidgetSettings
     /// expected input rather than a corrupt one. Clamping beats rejecting the whole
     /// file: a mistyped bar count should not also discard the user's colour.
     /// </remarks>
-    public void Normalize() =>
+    public void Normalize()
+    {
         VisualizerBarCount = Math.Clamp(VisualizerBarCount, MinBarCount, MaxBarCount);
+        LyricsPanelWidth = Math.Clamp(LyricsPanelWidth, MinPanelWidth, MaxPanelWidth);
+        LyricsPanelHeight = Math.Clamp(LyricsPanelHeight, MinPanelHeight, MaxPanelHeight);
+        LyricsCustomX = Math.Clamp(LyricsCustomX, 0d, 100d);
+        LyricsCustomY = Math.Clamp(LyricsCustomY, 0d, 100d);
+
+        // A hand-edited or missing appearance block must not stop the widget starting.
+        PanelAppearance = (PanelAppearance ?? new LyricsAppearance()).Normalize();
+        InlineAppearance = (InlineAppearance ?? LyricsAppearance.DefaultInline()).Normalize();
+    }
 }
