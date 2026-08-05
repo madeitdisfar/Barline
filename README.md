@@ -167,3 +167,13 @@ These tests were checked by mutation — each guarantee was deliberately broken 
 - **Loopback captures the whole mix**, not just the media session on display, so other system audio moves the bars. Per-process loopback exists but needs a much heavier activation path.
 - **Click-to-focus is best-effort.** SMTC identifies sessions only by AUMID; for packaged apps that maps to no process name, and Windows' foreground rules can refuse the activation regardless.
 - Not signed. SmartScreen will warn on first run.
+
+## Contributing
+
+Pull requests are welcome. By opening one you agree that your contribution is licensed under GPL-3.0-or-later, and that the maintainer may also release it under other terms — which keeps the door open to offering a commercial licence later without having to track down every past contributor for permission.
+
+## License
+
+[GPL-3.0-or-later](LICENSE).
+
+You may use, study, modify and share this freely, including commercially. The condition is that anything you distribute which builds on it carries the same licence and ships its source. That is the whole point: the work stays open for whoever else wants to learn from it or build on it.
