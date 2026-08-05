@@ -56,7 +56,7 @@ internal sealed class LrcLibClient : IDisposable
     /// misbehaving one can be recognised and contacted rather than simply blocked.
     /// </summary>
     private const string UserAgent =
-        "TaskbarMusicWidget/1.0 (https://github.com/mjkim/Taskbar-Music-Widget)";
+        "TaskbarMusicWidget/1.2.1 (https://github.com/madeitdisfar/Taskbar-Music-Widget)";
 
     /// <summary>
     /// How far a search result's length may differ from the track being played.
