@@ -386,11 +386,7 @@ internal partial class LyricsPanel : Window
 
         if (!enabled && _shown)
         {
-            _hideDebounce.Stop();
-            _wantVisible = false;
-            _shown = false;
-            Place(_tracker.Current);
-            StopSweep();
+            HideNow();
             return;
         }
 
@@ -436,6 +432,28 @@ internal partial class LyricsPanel : Window
             Motion.Standard));
 
         CurrentLine.BeginAnimation(OpacityProperty, fade);
+    }
+
+    /// <summary>
+    /// Takes the panel off screen at once, skipping the grace period.
+    /// </summary>
+    /// <remarks>
+    /// For the two cases where waiting is wrong. Turning lyrics off is a decision, and
+    /// a decision should land immediately. A source app closing is not a gap between
+    /// songs — there is no next song coming, so the grace period would only leave a
+    /// lyric floating over the desktop after the widget it belongs to has gone. The
+    /// widget calls this from its own hide, which has already absorbed the momentary
+    /// nulls a track change produces, so by the time it runs the source is really gone.
+    /// </remarks>
+    public void HideNow()
+    {
+        if (!_shown && !_hideDebounce.IsEnabled) return;
+
+        _hideDebounce.Stop();
+        _wantVisible = false;
+        _shown = false;
+        Place(_tracker.Current);
+        StopSweep();
     }
 
     // ---- Word sweep --------------------------------------------------------

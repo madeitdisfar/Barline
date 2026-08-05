@@ -608,6 +608,12 @@ internal partial class OverlayWindow : Window, IAlbumArtSource
 
     private void HideNow()
     {
+        // The panel goes when the widget goes. A lyric floating over the desktop with
+        // nothing on the taskbar under it reads as a stuck window, and the panel's own
+        // grace period cannot tell a closed source from the gap between two songs —
+        // whereas the debounce that leads here already has.
+        _panel?.HideNow();
+
         if (_hwnd == IntPtr.Zero) return;
 
         SetWindowPos(_hwnd, HWND_TOPMOST, 0, 0, 0, 0,
