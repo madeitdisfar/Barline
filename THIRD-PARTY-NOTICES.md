@@ -43,10 +43,26 @@ OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 ## .NET and Windows Presentation Foundation
 
-Barline targets the .NET Desktop Runtime, which is not redistributed here — it is
-installed separately, or supplied by the platform. Its licence is
-[MIT](https://github.com/dotnet/runtime/blob/main/LICENSE.TXT), Copyright © .NET
-Foundation and Contributors.
+Releases are published **self-contained**: the .NET runtime and WPF are redistributed
+inside the release rather than installed separately, so that Barline runs without the
+user first installing a runtime. That makes their notices part of what ships.
+
+Copyright © .NET Foundation and Contributors
+Licensed under [MIT](https://github.com/dotnet/runtime/blob/main/LICENSE.TXT)
+<https://github.com/dotnet/runtime> · <https://github.com/dotnet/wpf>
+
+The redistributed files include the WPF native libraries seen beside the executable —
+`PresentationNative_cor3.dll`, `wpfgfx_cor3.dll`, `PenImc_cor3.dll`,
+`D3DCompiler_47_cor3.dll` — and the Visual C++ runtime `vcruntime140_cor3.dll`,
+which the .NET Foundation redistributes as part of a self-contained deployment.
+
+The .NET runtime itself incorporates further third-party components, each under its
+own terms. Those are enumerated in the runtime's own notices, which apply in full to
+the copy bundled here:
+<https://github.com/dotnet/runtime/blob/main/THIRD-PARTY-NOTICES.TXT>
+
+If a release is ever published framework-dependent instead, the runtime is no longer
+redistributed and this section does not apply to it.
 
 ---
 
