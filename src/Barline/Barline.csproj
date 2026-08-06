@@ -1,0 +1,54 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <!-- The 10.0.19041.0 platform suffix is what pulls in the WinRT projections
+         for Windows.Media.Control (SMTC). Held at 19041 rather than 26100 so the
+         binary stays runnable on older Windows 11 installs. -->
+    <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
+    <SupportedOSPlatformVersion>10.0.19041.0</SupportedOSPlatformVersion>
+    <UseWPF>true</UseWPF>
+    <!-- WinForms is referenced only for NotifyIcon: WPF has no notification-area
+         API of its own, and NotifyIcon is the standard way to avoid hand-rolling
+         Shell_NotifyIcon. -->
+    <UseWindowsForms>true</UseWindowsForms>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+    <PlatformTarget>x64</PlatformTarget>
+    <AssemblyName>Barline</AssemblyName>
+    <RootNamespace>Barline</RootNamespace>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <!-- No console window, and don't let WPF pick a stale culture -->
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+    <!-- WFO0003 tells WinForms apps to configure DPI via ApplicationHighDpiMode
+         instead of the manifest. That does not apply here: this is a WPF app that
+         references WinForms solely for NotifyIcon and never calls
+         Application.Run, and PerMonitorV2 must be declared in the manifest so it
+         takes effect at process start, before any window is positioned. -->
+    <NoWarn>$(NoWarn);WFO0003</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- UseWindowsForms adds System.Windows.Forms and System.Drawing as implicit
+         global usings, which makes Brush, Color, Application and MouseEventArgs
+         ambiguous against their WPF counterparts across the entire project.
+         Dropping the globals keeps WPF types unqualified everywhere; TrayIcon,
+         the only file that needs WinForms, imports both namespaces explicitly. -->
+    <Using Remove="System.Windows.Forms" />
+    <Using Remove="System.Drawing" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="NAudio" Version="2.2.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Everything in this app is internal, including the colour logic the tests
+         exist to pin down. Exposing internals to the test project keeps them that
+         way for consumers while letting the tests exercise the real assembly rather
+         than a second compilation of the same files. -->
+    <InternalsVisibleTo Include="Barline.Tests" />
+  </ItemGroup>
+
+</Project>

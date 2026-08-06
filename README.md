@@ -1,4 +1,4 @@
-# Taskbar Music Widget
+# Barline
 
 A now-playing widget that sits at the **left end of the Windows 11 taskbar**, where the Widgets (news and weather) button normally lives. It shows album art, title, artist, and an Apple-Music-style bar visualiser driven by the audio actually playing.
 
@@ -20,7 +20,7 @@ Free the space first by turning the Widgets button off:
 Then build and run:
 
 ```bash
-dotnet run --project src/TaskbarMusicWidget
+dotnet run --project src/Barline
 ```
 
 Right-click the widget for **Settings**, **Show visualizer**, **Restart visualizer**, and **Exit**. The menu carries quick actions only; anything that is configuration rather than a one-off lives in the settings window, so no state is shown in two places where it can drift.
@@ -31,7 +31,7 @@ The same menu is on the notification-area icon, though Windows 11 files new tray
 
 Changes apply and persist immediately — there is no OK or Apply button, matching Windows 11 Settings, and the widget is on the taskbar the whole time so every change is already previewed where it counts.
 
-The file lives at `%LocalAppData%\TaskbarMusicWidget\settings.json`. A missing or malformed file falls back to defaults rather than failing to start, so it is safe to delete or hand-edit, and it is written via a temp file and a swap so a crash mid-write cannot truncate it.
+The file lives at `%LocalAppData%\Barline\settings.json`. A missing or malformed file falls back to defaults rather than failing to start, so it is safe to delete or hand-edit, and it is written via a temp file and a swap so a crash mid-write cannot truncate it.
 
 **Bar color** takes one of four values:
 
@@ -87,7 +87,7 @@ Effects are carried on a **separate, bitmap-cached layer** behind the live text 
 
 Colours can be typed as hex or picked from a palette, and the font list previews each family in its own typeface.
 
-**Presets are files**, in `%LocalAppData%\TaskbarMusicWidget\presets`. They are saved copies of the appearance values, not a separate source of truth: the settings window edits the appearance directly and you see it immediately, and a preset is that snapshot under a name. The alternative — the file being the only home for these values — would mean every tweak was a file edit and the UI could only pick between whole files.
+**Presets are files**, in `%LocalAppData%\Barline\presets`. They are saved copies of the appearance values, not a separate source of truth: the settings window edits the appearance directly and you see it immediately, and a preset is that snapshot under a name. The alternative — the file being the only home for these values — would mean every tweak was a file edit and the UI could only pick between whole files.
 
 The three original looks (`Clean`, `Glow`, `Lime`) now ship as ordinary preset files, written on first run and never overwritten. That makes them readable, copyable and editable, and means writing your own starts from a working example rather than an empty file. Drop a preset someone sends you into that folder and it appears in the list.
 
@@ -97,7 +97,7 @@ Matching is the hard part, not coverage. Spotify reports `Creep - Remastered 201
 
 Where a record has one, LRCLIB's own **lyricsfile** form is preferred over the LRC. It is the same lyrics as YAML, and it states each line's *end* — which LRC cannot express, leaving a line to implicitly run until the next one starts. That is wrong across every instrumental gap, and it is precisely the span the word timing divides up. The format is documented as supporting word-level timing as well, but no contributed data appears to use it yet: a sample of roughly a hundred records carried only line-level fields, so nothing here guesses at a schema that isn't in the data.
 
-To supply your own, use **Import for this track…** in settings, or drop an `.lrc` file named `Artist - Title.lrc` into `%LocalAppData%\TaskbarMusicWidget\lyrics` (the settings window names the exact file the current track expects). A file always wins over the network — it is the only route for tracks the database has never heard of, and the way to fix timings you disagree with. Imports are parsed before being kept, so an unreadable file is refused rather than silently replacing working lyrics with nothing. Both standard and word-level (enhanced) LRC are read.
+To supply your own, use **Import for this track…** in settings, or drop an `.lrc` file named `Artist - Title.lrc` into `%LocalAppData%\Barline\lyrics` (the settings window names the exact file the current track expects). A file always wins over the network — it is the only route for tracks the database has never heard of, and the way to fix timings you disagree with. Imports are parsed before being kept, so an unreadable file is refused rather than silently replacing working lyrics with nothing. Both standard and word-level (enhanced) LRC are read.
 
 Fetched lyrics are cached under that same folder, one JSON file per track.
 
@@ -109,7 +109,7 @@ Windows 11 removed the DeskBand API, so there is no supported way to host conten
 - **It is a satellite of `Shell_TrayWnd`**, mirroring that window's rect, DPI, visibility and z-order. One mechanism covers auto-hide, fullscreen apps, DPI changes and Explorer restarts. Auto-hide needs no special handling at all: the taskbar slides off-screen and the widget slides with it.
 - **Metadata comes from SMTC** (`GlobalSystemMediaTransportControlsSessionManager`), the same source the Windows volume flyout reads — so Spotify, Apple Music, browsers and podcast apps work without per-app integration.
 - **The visualiser** captures the system mix via WASAPI loopback, runs a Hann-windowed 1024-point FFT, and maps it into log-spaced bands, one per bar. Each band has its own dB window, because measured against real music the bands sit ~30 dB apart and a shared window leaves bass pinned near maximum and treble stuck at zero. Those windows started as four hand-measured values, which described one bar count and no other; they are now a least-squares fit through those measurements (about −4.4 dB per octave), which is what lets the count vary. The fit generalises because a band's level is the RMS *per bin* — a spectral density rather than a total — so slicing the span more finely does not systematically lower it.
-- **Playback position is extrapolated, not read.** SMTC does not tick: a source app publishes a position when it feels like it — measured against Spotify, roughly every 4.3 seconds. Anything that needs to know where playback is *right now* has to carry the last report forward using the app's own timestamp, and re-anchor when the next one lands. Corrections are eased in rather than applied outright, so ordinary drift does not visibly step, while a disagreement large enough to be a seek is applied at once. Each report doubles as a measurement of the extrapolation before it, logged under `TMW_DEBUG`.
+- **Playback position is extrapolated, not read.** SMTC does not tick: a source app publishes a position when it feels like it — measured against Spotify, roughly every 4.3 seconds. Anything that needs to know where playback is *right now* has to carry the last report forward using the app's own timestamp, and re-anchor when the next one lands. Corrections are eased in rather than applied outright, so ordinary drift does not visibly step, while a disagreement large enough to be a seek is applied at once. Each report doubles as a measurement of the extrapolation before it, logged under `BARLINE_DEBUG`.
 
 - **The capture self-heals.** A loopback capture stays bound to one device and doesn't follow the default as it moves, and after idle or sleep it can silently stall without notifying the app — both used to need a restart. A watchdog re-arms it when it has died, when the default output moves elsewhere (e.g. headphones reconnect after sleep), or when it goes quiet while a track is still playing. Capture is also re-armed on resume from sleep, and **Restart visualizer** in the menu forces it by hand.
 
@@ -118,8 +118,8 @@ Hovering crossfades the visualiser into previous / play-pause / next inside a fi
 ## Project layout
 
 ```
-tests/TaskbarMusicWidget.Tests/    colour maths, contrast floor, hue extraction
-src/TaskbarMusicWidget/
+tests/Barline.Tests/    colour maths, contrast floor, hue extraction
+src/Barline/
 ├─ Shell/        window hosting, taskbar tracking, Win32 interop
 ├─ Media/        SMTC session handling and album art
 ├─ Audio/        WASAPI loopback capture and FFT
@@ -134,12 +134,12 @@ src/TaskbarMusicWidget/
 
 | Variable | Effect |
 |---|---|
-| `TMW_DEBUG=1` | Writes `%TEMP%\taskbar-music-widget.log` — taskbar state transitions, media sessions, periodic visualiser band levels, and playback-clock accuracy. |
-| `TMW_DEMO=1` | Shows a synthetic track with generated cover art instead of reading SMTC. |
-| `TMW_DEMO_TITLE` / `TMW_DEMO_ARTIST` | Override the demo track's title/artist (needs `TMW_DEMO=1`) — handy for checking the overflow fade at different text lengths. |
-| `TMW_SETTINGS=1` | Opens the settings window at startup, instead of right-clicking the tray on every rebuild. |
+| `BARLINE_DEBUG=1` | Writes `%TEMP%\barline.log` — taskbar state transitions, media sessions, periodic visualiser band levels, and playback-clock accuracy. |
+| `BARLINE_DEMO=1` | Shows a synthetic track with generated cover art instead of reading SMTC. |
+| `BARLINE_DEMO_TITLE` / `BARLINE_DEMO_ARTIST` | Override the demo track's title/artist (needs `BARLINE_DEMO=1`) — handy for checking the overflow fade at different text lengths. |
+| `BARLINE_SETTINGS=1` | Opens the settings window at startup, instead of right-clicking the tray on every rebuild. |
 
-`TMW_DEMO` exists because the widget hides itself when nothing is playing, which otherwise makes the design impossible to inspect on a quiet machine.
+`BARLINE_DEMO` exists because the widget hides itself when nothing is playing, which otherwise makes the design impossible to inspect on a quiet machine.
 
 Debugging the window layer interactively is awkward — attaching a debugger changes foreground-window behaviour, which is often the thing being observed. Prefer the log.
 
