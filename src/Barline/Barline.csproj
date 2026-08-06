@@ -46,6 +46,21 @@
     <NoWarn>$(NoWarn);WFO0003</NoWarn>
   </PropertyGroup>
 
+  <!-- Release deployment shape, set here rather than passed on the command line: a
+       publish that forgets the flags produces a framework-dependent build, which runs
+       on the machine that made it and fails on a machine with no .NET installed.
+       Confined to Release so ordinary Debug builds stay small and quick. -->
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <SelfContained>true</SelfContained>
+    <PublishSingleFile>true</PublishSingleFile>
+    <!-- The WPF native libraries refuse to run from the bundle, so they sit beside
+         the executable. Extracting them at startup instead would work, but it writes
+         a temp copy on every launch of something meant to start with Windows. -->
+    <IncludeNativeLibrariesForSelfExtract>false</IncludeNativeLibrariesForSelfExtract>
+    <DebugType>none</DebugType>
+  </PropertyGroup>
+
   <ItemGroup>
     <!-- UseWindowsForms adds System.Windows.Forms and System.Drawing as implicit
          global usings, which makes Brush, Color, Application and MouseEventArgs
