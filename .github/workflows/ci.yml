@@ -15,13 +15,17 @@ jobs:
     runs-on: windows-latest
 
     steps:
-      - uses: actions/checkout@v4
+      # v5 for both: v4 runs on Node 20, which the runners now force onto Node 24
+      # and warn about, and which stops being allowed in June 2026.
+      - uses: actions/checkout@v5
 
       - name: Set up .NET
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v5
         with:
           dotnet-version: '10.0.x'
 
+      # Runs before a configuration is chosen, so it relies on RuntimeIdentifiers in
+      # the project to fetch what the Release build below will ask for.
       - name: Restore
         run: dotnet restore
 

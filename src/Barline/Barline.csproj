@@ -44,6 +44,12 @@
          Application.Run, and PerMonitorV2 must be declared in the manifest so it
          takes effect at process start, before any window is positioned. -->
     <NoWarn>$(NoWarn);WFO0003</NoWarn>
+    <!-- Plural, and deliberately not inside the Release block below. Restore runs
+         before a configuration is chosen, so it has to lay down assets for the
+         runtime Release will ask for; without this, a restore followed by a Release
+         build fails because the assets it needs were never fetched. Declaring the
+         runtime here does not make Debug builds runtime-specific. -->
+    <RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
   </PropertyGroup>
 
   <!-- Release deployment shape, set here rather than passed on the command line: a
