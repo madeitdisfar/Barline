@@ -52,6 +52,12 @@ internal partial class SettingsWindow : Window
     private readonly Dictionary<VisualizerColorMode, RadioButton> _modeOptions;
 
     /// <summary>
+    /// The label shown against each colour mode, read back from the control rather than
+    /// restated here, so the folded card and the option it names cannot drift apart.
+    /// </summary>
+    private readonly Dictionary<VisualizerColorMode, TextBlock> _modeLabels;
+
+    /// <summary>
     /// The bar counts on offer, keyed by count.
     /// </summary>
     /// <remarks>
@@ -124,6 +130,14 @@ internal partial class SettingsWindow : Window
 
         foreach (var (mode, option) in _modeOptions)
             option.Checked += (_, _) => OnModeChosen(mode);
+
+        _modeLabels = new Dictionary<VisualizerColorMode, TextBlock>
+        {
+            [VisualizerColorMode.Default] = DefaultLabel,
+            [VisualizerColorMode.SystemAccent] = AccentLabel,
+            [VisualizerColorMode.AlbumArt] = AlbumArtLabel,
+            [VisualizerColorMode.Custom] = CustomLabel,
+        };
 
         _barCountOptions = new Dictionary<int, RadioButton>
         {
@@ -284,7 +298,7 @@ internal partial class SettingsWindow : Window
     private void OnMediaTrackChanged(object? sender, TrackInfo? track)
     {
         UpdateImportDescription();
-        ImportStatus.Text = string.Empty;
+        Say(ImportStatus, string.Empty);
     }
 
     private void OnSettingsChanged(object? sender, EventArgs e)
@@ -385,6 +399,39 @@ internal partial class SettingsWindow : Window
         PreviewCaption.Text = _settings.Current.VisualizerColor == VisualizerColorMode.AlbumArt && art is null
             ? "Nothing is playing, so this falls back to the default color."
             : "Shown against the taskbar's approximate shade.";
+
+        UpdateCardSummaries();
+    }
+
+    /// <summary>
+    /// Fills in what each folded card currently says.
+    /// </summary>
+    /// <remarks>
+    /// The point of folding a card away is that you can still tell what is inside it
+    /// without opening it. Without these the page would be a column of chevrons with
+    /// nouns beside them, which hides the settings rather than tidying them.
+    /// </remarks>
+    private void UpdateCardSummaries()
+    {
+        var current = _settings.Current;
+        var style = current.LyricsStyle;
+
+        var color = _preview.Preview(current.VisualizerColor, _albumArt.CurrentAlbumArt);
+
+        SettingCard.SetSummary(
+            BarColorExpander,
+            $"{_modeLabels[current.VisualizerColor].Text} · {LyricsTypography.ToHex(color)}");
+
+        // No preset name here: it names the whole style, not this card's share of it,
+        // and it is already on the picker directly above.
+        SettingCard.SetSummary(
+            LyricsStyleExpander,
+            $"{style.FontFamily} {style.FontSize:F0}");
+
+        SettingCard.SetSummary(
+            LyricsPanelExpander,
+            $"{_lyricsPositionOptions[style.Position].Content} · " +
+            $"{style.PanelWidth} × {style.PanelHeight}");
     }
 
     private void ShowResolved(
@@ -490,11 +537,13 @@ internal partial class SettingsWindow : Window
             ? Visibility.Visible
             : Visibility.Collapsed;
 
-        LyricsImportCard.Visibility = visible;
-        LyricsAppearanceCard.Visibility = visible;
+        LyricsPresetCard.Visibility = visible;
+        LyricsPlacementCard.Visibility = visible;
+        LyricsStyleExpander.Visibility = visible;
+        LyricsFilesExpander.Visibility = visible;
 
-        // The behaviour card is about the panel specifically, so it also depends on the
-        // style's mode; UpdateAppearanceRowVisibility owns that half.
+        // The panel card also depends on where the lyrics are, which
+        // UpdateAppearanceRowVisibility owns.
         UpdateAppearanceRowVisibility();
     }
 
@@ -524,12 +573,21 @@ internal partial class SettingsWindow : Window
         if (onABuiltIn && forMode is not null && _presets.Load(forMode) is { } design)
         {
             Mutate(s => s.LyricsStyle = design);
-            PresetStatus.Text = $"Loaded “{design.Name}”.";
+            Say(PresetStatus, $"Loaded “{design.Name}”.");
             SyncAppearance();
             return;
         }
 
         MutateAppearance(a => a.Display = mode);
+    }
+
+    /// <summary>
+    /// Shows a one-off message, and gives its space back when there is none to show.
+    /// </summary>
+    private static void Say(TextBlock line, string message)
+    {
+        line.Text = message;
+        line.Visibility = message.Length == 0 ? Visibility.Collapsed : Visibility.Visible;
     }
 
     /// <summary>Applies a settings change unless the UI is being rebuilt from them.</summary>
@@ -558,6 +616,7 @@ internal partial class SettingsWindow : Window
         // — rebuilding it here would re-enter every control's change handler.
         RefreshPresetSelection();
         UpdateAppearanceRowVisibility();
+        UpdateCardSummaries();
     }
 
     private const string CustomPresetName = "Custom";
@@ -587,29 +646,21 @@ internal partial class SettingsWindow : Window
     {
         var appearance = Editing;
 
-        // Where the lyrics are decides most of this card. In the widget there is
-        // nothing to position, nothing to resize and no surface to paint — the taskbar's
-        // own material is what shows through, which is the point of the widget.
+        // Where the lyrics are decides most of this. In the widget there is nothing to
+        // position, nothing to resize and no surface to paint — the taskbar's own
+        // material is what shows through, which is the point of the widget.
         bool isPanel = appearance.Display == LyricsDisplayMode.Panel;
 
-        var panelOnly = isPanel ? Visibility.Visible : Visibility.Collapsed;
+        SurfaceSettings.Visibility = isPanel ? Visibility.Visible : Visibility.Collapsed;
 
-        PanelPlacementSettings.Visibility = panelOnly;
-        SurfaceSettings.Visibility = panelOnly;
-
-        LyricsBehaviorCard.Visibility = isPanel && _settings.Current.LyricsEnabled
+        LyricsPanelExpander.Visibility = isPanel && _settings.Current.LyricsEnabled
             ? Visibility.Visible
             : Visibility.Collapsed;
 
         // The exact-position sliders only mean anything for the free anchor.
-        CustomPositionRow.Visibility =
-            isPanel && appearance.Position == LyricsPanelPosition.Custom
-                ? Visibility.Visible
-                : Visibility.Collapsed;
-
-        AppearanceScopeText.Text = isPanel
-            ? "A preset is a saved copy of all of this — where the panel goes and how big it is, as well as how it looks. Kept as files you can share."
-            : "A preset is a saved copy of all of this, including where the lyrics go. In the widget they have no background of their own: the taskbar's material shows through, which is the point of the widget.";
+        CustomPositionRow.Visibility = appearance.Position == LyricsPanelPosition.Custom
+            ? Visibility.Visible
+            : Visibility.Collapsed;
 
         var effect = appearance.Effect == LyricsEffect.None
             ? Visibility.Collapsed
@@ -939,6 +990,11 @@ internal partial class SettingsWindow : Window
         UpdateColorSwatches();
         UpdateAppearanceRowVisibility();
         SyncPresetList(appearance.Name);
+
+        // Loading a preset replaces the style wholesale, which every folded card's
+        // header is describing. Without this they kept reporting the style that had
+        // just been replaced.
+        UpdateCardSummaries();
     }
 
     // ---- Presets -----------------------------------------------------------
@@ -967,7 +1023,7 @@ internal partial class SettingsWindow : Window
         var preset = _presets.Load(name);
         if (preset is null)
         {
-            PresetStatus.Text = $"Could not read the preset “{name}”.";
+            Say(PresetStatus, $"Could not read the preset “{name}”.");
             return;
         }
 
@@ -981,7 +1037,7 @@ internal partial class SettingsWindow : Window
 
         Mutate(s => s.LyricsStyle = loaded);
 
-        PresetStatus.Text = $"Loaded “{name}”.";
+        Say(PresetStatus, $"Loaded “{name}”.");
         SyncAppearance();
     }
 
@@ -1005,13 +1061,13 @@ internal partial class SettingsWindow : Window
         // lands where the picker can find it again.
         if (!_presets.Write(preset))
         {
-            PresetStatus.Text = "Could not save the preset.";
+            Say(PresetStatus, "Could not save the preset.");
             return;
         }
 
         Mutate(s => s.LyricsStyle.Name = preset.Name);
 
-        PresetStatus.Text = $"Saved “{preset.Name}”.";
+        Say(PresetStatus, $"Saved “{preset.Name}”.");
         SyncAppearance();
     }
 
@@ -1071,7 +1127,7 @@ internal partial class SettingsWindow : Window
 
         bool imported = _lyrics.TryImport(track, picker.FileName, out string message);
 
-        ImportStatus.Text = message;
+        Say(ImportStatus, message);
         ImportStatus.Foreground = imported ? _theme.TextTertiary : _theme.TextSecondary;
 
         UpdateImportDescription();
@@ -1089,6 +1145,7 @@ internal partial class SettingsWindow : Window
         {
             CacheSizeText.Text = "Nothing cached yet. Lyrics are kept here so a track is only fetched once.";
             ClearCacheButton.IsEnabled = false;
+            SettingCard.SetSummary(LyricsFilesExpander, "Nothing cached yet");
             return;
         }
 
@@ -1100,18 +1157,19 @@ internal partial class SettingsWindow : Window
                 ? $"{bytes / 1024d:F0} KB"
                 : $"{bytes / (1024d * 1024d):F1} MB";
 
-        CacheSizeText.Text =
-            $"{count} track{(count == 1 ? string.Empty : "s")}, {size}. " +
-            "Clearing does not touch files you imported.";
+        string tracks = $"{count} track{(count == 1 ? string.Empty : "s")}, {size}";
+
+        CacheSizeText.Text = $"{tracks}. Clearing does not touch files you imported.";
+        SettingCard.SetSummary(LyricsFilesExpander, tracks);
     }
 
     private void ClearLyricsCache()
     {
         int removed = _lyrics.ClearCache();
 
-        ImportStatus.Text = removed == 0
+        Say(ImportStatus, removed == 0
             ? "There was nothing to clear."
-            : $"Cleared {removed} cached track{(removed == 1 ? string.Empty : "s")}.";
+            : $"Cleared {removed} cached track{(removed == 1 ? string.Empty : "s")}.");
 
         UpdateCacheSize();
     }
@@ -1130,7 +1188,7 @@ internal partial class SettingsWindow : Window
         }
         catch (Exception ex)
         {
-            ImportStatus.Text = $"Could not open the folder: {ex.Message}";
+            Say(ImportStatus, $"Could not open the folder: {ex.Message}");
         }
     }
 
