@@ -72,12 +72,11 @@ internal partial class SettingsWindow : Window
     private readonly LyricsPresetStore _presets = new();
 
     /// <summary>
-    /// The appearance the card is editing: the panel's or the inline one, whichever is
-    /// in use. Editing the look you cannot currently see would be its own bug.
+    /// The style the card is editing — which is the only one there is. Two of them, one
+    /// per display mode, meant the same preset described two different things depending
+    /// on where the lyrics happened to be.
     /// </summary>
-    private LyricsAppearance Editing => _settings.Current.LyricsDisplay == LyricsDisplayMode.Panel
-        ? _settings.Current.PanelAppearance
-        : _settings.Current.InlineAppearance;
+    private LyricsAppearance Editing => _settings.Current.LyricsStyle;
 
     private readonly Dictionary<LyricsPanelPosition, RadioButton> _lyricsPositionOptions;
 
@@ -180,25 +179,31 @@ internal partial class SettingsWindow : Window
         // settings — and that would write the coerced value straight back over them.
         WithoutFeedback(() =>
         {
-            ConfigureSizeSlider(
+            // Stepped in eights so dragging lands on round numbers.
+            ConfigureAppearanceSlider(
                 PanelWidthSlider, PanelWidthText,
-                WidgetSettings.MinPanelWidth, WidgetSettings.MaxPanelWidth,
-                value => _settings.Update(s => s.LyricsPanelWidth = value));
+                LyricsAppearance.MinPanelWidth, LyricsAppearance.MaxPanelWidth, 8d,
+                value => MutateAppearance(a => a.PanelWidth = (int)Math.Round(value)),
+                value => $"{value:F0}");
 
-            ConfigureSizeSlider(
+            ConfigureAppearanceSlider(
                 PanelHeightSlider, PanelHeightText,
-                WidgetSettings.MinPanelHeight, WidgetSettings.MaxPanelHeight,
-                value => _settings.Update(s => s.LyricsPanelHeight = value));
+                LyricsAppearance.MinPanelHeight, LyricsAppearance.MaxPanelHeight, 8d,
+                value => MutateAppearance(a => a.PanelHeight = (int)Math.Round(value)),
+                value => $"{value:F0}");
+
+            // A tenth of a percent. One percent is 26 physical pixels on a 2560-wide
+            // screen, which is too coarse to line the panel up with anything; a tenth is
+            // under three, which is finer than the eye can place it anyway.
+            ConfigureAppearanceSlider(
+                CustomXSlider, CustomXText, 0d, 100d, 0.1d,
+                value => MutateAppearance(a => a.CustomX = value),
+                value => $"{value:F1}%");
 
             ConfigureAppearanceSlider(
-                CustomXSlider, CustomXText, 0d, 100d, 1d,
-                value => Mutate(s => s.LyricsCustomX = value),
-                value => $"{value:F0}%");
-
-            ConfigureAppearanceSlider(
-                CustomYSlider, CustomYText, 0d, 100d, 1d,
-                value => Mutate(s => s.LyricsCustomY = value),
-                value => $"{value:F0}%");
+                CustomYSlider, CustomYText, 0d, 100d, 0.1d,
+                value => MutateAppearance(a => a.CustomY = value),
+                value => $"{value:F1}%");
 
             BuildAppearanceControls();
         });
@@ -335,32 +340,12 @@ internal partial class SettingsWindow : Window
             _barCountOptions[current.VisualizerBarCount].IsChecked = true;
             VisualizerToggle.IsChecked = current.VisualizerEnabled;
             LyricsToggle.IsChecked = current.LyricsEnabled;
-            _lyricsDisplayOptions[current.LyricsDisplay].IsChecked = true;
-            _lyricsPositionOptions[current.LyricsPosition].IsChecked = true;
             _hoverOptions[current.LyricsHover].IsChecked = true;
 
             if (current.LyricsWordByWord) WordByWordOption.IsChecked = true;
             else LineAtATimeOption.IsChecked = true;
 
-            PanelWidthSlider.Value = current.LyricsPanelWidth;
-            PanelHeightSlider.Value = current.LyricsPanelHeight;
-            PanelWidthText.Text = $"{current.LyricsPanelWidth}";
-            PanelHeightText.Text = $"{current.LyricsPanelHeight}";
-
-            CustomXSlider.Value = current.LyricsCustomX;
-            CustomYSlider.Value = current.LyricsCustomY;
-            UpdateCustomPositionVisibility();
-
-            // Where to put lyrics is only a question once there are any.
-            var lyricsVisibility = current.LyricsEnabled
-                ? Visibility.Visible
-                : Visibility.Collapsed;
-
-            LyricsPlacementCard.Visibility = lyricsVisibility;
-            LyricsImportCard.Visibility = lyricsVisibility;
-            LyricsAppearanceCard.Visibility = lyricsVisibility;
-
-            UpdateStyleRowVisibility();
+            UpdateLyricsCardVisibility();
             UpdateImportDescription();
             UpdateCacheSize();
             SyncAppearance();
@@ -487,25 +472,64 @@ internal partial class SettingsWindow : Window
         WithoutFeedback(() =>
         {
             _settings.Update(s => s.LyricsEnabled = enabled);
-
-            LyricsPlacementCard.Visibility = enabled
-                ? Visibility.Visible
-                : Visibility.Collapsed;
+            UpdateLyricsCardVisibility();
         });
     }
 
+    /// <summary>
+    /// Everything below the lyrics switch is only a question once there are lyrics.
+    /// </summary>
+    /// <remarks>
+    /// One place rather than one line per card at each call site: the cards used to be
+    /// revealed by the sync pass and hidden by the toggle, which meant turning lyrics on
+    /// showed the placement card and left the other two where they were.
+    /// </remarks>
+    private void UpdateLyricsCardVisibility()
+    {
+        var visible = _settings.Current.LyricsEnabled
+            ? Visibility.Visible
+            : Visibility.Collapsed;
+
+        LyricsImportCard.Visibility = visible;
+        LyricsAppearanceCard.Visibility = visible;
+
+        // The behaviour card is about the panel specifically, so it also depends on the
+        // style's mode; UpdateAppearanceRowVisibility owns that half.
+        UpdateAppearanceRowVisibility();
+    }
+
+    /// <summary>
+    /// Moves the lyrics, and brings the design that belongs there with them if the one
+    /// on screen is not the user's own.
+    /// </summary>
+    /// <remarks>
+    /// A style can only describe one place, so simply flipping the mode would put a
+    /// 12px line with no surface — right for the widget — floating over the desktop, or
+    /// a 20px panel design into a 150px slot. While the style is still a named built-in
+    /// this loads that place's built-in instead, which is what the choice meant. Once
+    /// anything has been edited the style is the user's, and it is moved as it is rather
+    /// than replaced.
+    /// </remarks>
     private void OnLyricsDisplayChosen(LyricsDisplayMode mode)
     {
-        if (_syncing) return;
+        if (_syncing || Editing.Display == mode) return;
 
-        WithoutFeedback(() =>
+        bool onABuiltIn = LyricsAppearance.BuiltIn.Any(
+            preset => preset.Name.Equals(Editing.Name, StringComparison.OrdinalIgnoreCase));
+
+        string? forMode = LyricsAppearance.BuiltIn.FirstOrDefault(p => p.Display == mode)?.Name;
+
+        // Read from disk rather than from the compiled copy, so an edited built-in is
+        // still the user's version of it.
+        if (onABuiltIn && forMode is not null && _presets.Load(forMode) is { } design)
         {
-            _settings.Update(s => s.LyricsDisplay = mode);
-            UpdateStyleRowVisibility();
-        });
+            Mutate(s => s.LyricsStyle = design);
+            PresetStatus.Text = $"Loaded “{design.Name}”.";
+            SyncAppearance();
+            return;
+        }
 
-        // The card now edits the other appearance, so it has to be rebuilt.
-        SyncAppearance();
+        MutateAppearance(a => a.Display = mode);
     }
 
     /// <summary>Applies a settings change unless the UI is being rebuilt from them.</summary>
@@ -522,15 +546,12 @@ internal partial class SettingsWindow : Window
 
         Mutate(s =>
         {
-            var appearance = s.LyricsDisplay == LyricsDisplayMode.Panel
-                ? s.PanelAppearance
-                : s.InlineAppearance;
+            change(s.LyricsStyle);
 
-            change(appearance);
-
-            // Any edit makes this no longer the preset it came from.
-            appearance.Name = CustomPresetName;
-            appearance.Normalize();
+            // Any edit makes this no longer the preset it came from — including moving
+            // the lyrics or resizing the panel, both of which a preset now describes.
+            s.LyricsStyle.Name = CustomPresetName;
+            s.LyricsStyle.Normalize();
         });
 
         // The picker has to say so. Only the selection is touched, not the whole card
@@ -560,11 +581,35 @@ internal partial class SettingsWindow : Window
     /// <summary>
     /// Hides the controls that a given choice makes meaningless — an effect radius
     /// with no effect, an opacity for an opaque fill, a corner radius with nothing to
-    /// round.
+    /// round, a panel size for lyrics that are not in a panel.
     /// </summary>
     private void UpdateAppearanceRowVisibility()
     {
         var appearance = Editing;
+
+        // Where the lyrics are decides most of this card. In the widget there is
+        // nothing to position, nothing to resize and no surface to paint — the taskbar's
+        // own material is what shows through, which is the point of the widget.
+        bool isPanel = appearance.Display == LyricsDisplayMode.Panel;
+
+        var panelOnly = isPanel ? Visibility.Visible : Visibility.Collapsed;
+
+        PanelPlacementSettings.Visibility = panelOnly;
+        SurfaceSettings.Visibility = panelOnly;
+
+        LyricsBehaviorCard.Visibility = isPanel && _settings.Current.LyricsEnabled
+            ? Visibility.Visible
+            : Visibility.Collapsed;
+
+        // The exact-position sliders only mean anything for the free anchor.
+        CustomPositionRow.Visibility =
+            isPanel && appearance.Position == LyricsPanelPosition.Custom
+                ? Visibility.Visible
+                : Visibility.Collapsed;
+
+        AppearanceScopeText.Text = isPanel
+            ? "A preset is a saved copy of all of this — where the panel goes and how big it is, as well as how it looks. Kept as files you can share."
+            : "A preset is a saved copy of all of this, including where the lyrics go. In the widget they have no background of their own: the taskbar's material shows through, which is the point of the widget.";
 
         var effect = appearance.Effect == LyricsEffect.None
             ? Visibility.Collapsed
@@ -690,6 +735,17 @@ internal partial class SettingsWindow : Window
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .OrderBy(name => name, StringComparer.CurrentCultureIgnoreCase);
 
+    /// <summary>
+    /// How each slider labels itself, kept so a sync can refresh the label directly.
+    /// </summary>
+    /// <remarks>
+    /// Assigning a slider the value it already holds raises nothing, so a setting that
+    /// happens to sit at the slider's own starting point — a free position of 0%, a font
+    /// at the smallest size — left its readout blank, which read as a missing control
+    /// rather than as a value.
+    /// </remarks>
+    private readonly Dictionary<Slider, Action<double>> _sliderReadouts = [];
+
     private void ConfigureAppearanceSlider(
         Slider slider,
         TextBlock readout,
@@ -706,11 +762,21 @@ internal partial class SettingsWindow : Window
         slider.TickFrequency = step;
         slider.IsSnapToTickEnabled = true;
 
+        _sliderReadouts[slider] = value => readout.Text = format(value);
+
         slider.ValueChanged += (_, e) =>
         {
             readout.Text = format(e.NewValue);
             apply(e.NewValue);
         };
+    }
+
+    /// <summary>Points a slider at a value and relabels it, whether or not it moved.</summary>
+    private void SetSlider(Slider slider, double value)
+    {
+        slider.Value = value;
+
+        if (_sliderReadouts.TryGetValue(slider, out var relabel)) relabel(value);
     }
 
     private void CommitColor(TextBox input, bool isText)
@@ -837,13 +903,14 @@ internal partial class SettingsWindow : Window
     private void SyncAppearanceCore()
     {
         var appearance = Editing;
-        bool isPanel = _settings.Current.LyricsDisplay == LyricsDisplayMode.Panel;
 
-        AppearanceScopeText.Text = isPanel
-            ? "Applies to the floating panel. Presets are saved copies of these values, kept as files you can share."
-            : "Applies to the lyric shown in the widget. It has no background of its own — the taskbar's material shows through, which is the point of the widget.";
+        _lyricsDisplayOptions[appearance.Display].IsChecked = true;
+        _lyricsPositionOptions[appearance.Position].IsChecked = true;
 
-        SurfaceSettings.Visibility = isPanel ? Visibility.Visible : Visibility.Collapsed;
+        SetSlider(PanelWidthSlider, appearance.PanelWidth);
+        SetSlider(PanelHeightSlider, appearance.PanelHeight);
+        SetSlider(CustomXSlider, appearance.CustomX);
+        SetSlider(CustomYSlider, appearance.CustomY);
 
         _weightOptions.GetValueOrDefault(appearance.FontWeight, WeightSemiBoldOption).IsChecked = true;
         _effectOptions[appearance.Effect].IsChecked = true;
@@ -859,11 +926,12 @@ internal partial class SettingsWindow : Window
             FontPicker.Items.Add(appearance.FontFamily);
 
         FontPicker.SelectedItem = appearance.FontFamily;
-        FontSizeSlider.Value = appearance.FontSize;
-        UnsungSlider.Value = appearance.UnsungOpacity;
-        EffectRadiusSlider.Value = appearance.EffectRadius;
-        BackgroundOpacitySlider.Value = appearance.BackgroundOpacity;
-        CornerRadiusSlider.Value = appearance.CornerRadius;
+
+        SetSlider(FontSizeSlider, appearance.FontSize);
+        SetSlider(UnsungSlider, appearance.UnsungOpacity);
+        SetSlider(EffectRadiusSlider, appearance.EffectRadius);
+        SetSlider(BackgroundOpacitySlider, appearance.BackgroundOpacity);
+        SetSlider(CornerRadiusSlider, appearance.CornerRadius);
 
         TextColorInput.Text = appearance.TextColor;
         BackgroundColorInput.Text = appearance.BackgroundColor;
@@ -903,18 +971,15 @@ internal partial class SettingsWindow : Window
             return;
         }
 
-        bool isPanel = _settings.Current.LyricsDisplay == LyricsDisplayMode.Panel;
+        var loaded = preset.Clone();
 
-        Mutate(s =>
-        {
-            var loaded = preset.Clone();
+        // A preset written before placement was part of one says nothing about where
+        // the lyrics go, so loading it must leave them where they are rather than
+        // assert a default it never chose.
+        if (preset.Schema < LyricsAppearance.CurrentSchema)
+            loaded.TakePlacementFrom(Editing);
 
-            // The inline display never takes a surface, whatever the preset says.
-            if (!isPanel) loaded.Background = LyricsBackground.None;
-
-            if (isPanel) s.PanelAppearance = loaded;
-            else s.InlineAppearance = loaded;
-        });
+        Mutate(s => s.LyricsStyle = loaded);
 
         PresetStatus.Text = $"Loaded “{name}”.";
         SyncAppearance();
@@ -944,82 +1009,20 @@ internal partial class SettingsWindow : Window
             return;
         }
 
-        Mutate(s =>
-        {
-            if (s.LyricsDisplay == LyricsDisplayMode.Panel) s.PanelAppearance.Name = preset.Name;
-            else s.InlineAppearance.Name = preset.Name;
-        });
+        Mutate(s => s.LyricsStyle.Name = preset.Name);
 
         PresetStatus.Text = $"Saved “{preset.Name}”.";
         SyncAppearance();
     }
 
-    private void OnLyricsPositionChosen(LyricsPanelPosition position)
-    {
-        if (_syncing) return;
-
-        WithoutFeedback(() =>
-        {
-            _settings.Update(s => s.LyricsPosition = position);
-            UpdateCustomPositionVisibility();
-        });
-    }
-
-    /// <summary>
-    /// The exact-position sliders only mean anything for the free anchor.
-    /// </summary>
-    private void UpdateCustomPositionVisibility() =>
-        CustomPositionRow.Visibility =
-            _settings.Current.LyricsPosition == LyricsPanelPosition.Custom
-                ? Visibility.Visible
-                : Visibility.Collapsed;
+    private void OnLyricsPositionChosen(LyricsPanelPosition position) =>
+        MutateAppearance(a => a.Position = position);
 
     private void OnHighlightChosen(bool wordByWord)
     {
         if (_syncing) return;
         WithoutFeedback(() => _settings.Update(s => s.LyricsWordByWord = wordByWord));
     }
-
-    /// <summary>
-    /// Wires a size slider to its setting and its readout.
-    /// </summary>
-    /// <remarks>
-    /// Stepped in eights so dragging lands on round numbers, and written back on every
-    /// change — the store already writes atomically, and a drag is a handful of saves
-    /// rather than a stream of them because the step quantises it.
-    /// </remarks>
-    private void ConfigureSizeSlider(
-        Slider slider,
-        TextBlock readout,
-        int minimum,
-        int maximum,
-        Action<int> apply)
-    {
-        slider.Minimum = minimum;
-        slider.Maximum = maximum;
-        slider.SmallChange = 8d;
-        slider.LargeChange = 40d;
-        slider.TickFrequency = 8d;
-        slider.IsSnapToTickEnabled = true;
-
-        slider.ValueChanged += (_, e) =>
-        {
-            int value = (int)Math.Round(e.NewValue);
-            readout.Text = $"{value}";
-
-            if (_syncing) return;
-            WithoutFeedback(() => apply(value));
-        };
-    }
-
-    /// <summary>
-    /// Style, position, size and highlight only apply to the panel, so offering them
-    /// alongside the inline mode would be controls that visibly do nothing.
-    /// </summary>
-    private void UpdateStyleRowVisibility() =>
-        PanelOnlySettings.Visibility = _settings.Current.LyricsDisplay == LyricsDisplayMode.Panel
-            ? Visibility.Visible
-            : Visibility.Collapsed;
 
     // ---- Importing your own lyrics -----------------------------------------
 

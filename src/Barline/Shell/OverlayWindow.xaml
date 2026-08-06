@@ -145,8 +145,15 @@
              this fixed-width container — the gradient then maps to the visible
              width — and is toggled on only when a line actually overflows. A line
              that fits never reaches the fade band, so it is never dimmed. -->
+        <!-- Spans the right zone as well as its own column. Its width is set in code
+             and is the real bound; the span only stops the Grid clipping it back to
+             one cell, which it does to any child that overflows its slot. With the
+             bars switched off there is nothing drawn in that zone for the text to run
+             underneath, and the zone is declared after this so it wins where they do
+             overlap. -->
         <Grid x:Name="TextArea"
               Grid.Column="1"
+              Grid.ColumnSpan="2"
               HorizontalAlignment="Left"
               VerticalAlignment="Center"
               Margin="10,0,0,0"
@@ -157,19 +164,34 @@
             </Grid.RowDefinitions>
             <!-- Sits over the title and artist rather than beside them: the reserved
                  width is already the tightest part of the layout, so the two states
-                 crossfade in place instead of competing for space. -->
-            <TextBlock x:Name="LyricsText"
-                       Grid.Row="0"
-                       Grid.RowSpan="2"
-                       VerticalAlignment="Center"
-                       FontSize="12"
-                       FontWeight="SemiBold"
-                       LineHeight="16"
-                       LineStackingStrategy="BlockLineHeight"
-                       TextWrapping="NoWrap"
-                       Opacity="0"
-                       Foreground="{DynamicResource TextPrimaryBrush}"
-                       Text="" />
+                 crossfade in place instead of competing for space.
+
+                 Two layers, exactly overlaid, as in the panel. The halo is a blurred
+                 copy drawn behind; blurring the live text instead does not glow, it
+                 just goes out of focus. -->
+            <Grid x:Name="LyricsLayer"
+                  Grid.Row="0"
+                  Grid.RowSpan="2"
+                  VerticalAlignment="Center"
+                  Opacity="0">
+                <TextBlock x:Name="LyricsHalo"
+                           FontSize="12"
+                           FontWeight="SemiBold"
+                           LineHeight="16"
+                           LineStackingStrategy="BlockLineHeight"
+                           TextWrapping="NoWrap"
+                           CacheMode="BitmapCache"
+                           Visibility="Collapsed"
+                           Text="" />
+                <TextBlock x:Name="LyricsText"
+                           FontSize="12"
+                           FontWeight="SemiBold"
+                           LineHeight="16"
+                           LineStackingStrategy="BlockLineHeight"
+                           TextWrapping="NoWrap"
+                           Foreground="{DynamicResource TextPrimaryBrush}"
+                           Text="" />
+            </Grid>
             <TextBlock x:Name="TitleText"
                        Grid.Row="0"
                        FontSize="12"

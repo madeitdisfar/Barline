@@ -25,6 +25,13 @@ internal sealed class CachedLyrics
     /// </summary>
     public bool Found { get; set; }
 
+    /// <summary>
+    /// How many times this track has been looked up and come back with nothing. Zero
+    /// for a hit, and zero for an entry written before this was recorded — which only
+    /// means the next retry comes sooner than it strictly had to.
+    /// </summary>
+    public int Misses { get; set; }
+
     public DateTimeOffset FetchedUtc { get; set; }
 
     /// <summary>
@@ -44,10 +51,17 @@ internal sealed class CachedLyrics
 /// </summary>
 /// <remarks>
 /// <para>
-/// Misses are cached as deliberately as hits. Without that, every play of a track
-/// with no lyrics filed — which is a great many of them — would be another request
-/// to a service run for free. Misses do expire, because the database grows and
-/// today's gap may be filled next month.
+/// Misses are cached as deliberately as hits, but never permanently. LRCLIB is a
+/// contributed database: a track with nothing filed today is a track nobody has got to
+/// yet, and new songs are exactly the ones most likely to be filled in shortly after
+/// they are asked for. A miss that never expired would mean a track stayed silent for
+/// as long as the widget was installed, long after the lyrics existed.
+/// </para>
+/// <para>
+/// So a miss is retried on a widening delay rather than at one flat lifetime. The first
+/// retry comes the next day, which catches the common case; a track that keeps coming
+/// back empty settles into being asked about once a month, which is what stops a
+/// library of instrumentals from hammering a service run for free.
 /// </para>
 /// <para>
 /// Reads never throw. A corrupt or half-written entry is treated as absent and
@@ -57,11 +71,20 @@ internal sealed class CachedLyrics
 internal sealed class LyricsCache
 {
     /// <summary>
-    /// How long to trust a recorded miss. Long enough to stop re-asking for a track
-    /// on every play, short enough that newly contributed lyrics appear without the
-    /// user having to clear anything.
+    /// How long to trust a recorded miss, by how many times it has already missed.
     /// </summary>
-    private static readonly TimeSpan MissLifetime = TimeSpan.FromDays(14);
+    /// <remarks>
+    /// The last entry is the standing interval once the ladder runs out. Nothing is
+    /// permanent: even a track that has come back empty ten times is asked again
+    /// eventually, because the only cost of being wrong about that is one request.
+    /// </remarks>
+    internal static readonly TimeSpan[] MissBackoff =
+    [
+        TimeSpan.FromDays(1),
+        TimeSpan.FromDays(3),
+        TimeSpan.FromDays(7),
+        TimeSpan.FromDays(30),
+    ];
 
     /// <summary>
     /// Current entry schema. Version 2 added the lyricsfile form, which carries each
@@ -107,8 +130,17 @@ internal sealed class LyricsCache
         return Convert.ToHexString(hash)[..16].ToLowerInvariant();
     }
 
-    /// <summary>Reads an entry, or null when absent, unreadable or an expired miss.</summary>
-    public CachedLyrics? Read(string key, DateTimeOffset now)
+    /// <summary>
+    /// Reads whatever is stored for a key, fresh or stale, or null when there is
+    /// nothing readable there.
+    /// </summary>
+    /// <remarks>
+    /// Stale entries come back rather than being hidden, because a stale miss still
+    /// carries how many times this track has already come back empty — which is what
+    /// decides when to ask again. Callers pass what they get to
+    /// <see cref="IsUsable"/> before treating it as an answer.
+    /// </remarks>
+    public CachedLyrics? Read(string key)
     {
         string path = PathFor(key);
 
@@ -116,18 +148,7 @@ internal sealed class LyricsCache
         {
             if (!File.Exists(path)) return null;
 
-            var entry = JsonSerializer.Deserialize<CachedLyrics>(File.ReadAllText(path));
-            if (entry is null) return null;
-
-            // Written before a field we now store existed. Treated as absent so it is
-            // fetched once more; the rewrite stamps the current schema, so this cannot
-            // turn into a re-fetch on every play.
-            if (entry.Schema < CurrentSchema) return null;
-
-            // A hit is kept forever: lyrics for a released track do not change.
-            if (entry.Found) return entry;
-
-            return now - entry.FetchedUtc < MissLifetime ? entry : null;
+            return JsonSerializer.Deserialize<CachedLyrics>(File.ReadAllText(path));
         }
         catch (Exception ex)
         {
@@ -135,6 +156,24 @@ internal sealed class LyricsCache
             return null;
         }
     }
+
+    /// <summary>Whether a stored entry can still be used as the answer for a track.</summary>
+    public static bool IsUsable(CachedLyrics entry, DateTimeOffset now)
+    {
+        // Written before a field we now store existed. Treated as unusable so it is
+        // fetched once more; the rewrite stamps the current schema, so this cannot turn
+        // into a re-fetch on every play.
+        if (entry.Schema < CurrentSchema) return false;
+
+        // A hit is kept forever: lyrics for a released track do not change.
+        if (entry.Found) return true;
+
+        return now - entry.FetchedUtc < RetryAfter(entry.Misses);
+    }
+
+    /// <summary>How long to wait before asking again about a track that has missed.</summary>
+    internal static TimeSpan RetryAfter(int misses) =>
+        MissBackoff[Math.Clamp(misses - 1, 0, MissBackoff.Length - 1)];
 
     public void Write(string key, CachedLyrics entry)
     {

@@ -169,11 +169,12 @@ internal sealed class LyricsService : IDisposable
         var imported = ReadImported(track);
         if (imported is not null) return imported;
 
-        var cached = _cache.Read(key, DateTimeOffset.UtcNow);
-        if (cached is not null)
+        var stored = _cache.Read(key);
+
+        if (stored is not null && LyricsCache.IsUsable(stored, DateTimeOffset.UtcNow))
         {
-            DebugLog.Write($"lyrics: cache {(cached.Found ? "hit" : "known miss")} for '{track.Title}'");
-            return ToDocument(cached);
+            DebugLog.Write($"lyrics: cache {(stored.Found ? "hit" : "known miss")} for '{track.Title}'");
+            return ToDocument(stored);
         }
 
         var record = await _client
@@ -183,6 +184,11 @@ internal sealed class LyricsService : IDisposable
         var entry = new CachedLyrics
         {
             Found = record is not null,
+
+            // Carried forward across a retry, so each empty answer pushes the next
+            // attempt further out. Reset by a hit, which ends the sequence anyway.
+            Misses = record is null ? (stored?.Misses ?? 0) + 1 : 0,
+
             SyncedLyrics = record?.SyncedLyrics,
             PlainLyrics = record?.PlainLyrics,
             LyricsFile = record?.LyricsFile,
@@ -193,6 +199,13 @@ internal sealed class LyricsService : IDisposable
         };
 
         _cache.Write(key, entry);
+
+        if (record is null)
+        {
+            DebugLog.Write(
+                $"lyrics: nothing filed for '{track.Title}' " +
+                $"(miss {entry.Misses}; asking again in {LyricsCache.RetryAfter(entry.Misses).TotalDays:F0} days)");
+        }
 
         return ToDocument(entry);
     }

@@ -897,11 +897,114 @@
                 </Grid>
             </Border>
 
-            <Border x:Name="LyricsPlacementCard"
+            <!-- How the panel behaves, as against what it looks like. These two are
+                 deliberately not part of the appearance and so are not carried by a
+                 preset: someone else's shared look should not quietly change how your
+                 lyrics move or when they get out of your way. -->
+            <Border x:Name="LyricsBehaviorCard"
                     Style="{StaticResource Card}"
                     Margin="0,12,0,0"
                     Visibility="Collapsed">
                 <StackPanel>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                            <TextBlock Style="{StaticResource CardLabel}" Text="Highlight" />
+                            <TextBlock Style="{StaticResource CardDescription}"
+                                       Text="Word timing is estimated from the line, since almost no source carries it. On a track it fits badly, a line at a time is calmer." />
+                        </StackPanel>
+
+                        <Border Grid.Column="1" Style="{StaticResource SegmentGroup}">
+                            <UniformGrid Rows="1">
+                                <RadioButton x:Name="WordByWordOption"
+                                             GroupName="LyricsHighlight"
+                                             Style="{StaticResource SegmentOption}"
+                                             Content="Word" />
+                                <RadioButton x:Name="LineAtATimeOption"
+                                             GroupName="LyricsHighlight"
+                                             Style="{StaticResource SegmentOption}"
+                                             Content="Line" />
+                            </UniformGrid>
+                        </Border>
+                    </Grid>
+
+                    <Border Style="{StaticResource RowDivider}" />
+
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                            <TextBlock Style="{StaticResource CardLabel}" Text="When hovered" />
+                            <TextBlock Style="{StaticResource CardDescription}"
+                                       Text="The panel never takes clicks, but it can still cover something. This gets it out of the way." />
+                        </StackPanel>
+
+                        <Border Grid.Column="1" Style="{StaticResource SegmentGroup}">
+                            <UniformGrid Rows="1">
+                                <RadioButton x:Name="HoverNoneOption"
+                                             GroupName="LyricsHover"
+                                             Style="{StaticResource SegmentOption}"
+                                             Content="Stay" />
+                                <RadioButton x:Name="HoverFadeOption"
+                                             GroupName="LyricsHover"
+                                             Style="{StaticResource SegmentOption}"
+                                             Content="Fade" />
+                                <RadioButton x:Name="HoverHideOption"
+                                             GroupName="LyricsHover"
+                                             Style="{StaticResource SegmentOption}"
+                                             Content="Hide" />
+                            </UniformGrid>
+                        </Border>
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <!-- === Appearance === -->
+
+            <Border x:Name="LyricsAppearanceCard"
+                    Style="{StaticResource Card}"
+                    Margin="0,12,0,0"
+                    Visibility="Collapsed">
+                <StackPanel>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                            <TextBlock Style="{StaticResource CardLabel}" Text="Appearance" />
+                            <TextBlock x:Name="AppearanceScopeText"
+                                       Style="{StaticResource CardDescription}"
+                                       Text="Presets are saved copies of these values, kept as files you can share." />
+                        </StackPanel>
+
+                        <StackPanel Grid.Column="1" Orientation="Horizontal"
+                                    Margin="16,0,0,0" VerticalAlignment="Center">
+                            <ComboBox x:Name="PresetPicker"
+                                      Style="{StaticResource CardCombo}"
+                                      Width="130" />
+                            <Button x:Name="SavePresetButton"
+                                    Style="{StaticResource CardButton}"
+                                    Margin="8,0,0,0"
+                                    Content="Save as…" />
+                        </StackPanel>
+                    </Grid>
+
+                    <Border Style="{StaticResource RowDivider}" />
+
+                    <!-- Where. Part of the look, not a setting beside it: a 20px line
+                         over a tinted panel and a 12px line in the widget are different
+                         designs, and a preset that did not say which one it was for
+                         meant two different things depending on where the lyrics
+                         happened to be. -->
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
@@ -928,67 +1031,7 @@
                         </Border>
                     </Grid>
 
-                    <StackPanel x:Name="PanelOnlySettings">
-                        <Border Style="{StaticResource RowDivider}" />
-
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="Auto" />
-                            </Grid.ColumnDefinitions>
-
-                            <StackPanel Grid.Column="0" VerticalAlignment="Center">
-                                <TextBlock Style="{StaticResource CardLabel}" Text="Highlight" />
-                                <TextBlock Style="{StaticResource CardDescription}"
-                                           Text="Word timing is estimated from the line, since almost no source carries it. On a track it fits badly, a line at a time is calmer." />
-                            </StackPanel>
-
-                            <Border Grid.Column="1" Style="{StaticResource SegmentGroup}">
-                                <UniformGrid Rows="1">
-                                    <RadioButton x:Name="WordByWordOption"
-                                                 GroupName="LyricsHighlight"
-                                                 Style="{StaticResource SegmentOption}"
-                                                 Content="Word" />
-                                    <RadioButton x:Name="LineAtATimeOption"
-                                                 GroupName="LyricsHighlight"
-                                                 Style="{StaticResource SegmentOption}"
-                                                 Content="Line" />
-                                </UniformGrid>
-                            </Border>
-                        </Grid>
-
-                        <Border Style="{StaticResource RowDivider}" />
-
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="Auto" />
-                            </Grid.ColumnDefinitions>
-
-                            <StackPanel Grid.Column="0" VerticalAlignment="Center">
-                                <TextBlock Style="{StaticResource CardLabel}" Text="When hovered" />
-                                <TextBlock Style="{StaticResource CardDescription}"
-                                           Text="The panel never takes clicks, but it can still cover something. This gets it out of the way." />
-                            </StackPanel>
-
-                            <Border Grid.Column="1" Style="{StaticResource SegmentGroup}">
-                                <UniformGrid Rows="1">
-                                    <RadioButton x:Name="HoverNoneOption"
-                                                 GroupName="LyricsHover"
-                                                 Style="{StaticResource SegmentOption}"
-                                                 Content="Stay" />
-                                    <RadioButton x:Name="HoverFadeOption"
-                                                 GroupName="LyricsHover"
-                                                 Style="{StaticResource SegmentOption}"
-                                                 Content="Fade" />
-                                    <RadioButton x:Name="HoverHideOption"
-                                                 GroupName="LyricsHover"
-                                                 Style="{StaticResource SegmentOption}"
-                                                 Content="Hide" />
-                                </UniformGrid>
-                            </Border>
-                        </Grid>
-
+                    <StackPanel x:Name="PanelPlacementSettings">
                         <Border Style="{StaticResource RowDivider}" />
 
                         <Grid>
@@ -1038,7 +1081,7 @@
                                 <StackPanel Grid.Column="0" VerticalAlignment="Center">
                                     <TextBlock Style="{StaticResource CardLabel}" Text="Where exactly" />
                                     <TextBlock Style="{StaticResource CardDescription}"
-                                               Text="Across and down, as a share of the screen — so it stays put if the resolution changes." />
+                                               Text="Across and down, as a share of the screen — so it stays put if the resolution changes. Arrow keys nudge it a tenth of a percent at a time." />
                                 </StackPanel>
 
                                 <StackPanel Grid.Column="1" Margin="16,0,0,0" VerticalAlignment="Center">
@@ -1048,13 +1091,13 @@
 
                                 <StackPanel Grid.Column="2" Margin="10,0,0,0" VerticalAlignment="Center">
                                     <TextBlock x:Name="CustomXText"
-                                               Width="44" Height="28"
+                                               Width="52" Height="28"
                                                TextAlignment="Right" Padding="0,6,0,0"
                                                FontSize="11"
                                                FontFamily="Cascadia Mono, Consolas, monospace"
                                                Foreground="{DynamicResource TextTertiaryBrush}" />
                                     <TextBlock x:Name="CustomYText"
-                                               Width="44" Height="28"
+                                               Width="52" Height="28"
                                                Margin="0,2,0,0"
                                                TextAlignment="Right" Padding="0,6,0,0"
                                                FontSize="11"
@@ -1086,14 +1129,14 @@
 
                             <StackPanel Grid.Column="2" Margin="10,0,0,0" VerticalAlignment="Center">
                                 <TextBlock x:Name="PanelWidthText"
-                                           Width="44" Height="28"
+                                           Width="52" Height="28"
                                            TextAlignment="Right"
                                            Padding="0,6,0,0"
                                            FontSize="11"
                                            FontFamily="Cascadia Mono, Consolas, monospace"
                                            Foreground="{DynamicResource TextTertiaryBrush}" />
                                 <TextBlock x:Name="PanelHeightText"
-                                           Width="44" Height="28"
+                                           Width="52" Height="28"
                                            Margin="0,2,0,0"
                                            TextAlignment="Right"
                                            Padding="0,6,0,0"
@@ -1103,40 +1146,6 @@
                             </StackPanel>
                         </Grid>
                     </StackPanel>
-                </StackPanel>
-            </Border>
-
-            <!-- === Appearance === -->
-
-            <Border x:Name="LyricsAppearanceCard"
-                    Style="{StaticResource Card}"
-                    Margin="0,12,0,0"
-                    Visibility="Collapsed">
-                <StackPanel>
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
-
-                        <StackPanel Grid.Column="0" VerticalAlignment="Center">
-                            <TextBlock Style="{StaticResource CardLabel}" Text="Appearance" />
-                            <TextBlock x:Name="AppearanceScopeText"
-                                       Style="{StaticResource CardDescription}"
-                                       Text="Presets are saved copies of these values, kept as files you can share." />
-                        </StackPanel>
-
-                        <StackPanel Grid.Column="1" Orientation="Horizontal"
-                                    Margin="16,0,0,0" VerticalAlignment="Center">
-                            <ComboBox x:Name="PresetPicker"
-                                      Style="{StaticResource CardCombo}"
-                                      Width="130" />
-                            <Button x:Name="SavePresetButton"
-                                    Style="{StaticResource CardButton}"
-                                    Margin="8,0,0,0"
-                                    Content="Save as…" />
-                        </StackPanel>
-                    </Grid>
 
                     <Border Style="{StaticResource RowDivider}" />
 

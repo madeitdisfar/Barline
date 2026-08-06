@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using Barline.Lyrics;
 
 namespace Barline.Settings;
@@ -26,44 +27,6 @@ internal enum VisualizerColorMode
 
     /// <summary>The dominant hue of the current album art, corrected for legibility.</summary>
     AlbumArt,
-}
-
-/// <summary>
-/// Where the current lyric line is drawn.
-/// </summary>
-internal enum LyricsDisplayMode
-{
-    /// <summary>
-    /// In the widget's own text area, replacing the title until hovered. Costs no
-    /// extra window and no extra pixels, but the reserved width is about 150px —
-    /// twenty-five characters — so a long line is cut short.
-    /// </summary>
-    Inline,
-
-    /// <summary>
-    /// A panel floating just above the taskbar, with room for the line before and
-    /// after. Reads far better; costs a second window.
-    /// </summary>
-    Panel,
-}
-
-/// <summary>Where the lyrics panel sits on screen.</summary>
-internal enum LyricsPanelPosition
-{
-    /// <summary>Directly above the widget, tracking the taskbar's left edge.</summary>
-    AboveWidget,
-
-    /// <summary>Centred horizontally, just above the taskbar.</summary>
-    BottomCenter,
-
-    /// <summary>Centred horizontally, near the top of the screen.</summary>
-    TopCenter,
-
-    /// <summary>
-    /// Wherever <see cref="WidgetSettings.LyricsCustomX"/> and
-    /// <see cref="WidgetSettings.LyricsCustomY"/> put it.
-    /// </summary>
-    Custom,
 }
 
 /// <summary>What the panel does while the pointer is over it.</summary>
@@ -100,7 +63,10 @@ internal sealed class WidgetSettings
     /// when an existing property changes meaning — adding a property does not need
     /// a bump, since absent values fall back to the defaults here.
     /// </summary>
-    public int Version { get; set; } = 1;
+    public int Version { get; set; } = CurrentVersion;
+
+    /// <summary>Version 2 collapsed the two lyric appearances into one style.</summary>
+    public const int CurrentVersion = 2;
 
     public VisualizerColorMode VisualizerColor { get; set; } = VisualizerColorMode.Default;
 
@@ -109,8 +75,7 @@ internal sealed class WidgetSettings
     /// </summary>
     /// <remarks>
     /// Still corrected for legibility against the taskbar, so a colour picked here
-    /// is a request for a hue rather than for exact bytes. Until the settings window
-    /// exists this is only reachable by editing the file.
+    /// is a request for a hue rather than for exact bytes.
     /// </remarks>
     public string? CustomBarColor { get; set; }
 
@@ -119,70 +84,6 @@ internal sealed class WidgetSettings
     /// visualiser off did not survive a restart.
     /// </summary>
     public bool VisualizerEnabled { get; set; } = true;
-
-    /// <summary>Where lyrics are drawn, when they are enabled.</summary>
-    public LyricsDisplayMode LyricsDisplay { get; set; } = LyricsDisplayMode.Inline;
-
-    /// <summary>
-    /// How the floating panel looks. Edited directly by the settings window; a preset
-    /// is a named copy of it rather than a separate source of truth.
-    /// </summary>
-    public LyricsAppearance PanelAppearance { get; set; } = new();
-
-    /// <summary>
-    /// How the inline display looks. Carries no background: the widget paints none by
-    /// design, so the taskbar's own material shows through.
-    /// </summary>
-    public LyricsAppearance InlineAppearance { get; set; } = LyricsAppearance.DefaultInline();
-
-    /// <summary>What the panel does when the pointer is over it.</summary>
-    public LyricsHoverBehavior LyricsHover { get; set; } = LyricsHoverBehavior.Fade;
-
-    /// <summary>
-    /// Whether the panel lights each word as it is sung, or the whole line at once.
-    /// </summary>
-    /// <remarks>
-    /// Word timing is estimated from the line for almost every track, since virtually
-    /// no source carries it. The estimate is good but it is an estimate, and on a
-    /// track it fits badly the whole line at once is the calmer choice.
-    /// </remarks>
-    public bool LyricsWordByWord { get; set; } = true;
-
-    /// <summary>Where the panel sits on screen.</summary>
-    public LyricsPanelPosition LyricsPosition { get; set; } = LyricsPanelPosition.AboveWidget;
-
-    /// <summary>
-    /// Free position, as a percentage across and down the monitor's usable area.
-    /// </summary>
-    /// <remarks>
-    /// Stored as a proportion rather than in pixels so a panel placed by hand stays
-    /// where it was put when the resolution changes or the widget moves to a different
-    /// screen. Zero is flush with the top-left, one hundred flush with the
-    /// bottom-right — the panel's own size is taken off, so it never lands part-way
-    /// off the edge.
-    /// </remarks>
-    public double LyricsCustomX { get; set; } = 50d;
-    public double LyricsCustomY { get; set; } = 70d;
-
-    /// <summary>Panel size in logical pixels.</summary>
-    public int LyricsPanelWidth { get; set; } = DefaultPanelWidth;
-    public int LyricsPanelHeight { get; set; } = DefaultPanelHeight;
-
-    public const int DefaultPanelWidth = 520;
-    public const int DefaultPanelHeight = 96;
-
-    /// <summary>
-    /// Bounds for the panel size.
-    /// </summary>
-    /// <remarks>
-    /// The floor is low enough to suit the smallest font on offer — a 9px line needs
-    /// very little room — and the ceiling keeps the panel from covering so much of the
-    /// screen that it stops reading as an overlay.
-    /// </remarks>
-    public const int MinPanelWidth = 180;
-    public const int MaxPanelWidth = 1400;
-    public const int MinPanelHeight = 36;
-    public const int MaxPanelHeight = 400;
 
     /// <summary>
     /// Whether to look up lyrics for what is playing.
@@ -193,6 +94,38 @@ internal sealed class WidgetSettings
     /// start doing without being asked.
     /// </remarks>
     public bool LyricsEnabled { get; set; }
+
+    /// <summary>
+    /// The whole lyric style: where lyrics are shown, and how they look there.
+    /// </summary>
+    /// <remarks>
+    /// Edited directly by the settings window; a preset is a named copy of it rather
+    /// than a separate source of truth.
+    /// </remarks>
+    /// <remarks>
+    /// Named for the built-in it is a copy of, rather than left as "Custom", so a fresh
+    /// install starts on a design that has a counterpart in the other display mode.
+    /// </remarks>
+    public LyricsAppearance LyricsStyle { get; set; } =
+        new() { Name = "Widget", Schema = LyricsAppearance.CurrentSchema };
+
+    /// <summary>What the panel does when the pointer is over it.</summary>
+    /// <remarks>
+    /// Not part of the style, and so not carried by a preset: it is a preference about
+    /// how the panel should get out of your way, not a description of a look.
+    /// </remarks>
+    public LyricsHoverBehavior LyricsHover { get; set; } = LyricsHoverBehavior.Fade;
+
+    /// <summary>
+    /// Whether the panel lights each word as it is sung, or the whole line at once.
+    /// </summary>
+    /// <remarks>
+    /// Word timing is estimated from the line for almost every track, since virtually
+    /// no source carries it. The estimate is good but it is an estimate, and on a
+    /// track it fits badly the whole line at once is the calmer choice. Like the hover
+    /// behaviour, it is a preference rather than a look, so presets leave it alone.
+    /// </remarks>
+    public bool LyricsWordByWord { get; set; } = true;
 
     /// <summary>The bar count when nothing says otherwise, and the shipped design.</summary>
     public const int DefaultBarCount = 4;
@@ -225,7 +158,7 @@ internal sealed class WidgetSettings
     public int VisualizerBarCount { get; set; } = DefaultBarCount;
 
     /// <summary>
-    /// Forces hand-edited values back into range.
+    /// Forces hand-edited values back into range, and folds an older file forward.
     /// </summary>
     /// <remarks>
     /// The file is documented as safe to edit, so out-of-range values are an
@@ -234,14 +167,90 @@ internal sealed class WidgetSettings
     /// </remarks>
     public void Normalize()
     {
-        VisualizerBarCount = Math.Clamp(VisualizerBarCount, MinBarCount, MaxBarCount);
-        LyricsPanelWidth = Math.Clamp(LyricsPanelWidth, MinPanelWidth, MaxPanelWidth);
-        LyricsPanelHeight = Math.Clamp(LyricsPanelHeight, MinPanelHeight, MaxPanelHeight);
-        LyricsCustomX = Math.Clamp(LyricsCustomX, 0d, 100d);
-        LyricsCustomY = Math.Clamp(LyricsCustomY, 0d, 100d);
+        MigrateLyricsStyle();
 
-        // A hand-edited or missing appearance block must not stop the widget starting.
-        PanelAppearance = (PanelAppearance ?? new LyricsAppearance()).Normalize();
-        InlineAppearance = (InlineAppearance ?? LyricsAppearance.DefaultInline()).Normalize();
+        VisualizerBarCount = Math.Clamp(VisualizerBarCount, MinBarCount, MaxBarCount);
+
+        // A hand-edited or missing style block must not stop the widget starting.
+        LyricsStyle = (LyricsStyle ?? new LyricsAppearance()).Normalize();
+    }
+
+    // ---- Version 1 -------------------------------------------------------
+
+    /*
+        Written by builds before the lyric style became one object, read once and then
+        cleared. Nullable so that "absent" is distinguishable from "set to the default"
+        — and so that they disappear from the file the moment the migration has run,
+        rather than lingering as dead keys that look like live settings.
+    */
+
+    [JsonInclude]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public LyricsAppearance? PanelAppearance { get; set; }
+
+    [JsonInclude]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public LyricsAppearance? InlineAppearance { get; set; }
+
+    [JsonInclude]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public LyricsDisplayMode? LyricsDisplay { get; set; }
+
+    [JsonInclude]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public LyricsPanelPosition? LyricsPosition { get; set; }
+
+    [JsonInclude]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public double? LyricsCustomX { get; set; }
+
+    [JsonInclude]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public double? LyricsCustomY { get; set; }
+
+    [JsonInclude]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public int? LyricsPanelWidth { get; set; }
+
+    [JsonInclude]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public int? LyricsPanelHeight { get; set; }
+
+    /// <summary>
+    /// Folds a version 1 file into <see cref="LyricsStyle"/>.
+    /// </summary>
+    /// <remarks>
+    /// The two appearances become one, so the one for the mode that was not in use is
+    /// dropped. That is the point of the change rather than a casualty of it: keeping
+    /// both is what made a preset mean two different things depending on where the
+    /// lyrics happened to be.
+    /// </remarks>
+    private void MigrateLyricsStyle()
+    {
+        if (PanelAppearance is null && InlineAppearance is null) return;
+
+        var style = (LyricsDisplay == LyricsDisplayMode.Panel ? PanelAppearance : InlineAppearance)
+            ?? new LyricsAppearance();
+
+        style.Display = LyricsDisplay ?? LyricsDisplayMode.Inline;
+        style.Position = LyricsPosition ?? style.Position;
+        style.CustomX = LyricsCustomX ?? style.CustomX;
+        style.CustomY = LyricsCustomY ?? style.CustomY;
+        style.PanelWidth = LyricsPanelWidth ?? style.PanelWidth;
+        style.PanelHeight = LyricsPanelHeight ?? style.PanelHeight;
+        style.Schema = LyricsAppearance.CurrentSchema;
+
+        LyricsStyle = style;
+
+        PanelAppearance = null;
+        InlineAppearance = null;
+        LyricsDisplay = null;
+        LyricsPosition = null;
+        LyricsCustomX = null;
+        LyricsCustomY = null;
+        LyricsPanelWidth = null;
+        LyricsPanelHeight = null;
+
+        Version = CurrentVersion;
     }
 }

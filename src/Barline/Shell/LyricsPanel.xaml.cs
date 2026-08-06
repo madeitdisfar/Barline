@@ -81,7 +81,7 @@ internal partial class LyricsPanel : Window
     /// </summary>
     private readonly SolidColorBrush _activeBrush = new();
 
-    private LyricsAppearance Appearance => _settings.Current.PanelAppearance;
+    private LyricsAppearance Appearance => _settings.Current.LyricsStyle;
 
     public LyricsPanel(
         TaskbarTracker tracker,
@@ -219,10 +219,10 @@ internal partial class LyricsPanel : Window
         EnsureTaskbarOwnership();
 
         double scale = state.Dpi / 96d;
-        var current = _settings.Current;
+        var style = Appearance;
 
-        int width = (int)Math.Round(current.LyricsPanelWidth * scale);
-        int height = (int)Math.Round(current.LyricsPanelHeight * scale);
+        int width = (int)Math.Round(style.PanelWidth * scale);
+        int height = (int)Math.Round(style.PanelHeight * scale);
         int margin = (int)Math.Round(MarginLogical * scale);
 
         var screen = ScreenOf(state);
@@ -230,7 +230,7 @@ internal partial class LyricsPanel : Window
         int x;
         int y;
 
-        switch (current.LyricsPosition)
+        switch (style.Position)
         {
             case LyricsPanelPosition.BottomCenter:
                 x = screen.Left + ((screen.Width - width) / 2);
@@ -245,13 +245,16 @@ internal partial class LyricsPanel : Window
             case LyricsPanelPosition.Custom:
                 // The panel's own size comes off the travel, so 100% is flush with the
                 // far edge rather than one panel-width past it.
-                x = screen.Left + (int)Math.Round((screen.Width - width) * current.LyricsCustomX / 100d);
-                y = screen.Top + (int)Math.Round((screen.Height - height) * current.LyricsCustomY / 100d);
+                x = screen.Left + (int)Math.Round((screen.Width - width) * style.CustomX / 100d);
+                y = screen.Top + (int)Math.Round((screen.Height - height) * style.CustomY / 100d);
                 break;
 
             default:
-                // Directly above the widget, sharing its left edge.
-                x = state.Rect.Left;
+                // Above the widget, and clear of the screen edge by the same margin it
+                // clears the taskbar by. Sharing the widget's left edge exactly put a
+                // rounded corner flush against the side of the screen, where it read as
+                // a panel that had been cut off rather than one that had been placed.
+                x = state.Rect.Left + margin;
                 y = state.Rect.Top - margin - height;
                 break;
         }
@@ -267,8 +270,8 @@ internal partial class LyricsPanel : Window
         // Bound the text to what the panel can actually show, so a line that wraps
         // further than the panel is trimmed rather than spilling past its edge.
         CurrentLine.MaxHeight = Math.Max(
-            Appearance.FontSize,
-            current.LyricsPanelHeight - (Root.Padding.Top + Root.Padding.Bottom));
+            style.FontSize,
+            style.PanelHeight - (Root.Padding.Top + Root.Padding.Bottom));
 
         HaloLine.MaxHeight = CurrentLine.MaxHeight;
     }
@@ -375,7 +378,7 @@ internal partial class LyricsPanel : Window
         // period that exists to cover the gap between songs.
         bool enabled =
             _settings.Current.LyricsEnabled &&
-            _settings.Current.LyricsDisplay == LyricsDisplayMode.Panel;
+            Appearance.Display == LyricsDisplayMode.Panel;
 
         bool wanted =
             enabled &&

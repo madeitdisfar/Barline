@@ -55,7 +55,15 @@ internal sealed class SettingsStore
         _path = Path.Combine(_directory, "settings.json");
 
         Current = Load();
+
+        // Rewritten at once rather than at the next change, so a file folded forward on
+        // load stops describing itself as something it no longer is — and so the fold
+        // happens once instead of on every launch until a setting happens to change.
+        if (_migrated) Save();
     }
+
+    /// <summary>Whether the file that was loaded had to be folded forward.</summary>
+    private bool _migrated;
 
     /// <summary>
     /// Applies a change, persists it, and notifies listeners.
@@ -102,6 +110,9 @@ internal sealed class SettingsStore
                 DebugLog.Write("settings: file deserialised to null; using defaults");
                 return new WidgetSettings();
             }
+
+            // Read before normalising, which is what clears them.
+            _migrated = loaded.Version != WidgetSettings.CurrentVersion;
 
             // A hand edit can put values out of range without making the file
             // unreadable, so this runs on every successful load rather than only on

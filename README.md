@@ -31,7 +31,7 @@ The same menu is on the notification-area icon, though Windows 11 files new tray
 
 Changes apply and persist immediately — there is no OK or Apply button, matching Windows 11 Settings, and the widget is on the taskbar the whole time so every change is already previewed where it counts.
 
-The file lives at `%LocalAppData%\Barline\settings.json`. A missing or malformed file falls back to defaults rather than failing to start, so it is safe to delete or hand-edit, and it is written via a temp file and a swap so a crash mid-write cannot truncate it.
+The file lives at `%LocalAppData%\Barline\settings.json`. A missing or malformed file falls back to defaults rather than failing to start, so it is safe to delete or hand-edit, and it is written via a temp file and a swap so a crash mid-write cannot truncate it. A file written by an older build is folded forward on load and rewritten at once, so the fold happens once rather than on every launch until something happens to change.
 
 **Bar color** takes one of four values:
 
@@ -58,12 +58,14 @@ There are two places to put them:
 
 | Mode | Where |
 |---|---|
-| `Inline` | In the widget itself, replacing the title until you hover it. Costs no extra window, but the reserved width is about 150px — twenty-five characters — so a long line is cut short. |
-| `Panel` | A panel floating just above the taskbar, showing the line before and after as well. |
+| `In widget` | In the widget itself, replacing the title until you hover it. Costs no extra window, but the reserved width is about 150px — twenty-five characters — so a long line is cut short. |
+| `Panel` | A panel floating just above the taskbar, with room for a full line. |
 
-Inline, instrumental gaps are timed too, and during one the title returns rather than the previous line hanging around.
+In the widget, instrumental gaps are timed too, and during one the title returns rather than the previous line hanging around. So does pausing: a lyric sitting there over music nobody is playing reads as stuck, and what you want to know about a paused track is what it is.
 
-The panel's **position** and **size** are configurable. The anchors — above the widget, bottom centre, top centre — are measured from the taskbar's own monitor, so the panel follows the taskbar rather than assuming the primary screen. **Free** puts it wherever you like, stored as a share of the screen rather than in pixels so it stays put when the resolution changes.
+Turning the visualiser off gives that reserved width back to the text — 150px becomes 238px, over half as much again — since the zone beside it is then drawing nothing. Hovering takes it back for as long as the transport controls need it.
+
+The panel's **position** and **size** are configurable. The anchors — above the widget, bottom centre, top centre — are measured from the taskbar's own monitor, so the panel follows the taskbar rather than assuming the primary screen. **Free** puts it wherever you like, stored as a share of the screen rather than in pixels so it stays put when the resolution changes, and adjustable a tenth of a percent at a time — one percent is 26 physical pixels on a wide screen, which is too coarse to line the panel up with anything.
 
 The panel is a genuinely transparent window: WPF gives it real per-pixel alpha, and the background is painted over whatever is behind it at the opacity you choose.
 
@@ -77,21 +79,27 @@ The panel highlights either **each word as it is sung** or the whole line at onc
 
 Aligning the words to the audio properly was considered and rejected — not because it is slow, but because it is **causal**. A forced aligner cannot know where a word lands until after it has been sung, so using one would mean running the lyrics behind the music, which defeats the point at any speed.
 
-### Appearance and presets
+### The style is the setting
 
-Font family, size, weight and italic, text colour, unsung-word opacity, casing, effect, background and corner radius are all settings. Controls that a choice makes meaningless are hidden rather than left to do nothing — an effect radius with no effect, an opacity for an opaque fill, a corner radius with no surface to round. The inline display has its own set, minus the background: the widget deliberately paints none so the taskbar's own material shows through, and that is the decision the whole widget is built around.
+Font family, size, weight and italic, text colour, unsung-word opacity, casing, effect, background and corner radius are all settings — **and so are where the lyrics go, which anchor the panel uses, and how big it is.** A 20px line over a tinted panel and a 12px line in the widget are different designs, and a look that does not say which of the two it is describes nothing; keeping placement outside the style was what made one preset mean two different things depending on where the lyrics happened to be.
 
-Effects are carried on a **separate, bitmap-cached layer** behind the live text rather than on the text itself. An effect on the text would be re-rendered every frame as the highlight moves; on a static layer it rasterises once per line. Measured with the visualiser and the sweep both running, the whole widget sits near 2% CPU, so there is no performance trade-off to warn about.
+Deliberately *not* part of it: whether lyrics are on, whether they light up a word or a line at a time, and what the panel does when hovered. Those are preferences about behaviour rather than descriptions of a look, and a preset someone shares with you has no business changing them.
+
+Controls that a choice makes meaningless are hidden rather than left to do nothing — an effect radius with no effect, an opacity for an opaque fill, a panel size for lyrics that are not in a panel. In the widget there is no background at all: it deliberately paints none so the taskbar's own material shows through, and that is the decision the whole widget is built around.
+
+Effects are carried on a **separate, bitmap-cached layer** behind the live text rather than on the text itself, in the widget as well as in the panel. Two reasons, and the first is not performance: a blur applied to the text is not a glow, it is the same glyphs out of focus. What reads as a glow is a sharp line sitting on a blurred copy of itself. The second is that an effect on the live text would be re-rendered every frame as the highlight moves, where a static layer rasterises once per line. Measured with the visualiser and the sweep both running, the whole widget sits near 2% CPU, so there is no performance trade-off to warn about.
 
 **Backgrounds** are `Tinted` (see-through colour at the opacity you choose), `Solid`, or `None`. A compositor-blurred acrylic option existed briefly and was removed: Windows composites that blur across the whole window rectangle, and a transparent window takes its shape from per-pixel alpha rather than from a region, so acrylic could never honour a corner radius. One background behaving differently from the rest was not worth what it bought — every background is now painted by the app, and the corner radius applies to all of them alike.
 
 Colours can be typed as hex or picked from a palette, and the font list previews each family in its own typeface.
 
-**Presets are files**, in `%LocalAppData%\Barline\presets`. They are saved copies of the appearance values, not a separate source of truth: the settings window edits the appearance directly and you see it immediately, and a preset is that snapshot under a name. The alternative — the file being the only home for these values — would mean every tweak was a file edit and the UI could only pick between whole files.
+**Presets are files**, in `%LocalAppData%\Barline\presets`. They are saved copies of the style, not a separate source of truth: the settings window edits it directly and you see it immediately, and a preset is that snapshot under a name. The alternative — the file being the only home for these values — would mean every tweak was a file edit and the UI could only pick between whole files.
 
-The three original looks (`Clean`, `Glow`, `Lime`) now ship as ordinary preset files, written on first run and never overwritten. That makes them readable, copyable and editable, and means writing your own starts from a working example rather than an empty file. Drop a preset someone sends you into that folder and it appears in the list.
+Four looks ship as ordinary preset files: `Widget` for the inline display, and `Clean`, `Glow` and `Lime` for the panel. They are written on first run and never overwritten afterwards, so an edited built-in survives an update. That makes them readable, copyable and editable, and means writing your own starts from a working example rather than an empty file. Drop a preset someone sends you into that folder and it appears in the list. One that predates placement being part of a style says nothing about where the lyrics go, so loading it leaves them where they are rather than asserting a default it never chose.
 
-LRCLIB was chosen because it is the only free source serving timed lyrics with no API key, no paid tier, and no terms forbidding this use. It is run at no charge for exactly this purpose, which is a reason to be a careful client: **every result is cached to disk, misses included**, so a track is fetched once rather than once per play. Misses expire after two weeks, since the database grows and today's gap may be filled next month.
+LRCLIB was chosen because it is the only free source serving timed lyrics with no API key, no paid tier, and no terms forbidding this use. It is run at no charge for exactly this purpose, which is a reason to be a careful client: **every result is cached to disk, misses included**, so a track is fetched once rather than once per play.
+
+Misses are never cached permanently, though. LRCLIB is contributed, so a track with nothing filed today is one nobody has got to yet — and a newly released song is exactly the one most likely to be filled in shortly after you first ask for it. So a miss is retried on a **widening delay**: the next day, then after three, seven and thirty. That catches the common case quickly while stopping a library of instrumentals from asking again on every play, and it means no track is ever written off for good.
 
 Matching is the hard part, not coverage. Spotify reports `Creep - Remastered 2011` and a browser reports `Creep (Official Video)`; neither string is filed under that name anywhere. Lookups therefore widen in stages — the name exactly as reported first, since stripping is a guess and a track really can be called `Live`, then with packaging removed, then with only the first credited artist, and finally a duration-matched search that tolerates a source reporting the length a second or two out.
 

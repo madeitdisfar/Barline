@@ -46,12 +46,22 @@ internal sealed class LyricsPresetStore
     public string DirectoryPath => _directory;
 
     /// <summary>
-    /// Writes the built-in looks if they are not already there.
+    /// Writes the built-in looks if they are not already there, or if the copy on disk
+    /// predates something a preset now has to say.
     /// </summary>
     /// <remarks>
-    /// Never overwrites. Someone who has edited "Glow" to their taste should keep it
-    /// across an update; a built-in they have deleted on purpose does come back, which
-    /// is the lesser of the two surprises.
+    /// <para>
+    /// Otherwise never overwrites. Someone who has edited "Glow" to their taste should
+    /// keep it across an update; a built-in they have deleted on purpose does come
+    /// back, which is the lesser of the two surprises.
+    /// </para>
+    /// <para>
+    /// The exception is a schema change, because a stale built-in does not merely look
+    /// dated — it means something different from what its name promises. "Glow" written
+    /// before placement was part of a preset says nothing about the panel, so loading it
+    /// would leave a panel-sized look in the widget's 150px slot. Ours to maintain, so
+    /// they are replaced; a preset the user saved is theirs, and is left alone.
+    /// </para>
     /// </remarks>
     public void EnsureBuiltIns()
     {
@@ -61,8 +71,10 @@ internal sealed class LyricsPresetStore
 
             foreach (var preset in LyricsAppearance.BuiltIn)
             {
-                string path = PathFor(preset.Name);
-                if (!File.Exists(path)) Write(preset);
+                var stored = Load(preset.Name);
+
+                if (stored is null || stored.Schema < LyricsAppearance.CurrentSchema)
+                    Write(preset);
             }
         }
         catch (Exception ex)
@@ -145,10 +157,15 @@ internal sealed class LyricsPresetStore
         {
             Directory.CreateDirectory(_directory);
 
+            // Stamped on a copy rather than on the caller's object: this is a fact about
+            // the file, and the live style has no business being edited by saving it.
+            var stamped = preset.Clone();
+            stamped.Schema = LyricsAppearance.CurrentSchema;
+
             string path = PathFor(preset.Name);
             string temporary = path + ".tmp";
 
-            File.WriteAllText(temporary, JsonSerializer.Serialize(preset, SerializerOptions));
+            File.WriteAllText(temporary, JsonSerializer.Serialize(stamped, SerializerOptions));
             File.Move(temporary, path, overwrite: true);
 
             return true;

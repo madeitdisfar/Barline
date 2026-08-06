@@ -46,13 +46,28 @@ internal partial class OverlayWindow : Window, IAlbumArtSource
     private const double RightZoneWidth = 88d;
 
     /// <summary>
-    /// Logical width available to the title/artist text. Used as an explicit
-    /// <c>MaxWidth</c> on the lines: a NoWrap TextBlock in a star column otherwise
-    /// expands to its full content width and is merely clipped, so its ActualWidth
-    /// never reflects the visible width and the overflow fade cannot be placed.
+    /// Logical width available to the title/artist text while the right zone is in
+    /// use. Applied as an explicit width on the container: a NoWrap TextBlock in a star
+    /// column otherwise expands to its full content width and is merely clipped, so its
+    /// ActualWidth never reflects the visible width and the overflow fade cannot be
+    /// placed.
     /// </summary>
     private const double AvailableTextWidth =
         WidgetLogicalWidth - RootMarginLeft - ArtWidth - TextMarginLeft - RightZoneWidth - RootMarginRight;
+
+    /// <summary>
+    /// The same, for when the right zone is empty and the text can have it.
+    /// </summary>
+    /// <remarks>
+    /// 150px is around twenty-five characters, which is the tightest thing about the
+    /// inline lyric. With the bars switched off the zone beside it is drawing nothing at
+    /// all, so the text takes the room — over half as much again — rather than fading
+    /// out in front of empty space.
+    /// </remarks>
+    private const double WideTextWidth = AvailableTextWidth + RightZoneWidth;
+
+    /// <summary>The width the text area is currently laid out to, animation aside.</summary>
+    private double _textWidth = AvailableTextWidth;
 
     private Brush? _edgeFade;
 
@@ -159,14 +174,13 @@ internal partial class OverlayWindow : Window, IAlbumArtSource
             // what stops the poll. Both are handled here, before polling is reassessed.
             _lyrics.SetTrack(_track, _media.Clock.Duration);
             ApplyLyricAppearance();
-            _lyricLine = string.Empty;
             UpdateLyricLine();
             UpdateLyricPolling();
         };
 
         // Fix the text area to the real available width so its clip and fade mask
         // map to the visible region (the lines inside render full-width and clip).
-        TextArea.Width = AvailableTextWidth;
+        ApplyTextWidth(animate: false);
 
         // Recompute the overflow fade when a line's text changes; SetTrack also
         // triggers it. SizeChanged covers first layout and DPI changes.
@@ -246,26 +260,79 @@ internal partial class OverlayWindow : Window, IAlbumArtSource
         Fade(TransportPanel, hovered ? 1d : 0d);
         Fade(Bars, hovered ? 0d : 1d);
 
+        // The transport controls are about to occupy the right zone, so the text gives
+        // it back for as long as they are there.
+        ApplyTextWidth(animate: true);
+
         // Hovering is how you ask what is playing, so the title comes back while the
         // pointer is over the widget and the lyric steps aside.
         UpdateTextLayer();
     }
 
     /// <summary>
+    /// Whether the lyric, rather than the title and artist, is currently shown.
+    /// </summary>
+    /// <remarks>
+    /// Tracked so this can be called on every lyric poll — ten times a second — without
+    /// starting a fresh animation each time to say what is already true.
+    /// </remarks>
+    private bool? _lyricShown;
+
+    /// <summary>
     /// Crossfades between the lyric line and the title/artist pair.
     /// </summary>
     /// <remarks>
     /// The lyric only takes the space when there is genuinely something to show. A
-    /// track with no lyrics, an instrumental passage between lines, or a paused
-    /// widget all fall back to the title rather than leaving the area blank.
+    /// track with no lyrics, an instrumental passage between lines, lyrics moved out to
+    /// the panel, or a paused widget all fall back to the title rather than leaving a
+    /// line of a song nobody is playing sitting there.
     /// </remarks>
     private void UpdateTextLayer()
     {
-        bool showLyrics = !_hovered && _lyricLine.Length > 0;
+        bool showLyrics = !_hovered && _track?.IsPlaying == true && _lyricLine.Length > 0;
 
-        Fade(LyricsText, showLyrics ? 1d : 0d);
+        if (_lyricShown == showLyrics) return;
+        _lyricShown = showLyrics;
+
+        Fade(LyricsLayer, showLyrics ? 1d : 0d);
         Fade(TitleText, showLyrics ? 0d : 1d);
         Fade(ArtistText, showLyrics ? 0d : 1d);
+    }
+
+    /// <summary>
+    /// Sizes the text area to whatever the right zone is not using.
+    /// </summary>
+    /// <remarks>
+    /// Animated rather than snapped, because the transport controls it yields to are
+    /// themselves fading in over the same 150ms — a hard resize under a soft crossfade
+    /// reads as a glitch.
+    /// </remarks>
+    private void ApplyTextWidth(bool animate)
+    {
+        // The transport controls always win: they are drawn in that space, and text
+        // running under them would be unreadable and look broken.
+        double target = !_visualizerEnabled && !_hovered ? WideTextWidth : AvailableTextWidth;
+
+        if (animate && Math.Abs(target - _textWidth) < 0.5d) return;
+        _textWidth = target;
+
+        if (animate)
+        {
+            var animation = new DoubleAnimationUsingKeyFrames();
+            animation.KeyFrames.Add(new SplineDoubleKeyFrame(
+                target,
+                KeyTime.FromTimeSpan(TimeSpan.FromMilliseconds(Motion.FastMs)),
+                Motion.Standard));
+
+            TextArea.BeginAnimation(WidthProperty, animation);
+        }
+        else
+        {
+            TextArea.BeginAnimation(WidthProperty, null);
+            TextArea.Width = target;
+        }
+
+        UpdateTextFades();
     }
 
     private static void Fade(UIElement element, double to)
@@ -315,6 +382,10 @@ internal partial class OverlayWindow : Window, IAlbumArtSource
             if (_visualizerEnabled == value) return;
             _visualizerEnabled = value;
             Bars.Visibility = value ? Visibility.Visible : Visibility.Collapsed;
+
+            // The zone the bars were in is now empty, and the text is the thing in this
+            // layout that is genuinely short of room.
+            ApplyTextWidth(animate: true);
         }
     }
 
@@ -393,9 +464,9 @@ internal partial class OverlayWindow : Window, IAlbumArtSource
         _edgeFade ??= (Brush)FindResource("EdgeFade");
 
         bool overflows =
-            MeasureTextWidth(TitleText) > AvailableTextWidth + 1d ||
-            MeasureTextWidth(ArtistText) > AvailableTextWidth + 1d ||
-            MeasureTextWidth(LyricsText) > AvailableTextWidth + 1d;
+            MeasureTextWidth(TitleText) > _textWidth + 1d ||
+            MeasureTextWidth(ArtistText) > _textWidth + 1d ||
+            MeasureTextWidth(LyricsText) > _textWidth + 1d;
 
         TextArea.OpacityMask = overflows ? _edgeFade : null;
     }
@@ -484,6 +555,7 @@ internal partial class OverlayWindow : Window, IAlbumArtSource
 
         _panel?.Update(_track?.IsPlaying == true);
 
+        var style = _settings.Current.LyricsStyle;
         string line = string.Empty;
 
         // Only timed lyrics can follow playback, and only the inline mode draws them
@@ -491,20 +563,26 @@ internal partial class OverlayWindow : Window, IAlbumArtSource
         if (document.IsSynced &&
             _media.Clock.IsUsable &&
             _settings.Current.LyricsEnabled &&
-            _settings.Current.LyricsDisplay == LyricsDisplayMode.Inline)
+            style.Display == LyricsDisplayMode.Inline)
         {
             int index = document.IndexAt(_media.Clock.PositionAt(DateTimeOffset.UtcNow));
             if (index >= 0) line = document.Lines[index].Text;
         }
 
-        line = LyricsTypography.Present(line, _settings.Current.InlineAppearance);
+        line = LyricsTypography.Present(line, style);
 
-        if (line == _lyricLine) return;
+        if (line != _lyricLine)
+        {
+            _lyricLine = line;
+            LyricsText.Text = line;
+            LyricsHalo.Text = line;
 
-        _lyricLine = line;
-        LyricsText.Text = line;
+            UpdateTextFades();
+        }
 
-        UpdateTextFades();
+        // Outside the guard on purpose. Which layer should be showing does not depend
+        // only on the text: moving lyrics to the panel and pausing both leave the line
+        // exactly as it was and still mean the title belongs back on screen.
         UpdateTextLayer();
     }
 
@@ -512,17 +590,33 @@ internal partial class OverlayWindow : Window, IAlbumArtSource
     /// Applies the inline lyric appearance.
     /// </summary>
     /// <remarks>
+    /// <para>
     /// Everything except the surface: the widget paints no background at all, so the
     /// taskbar's own material shows through — the single decision the whole widget is
     /// built around. A lyric drawn here inherits that rather than overriding it.
+    /// </para>
+    /// <para>
+    /// The effect goes on the halo copy underneath, never on the text. A blur applied
+    /// to the live text is not a glow: it is the same glyphs, out of focus. What reads
+    /// as a glow is a sharp line sitting on a blurred copy of itself.
+    /// </para>
     /// </remarks>
     private void ApplyLyricAppearance()
     {
-        var appearance = _settings.Current.InlineAppearance;
+        var appearance = _settings.Current.LyricsStyle;
 
         LyricsTypography.ApplyFont(LyricsText, appearance);
+        LyricsTypography.ApplyFont(LyricsHalo, appearance);
+
         LyricsText.Foreground = new SolidColorBrush(LyricsTypography.TextColor(appearance));
-        LyricsText.Effect = LyricsTypography.BuildEffect(appearance);
+
+        var effect = LyricsTypography.BuildEffect(appearance);
+
+        LyricsHalo.Effect = effect;
+        LyricsHalo.Visibility = effect is null ? Visibility.Collapsed : Visibility.Visible;
+
+        if (effect is not null)
+            LyricsHalo.Foreground = new SolidColorBrush(LyricsTypography.EffectColor(appearance));
     }
 
     private void ApplyBarColor() => _barColor.Update(_track?.AlbumArt);
