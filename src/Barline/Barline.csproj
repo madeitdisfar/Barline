@@ -19,6 +19,21 @@
     <AssemblyName>Barline</AssemblyName>
     <RootNamespace>Barline</RootNamespace>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>Barline.ico</ApplicationIcon>
+    <!-- Identity. An unsigned binary with no publisher accrues no SmartScreen
+         reputation, and the Store expects these to be present and stable, so they
+         are set here rather than left to the SDK's blank defaults. Version is the
+         single source: AssemblyVersion, FileVersion and the LRCLIB user agent all
+         derive from it. -->
+    <Version>1.2.1</Version>
+    <!-- The SDK otherwise appends the commit hash, which then shows up as the
+         product version in the file's Properties dialog. -->
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
+    <Product>Barline</Product>
+    <Authors>madeitdisfar</Authors>
+    <Company>madeitdisfar</Company>
+    <Copyright>Copyright © 2026 madeitdisfar</Copyright>
+    <Description>A now-playing widget for the Windows 11 taskbar, with an audio-reactive visualiser and synced lyrics.</Description>
     <!-- No console window, and don't let WPF pick a stale culture -->
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
     <!-- WFO0003 tells WinForms apps to configure DPI via ApplicationHighDpiMode

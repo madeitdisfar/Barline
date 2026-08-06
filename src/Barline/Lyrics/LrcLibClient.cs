@@ -55,8 +55,17 @@ internal sealed class LrcLibClient : IDisposable
     /// LRCLIB asks clients to identify themselves and link to the project, so that a
     /// misbehaving one can be recognised and contacted rather than simply blocked.
     /// </summary>
-    private const string UserAgent =
-        "Barline/1.2.1 (https://github.com/madeitdisfar/Taskbar-Music-Widget)";
+    internal static readonly string UserAgent =
+        $"Barline/{Version} (https://github.com/madeitdisfar/Taskbar-Music-Widget)";
+
+    /// <summary>
+    /// Read from the assembly rather than written out here, so the version LRCLIB is
+    /// told cannot drift from the one actually shipping. It already had once.
+    /// </summary>
+    private static string Version =>
+        typeof(LrcLibClient).Assembly.GetName().Version is { } version
+            ? $"{version.Major}.{version.Minor}.{version.Build}"
+            : "0";
 
     /// <summary>
     /// How far a search result's length may differ from the track being played.
