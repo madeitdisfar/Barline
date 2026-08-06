@@ -56,7 +56,7 @@ internal sealed class LrcLibClient : IDisposable
     /// misbehaving one can be recognised and contacted rather than simply blocked.
     /// </summary>
     internal static readonly string UserAgent =
-        $"Barline/{Version} (https://github.com/madeitdisfar/Taskbar-Music-Widget)";
+        $"Barline/{Version} (https://github.com/madeitdisfar/Barline)";
 
     /// <summary>
     /// Read from the assembly rather than written out here, so the version LRCLIB is

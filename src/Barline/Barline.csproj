@@ -30,9 +30,11 @@
          product version in the file's Properties dialog. -->
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
     <Product>Barline</Product>
-    <Authors>madeitdisfar</Authors>
-    <Company>madeitdisfar</Company>
-    <Copyright>Copyright © 2026 madeitdisfar</Copyright>
+    <!-- The person, not the handle: this is the copyright holder, and it is what
+         Partner Center shows as the publisher. -->
+    <Authors>Minjun Kim</Authors>
+    <Company>Minjun Kim</Company>
+    <Copyright>Copyright © 2026 Minjun Kim</Copyright>
     <Description>A now-playing widget for the Windows 11 taskbar, with an audio-reactive visualiser and synced lyrics.</Description>
     <!-- No console window, and don't let WPF pick a stale culture -->
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
