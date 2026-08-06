@@ -1,0 +1,34 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    # Windows only, and not merely because the tooling prefers it: the project
+    # targets net10.0-windows and uses WPF and the WinRT media projections, none of
+    # which build elsewhere.
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore
+        run: dotnet restore
+
+      # Warnings are worth failing on here. The project builds clean today, so any
+      # new one is a regression rather than part of the background noise.
+      - name: Build
+        run: dotnet build --no-restore --configuration Release -warnaserror
+
+      - name: Test
+        run: dotnet test --no-build --configuration Release --verbosity normal

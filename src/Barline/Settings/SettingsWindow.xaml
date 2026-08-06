@@ -1555,6 +1555,12 @@
                             <TextBlock Style="{StaticResource CardLabel}" Text="Start with Windows" />
                             <TextBlock Style="{StaticResource CardDescription}"
                                        Text="Run the widget when you sign in." />
+                            <!-- Windows can refuse this, and when it does the toggle
+                                 has to say so rather than sit there looking set. -->
+                            <TextBlock x:Name="AutoStartNote"
+                                       Style="{StaticResource CardDescription}"
+                                       Margin="0,4,0,0"
+                                       Visibility="Collapsed" />
                         </StackPanel>
                         <CheckBox x:Name="AutoStartToggle" Grid.Column="1"
                                   Style="{StaticResource ToggleSwitch}" />

@@ -57,6 +57,15 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- Ships beside the executable. NAudio is MIT and is compiled into the binary
+         rather than sitting next to it, so its notice has to be carried along
+         deliberately or it does not reach whoever receives a copy. -->
+    <Content Include="..\..\THIRD-PARTY-NOTICES.md"
+             Link="THIRD-PARTY-NOTICES.md"
+             CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="NAudio" Version="2.2.1" />
   </ItemGroup>
 

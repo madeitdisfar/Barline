@@ -364,7 +364,9 @@ internal partial class SettingsWindow : Window
             UpdateImportDescription();
             UpdateCacheSize();
             SyncAppearance();
-            AutoStartToggle.IsChecked = _autoStart.IsEnabled;
+            // Reading it is async for a packaged build, so it lands after this sync
+            // pass; ApplyAutoStartState carries its own feedback guard for that.
+            _ = RefreshAutoStartAsync();
 
             PreviewBars.BarCount = current.VisualizerBarCount;
 
@@ -1129,13 +1131,42 @@ internal partial class SettingsWindow : Window
         }
     }
 
-    private void OnAutoStartToggled(bool enabled)
+    private async void OnAutoStartToggled(bool enabled)
     {
         if (_syncing) return;
 
-        // Autostart lives in the registry, not in settings.json — it is Windows' own
-        // state and has to stay wherever Windows reads it from.
-        _autoStart.SetEnabled(enabled);
+        // Autostart is not in settings.json — it is Windows' own state and has to
+        // stay wherever Windows reads it from. Which of the two places that is
+        // depends on whether this build is packaged, and either way Windows gets the
+        // final say, so the toggle is set from the outcome rather than the request.
+        ApplyAutoStartState(await _autoStart.SetEnabledAsync(enabled));
+    }
+
+    private async Task RefreshAutoStartAsync() =>
+        ApplyAutoStartState(await _autoStart.GetStateAsync());
+
+    /// <summary>
+    /// Shows what Windows actually did, which for a packaged app is not always what
+    /// was asked: a startup task the user switched off elsewhere cannot be switched
+    /// back on from here, and silently leaving the toggle set would be a lie.
+    /// </summary>
+    private void ApplyAutoStartState(AutoStartState state)
+    {
+        WithoutFeedback(() => AutoStartToggle.IsChecked = state == AutoStartState.Enabled);
+
+        string note = state switch
+        {
+            AutoStartState.BlockedByUser =>
+                "Turned off outside the app. Windows only allows it back on from Task Manager's Startup apps tab.",
+            AutoStartState.BlockedByPolicy =>
+                "Turned off by a system policy on this device.",
+            AutoStartState.Unavailable =>
+                "Windows would not report this setting, so the widget will not start on its own.",
+            _ => string.Empty,
+        };
+
+        AutoStartNote.Text = note;
+        AutoStartNote.Visibility = note.Length == 0 ? Visibility.Collapsed : Visibility.Visible;
     }
 
     // ---- Custom colour -----------------------------------------------------

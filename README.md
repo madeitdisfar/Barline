@@ -167,6 +167,7 @@ These tests were checked by mutation — each guarantee was deliberately broken 
 - **Loopback captures the whole mix**, not just the media session on display, so other system audio moves the bars. Per-process loopback exists but needs a much heavier activation path.
 - **Click-to-focus is best-effort.** SMTC identifies sessions only by AUMID; for packaged apps that maps to no process name, and Windows' foreground rules can refuse the activation regardless.
 - Not signed. SmartScreen will warn on first run.
+- **Start with Windows uses two mechanisms.** Unpackaged it writes the per-user `Run` key. Windows ignores that key for packaged apps, so an MSIX build instead uses a startup task, which has to be declared in the package manifest with the TaskId `BarlineStartupTask` — the exact entry is in the remarks on `AutoStartService`. Windows also lets the user revoke a startup task from Task Manager, and the app cannot re-enable it; the settings window says so rather than leaving the toggle looking set.
 
 ## Contributing
 
@@ -177,3 +178,9 @@ Pull requests are welcome. By opening one you agree that your contribution is li
 [GPL-3.0-or-later](LICENSE).
 
 You may use, study, modify and share this freely, including commercially. The condition is that anything you distribute which builds on it carries the same licence and ships its source. That is the whole point: the work stays open for whoever else wants to learn from it or build on it.
+
+Bundled components keep their own licences, reproduced in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md). NAudio is MIT and is compiled into the executable rather than shipped beside it, so that notice travels with every release rather than living only here.
+
+## Privacy
+
+Barline collects nothing — no analytics, no telemetry, no account. It makes one kind of network request, only while lyrics are switched on, and only to look a track up at LRCLIB. With lyrics off it makes none at all. The full statement is in [PRIVACY.md](PRIVACY.md).
