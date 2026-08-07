@@ -1,196 +1,155 @@
-# Barline
+<p align="center">
+  <img src="docs/icon.png" width="128" alt="Barline">
+</p>
 
-A now-playing widget that sits at the **left end of the Windows 11 taskbar**, where the Widgets (news and weather) button normally lives. It shows album art, title, artist, and an Apple-Music-style bar visualiser driven by the audio actually playing.
+<h1 align="center">Barline</h1>
 
-The goal is for it to read as part of Windows rather than as a third-party add-on.
+<p align="center">
+  <b>A now-playing widget for the Windows 11 taskbar.</b><br>
+  Barline displays album art, track information, a live audio visualizer, and synchronized lyrics directly on the taskbar.
+</p>
 
-![The widget on the taskbar](docs/screenshot.png)
+<p align="center">
+  <a href="https://github.com/madeitdisfar/Barline/actions/workflows/ci.yml"><img src="https://github.com/madeitdisfar/Barline/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-GPLv3-blue.svg" alt="License: GPL v3"></a>
+</p>
 
-## Requirements
+<p align="center">
+  <img src="docs/main-screenshot.png" width="840" alt="Barline on the Windows 11 taskbar">
+</p>
 
-- Windows 11 (developed against 25H2, build 26200)
-- [.NET 10 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/10.0) — or the SDK to build
+It is designed to integrate seamlessly into the Windows environment. It paints
+no background of its own, so the taskbar's real Mica material shows through automatically. It always matches your theme, accent color, transparency, and wallpapers without imitation.
 
-## Setup
+<p align="center">
+  <img src="docs/screenshot.png" width="560" alt="Now playing on the taskbar"><br>
+  <sub>Now playing</sub>
+  <br><br>
+  <img src="docs/screenshot-2.png" width="560" alt="Transport controls on hover"><br>
+  <sub>Hover for transport controls</sub>
+</p>
 
-Free the space first by turning the Widgets button off:
+## Features
 
-**Settings → Personalization → Taskbar → Taskbar items → Widgets: Off**
+### Native taskbar widget 🎵
 
-Then build and run:
+- Displays album art, title, and artist directly on the taskbar.
+- Fixed layout that remains consistent as songs change.
+- Follows taskbar position, DPI, and auto-hide behavior.
 
-```bash
-dotnet run --project src/Barline
-```
+### Live audio visualizer 📊
 
-Right-click the widget for **Settings**, **Show visualizer**, **Restart visualizer**, and **Exit**. The menu carries quick actions only; anything that is configuration rather than a one-off lives in the settings window, so no state is shown in two places where it can drift.
+- Driven by real WASAPI loopback audio, not a pre-rendered animation.
+- Choose the number of bars.
+- Bar colors can follow Windows accent, album artwork or custom colors of your choice.
 
-The same menu is on the notification-area icon, though Windows 11 files new tray icons into the overflow (the `⌄` chevron) by default — drag it onto the taskbar to keep it visible. Right-clicking the widget is the more reliable route.
+### Synchronized lyrics 🎤
 
-## Settings
+- Floating lyrics panel or inline display.
+- Synchronized lyrics from LRCLIB.
+- Word-by-word highlighting on any synced track.
+- Import local `.lrc` files for any track.
 
-Changes apply and persist immediately — there is no OK or Apply button, matching Windows 11 Settings, and the widget is on the taskbar the whole time so every change is already previewed where it counts.
+### Highly customizable 🎨
 
-The file lives at `%LocalAppData%\Barline\settings.json`. A missing or malformed file falls back to defaults rather than failing to start, so it is safe to delete or hand-edit, and it is written via a temp file and a swap so a crash mid-write cannot truncate it. A file written by an older build is folded forward on load and rewritten at once, so the fold happens once rather than on every launch until something happens to change.
+- Font, size, weight, color, effects, background and corner radius, and more.
+- Save and import appearance presets.
+- Changes apply instantly.
 
-**Bar color** takes one of four values:
+### Works everywhere 🎧
 
-| Mode | Bars are… |
-|---|---|
-| `Default` | White on the dark taskbar, medium grey on the light one. |
-| `SystemAccent` | Your Windows accent color. |
-| `AlbumArt` | The dominant hue of the current cover, crossfading as tracks change. |
-| `Custom` | A color you pick, from a hue palette or as `#RRGGBB` / `#AARRGGBB` / a color name. |
+Supports any player that integrates with Windows Media Controls, including:
 
-**Bars** chooses how many bars are drawn — Simple (4), Balanced (5) or Detailed (6). They divide a fixed width *and* a fixed amount of ink, so a higher count means thinner bars rather than a wider or heavier visualiser: the widget never reflows the taskbar layout, and the row keeps the visual weight its colour was corrected for.
+- Spotify
+- Apple Music
+- Chromium-based browsers
+- ...and many others
 
-Six is the ceiling for two independent reasons. Seven bars would be 1.7px wide, and neighbouring tall bars visibly merge at 100% display scaling — worse on the light taskbar, where the bar colour is translucent as well as thin. Seven bands would also outrun the transform: a 1024-point FFT at 48 kHz resolves 46.9 Hz per bin, and the lowest band's 40–89.8 Hz span falls inside the single bin its neighbour starts from, so the bottom two bars would carry identical data and move as one.
+### 🔒 Privacy first
 
-Every mode except `Default` is **corrected for legibility** before it is drawn. The hue is the artwork's (or yours) to choose; the lightness is not. A dark navy cover on the dark taskbar or a pale yellow one on the light taskbar would otherwise paint bars that are technically colored and practically invisible, so the hue is kept and the lightness is pushed until the bars clear a 3:1 contrast ratio — WCAG's threshold for non-text graphics — against the taskbar. Saturation is held inside a band for the same reason, so a correction can neither bleach the hue to grey nor push it into neon. A cover with no usable hue at all, like a black-and-white sleeve, falls back to `Default` rather than inventing a tint.
+- No telemetry.
+- No accounts.
+- No network access unless lyrics are enabled.
 
-Because of that, the settings window shows each mode's **resolved** color and hex — what will actually be drawn, not what was picked — over a strip painted the same shade the correction measures against. Showing the picked color instead would misrepresent the whole feature.
+## Install
+
+Requires **Windows 11**. Download the latest release, unzip it anywhere, and run
+`Barline.exe`. The release build carries its own runtime, so there is nothing else to
+install.
+
+**[➡️ Download the latest release](https://github.com/madeitdisfar/Barline/releases/latest)**
+
+First, free up the space it lives in:
+
+> **Settings → Personalization → Taskbar → Taskbar items → Widgets: Off**
+
+Right-click the widget for **Settings**, **Show visualizer**, **Restart visualizer**
+and **Exit**. The same menu is on the notification-area icon.
+
+To build it yourself instead, see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Lyrics
 
-**Off by default.** A lookup sends the track's title and artist to [LRCLIB](https://lrclib.net), so it is opt-in rather than something the widget starts doing on its own. Turn it on under **Lyrics → Show lyrics**.
+Lyrics are disabled by default because looking up a track sends its title and artist to [LRCLIB](https://lrclib.net). Turn it on under **Lyrics → Show lyrics**.
 
-There are two places to put them:
+They go either in a **floating panel** above the taskbar, with room for a full line and
+a look you choose:
 
-| Mode | Where |
-|---|---|
-| `In widget` | In the widget itself, replacing the title until you hover it. Costs no extra window, but the reserved width is about 150px — twenty-five characters — so a long line is cut short. |
-| `Panel` | A panel floating just above the taskbar, with room for a full line. |
+<table>
+<tr>
+<td width="50%" align="center"><img src="docs/lyrics-panel.png" alt="Example 1"></td>
+<td width="50%" align="center"><img src="docs/lyrics-panel-2.png" alt="Example 2"></td>
+</tr>
+</table>
 
-In the widget, instrumental gaps are timed too, and during one the title returns rather than the previous line hanging around. So does pausing: a lyric sitting there over music nobody is playing reads as stuck, and what you want to know about a paused track is what it is.
+Or **inside the widget**, replacing the title until you hover it:
 
-Turning the visualiser off gives that reserved width back to the text — 150px becomes 238px, over half as much again — since the zone beside it is then drawing nothing. Hovering takes it back for as long as the transport controls need it.
+<p align="center">
+  <img src="docs/lyrics-inline.png" width="560" alt="Lyrics inside the widget">
+</p>
 
-The panel's **position** and **size** are configurable. The anchors — above the widget, bottom centre, top centre — are measured from the taskbar's own monitor, so the panel follows the taskbar rather than assuming the primary screen. **Free** puts it wherever you like, stored as a share of the screen rather than in pixels so it stays put when the resolution changes, and adjustable a tenth of a percent at a time — one percent is 26 physical pixels on a wide screen, which is too coarse to line the panel up with anything.
+The panel passes clicks straight through, hides for fullscreen apps, and slides away
+with auto-hide.
 
-The panel is a genuinely transparent window: WPF gives it real per-pixel alpha, and the background is painted over whatever is behind it at the opacity you choose.
+Word-level timing is estimated from syllable count, including for Hangul, kana and CJK,
+which are counted per character rather than by vowel groups.
 
-The panel never takes input: clicks pass straight through to whatever is behind, and it is owned by the taskbar, so it hides for fullscreen apps and slides away with auto-hide by the same mechanism the widget does. Because it cannot be clicked away, it can instead **fade or hide while the pointer is over it** — the pointer is polled rather than handled as an event, since a click-through window never receives one.
+Got better timings? Drop an `.lrc` file in, or use **Import for this track…** in
+settings. A file always takes priority over the network.
 
-It also **waits a few seconds before disappearing**. Between tracks there is a moment with no lyrics — the old ones dropped, the new ones not yet fetched — and hiding immediately made the panel blink out and back on every song change. Showing is never delayed; only hiding.
+## Settings
 
-### Word by word
+<p align="center">
+  <img src="docs/settings.png" width="520" alt="The settings window">
+</p>
 
-The panel highlights either **each word as it is sung** or the whole line at once, whichever you prefer — word timing is estimated for almost every track, and on one it fits badly a line at a time is calmer. No free source carries word-level timing, so it is inferred: the line's span is divided by **syllable count**, which tracks singing time far better than character count — *strength* and *a potato* are the same length and nothing alike to sing. Vowel-group counting is an English heuristic, so scripts that write a syllable per character (Hangul, kana, CJK) are counted that way instead; otherwise a Korean line would come back as one syllable per word and the sweep would be worthless. A file that carries real word timings always overrides the estimate.
+Everything applies immediately. There is no OK button, and the widget is on screen the
+whole time, so every change is previewed where it counts.
 
-Aligning the words to the audio properly was considered and rejected — not because it is slow, but because it is **causal**. A forced aligner cannot know where a word lands until after it has been sung, so using one would mean running the lyrics behind the music, which defeats the point at any speed.
+Bar color follows your **accent**, the **album art** (crossfading as tracks change),
+or a color you choose. Bar colors automatically adjust to maintain a minimum 3:1 contrast ratio against the taskbar, ensuring the visualizer remains visible regardless of album artwork. The settings window shows the color that will actually be drawn.
 
-### The style is the setting
-
-Font family, size, weight and italic, text colour, unsung-word opacity, casing, effect, background and corner radius are all settings — **and so are where the lyrics go, which anchor the panel uses, and how big it is.** A 20px line over a tinted panel and a 12px line in the widget are different designs, and a look that does not say which of the two it is describes nothing; keeping placement outside the style was what made one preset mean two different things depending on where the lyrics happened to be.
-
-Deliberately *not* part of it: whether lyrics are on, whether they light up a word or a line at a time, and what the panel does when hovered. Those are preferences about behaviour rather than descriptions of a look, and a preset someone shares with you has no business changing them.
-
-The settings window groups by **what a setting applies to**, not by what a preset happens to save — those are different questions, and answering the second with the first is what once put the display mode inside the style card while the settings that react to it sat outside. So where the lyrics go is a row of its own directly under the switch, and everything that only means something for a panel — anchor, size, highlight, hover — is in one place under it, saved or not. The detail folds away behind Windows 11-style expander cards, each showing what it currently says so the page can be read without opening anything.
-
-Controls that a choice makes meaningless are hidden rather than left to do nothing — an effect radius with no effect, an opacity for an opaque fill, a panel size for lyrics that are not in a panel. In the widget there is no background at all: it deliberately paints none so the taskbar's own material shows through, and that is the decision the whole widget is built around.
-
-Effects are carried on a **separate, bitmap-cached layer** behind the live text rather than on the text itself, in the widget as well as in the panel. Two reasons, and the first is not performance: a blur applied to the text is not a glow, it is the same glyphs out of focus. What reads as a glow is a sharp line sitting on a blurred copy of itself. The second is that an effect on the live text would be re-rendered every frame as the highlight moves, where a static layer rasterises once per line. Measured with the visualiser and the sweep both running, the whole widget sits near 2% CPU, so there is no performance trade-off to warn about.
-
-**Backgrounds** are `Tinted` (see-through colour at the opacity you choose), `Solid`, or `None`. A compositor-blurred acrylic option existed briefly and was removed: Windows composites that blur across the whole window rectangle, and a transparent window takes its shape from per-pixel alpha rather than from a region, so acrylic could never honour a corner radius. One background behaving differently from the rest was not worth what it bought — every background is now painted by the app, and the corner radius applies to all of them alike.
-
-Colours can be typed as hex or picked from a palette, and the font list previews each family in its own typeface.
-
-**Presets are files**, in `%LocalAppData%\Barline\presets`. They are saved copies of the style, not a separate source of truth: the settings window edits it directly and you see it immediately, and a preset is that snapshot under a name. The alternative — the file being the only home for these values — would mean every tweak was a file edit and the UI could only pick between whole files.
-
-Four looks ship as ordinary preset files: `Widget` for the inline display, and `Clean`, `Glow` and `Lime` for the panel. They are written on first run and never overwritten afterwards, so an edited built-in survives an update. That makes them readable, copyable and editable, and means writing your own starts from a working example rather than an empty file. Drop a preset someone sends you into that folder and it appears in the list. One that predates placement being part of a style says nothing about where the lyrics go, so loading it leaves them where they are rather than asserting a default it never chose.
-
-LRCLIB was chosen because it is the only free source serving timed lyrics with no API key, no paid tier, and no terms forbidding this use. It is run at no charge for exactly this purpose, which is a reason to be a careful client: **every result is cached to disk, misses included**, so a track is fetched once rather than once per play.
-
-Misses are never cached permanently, though. LRCLIB is contributed, so a track with nothing filed today is one nobody has got to yet — and a newly released song is exactly the one most likely to be filled in shortly after you first ask for it. So a miss is retried on a **widening delay**: the next day, then after three, seven and thirty. That catches the common case quickly while stopping a library of instrumentals from asking again on every play, and it means no track is ever written off for good.
-
-Matching is the hard part, not coverage. Spotify reports `Creep - Remastered 2011` and a browser reports `Creep (Official Video)`; neither string is filed under that name anywhere. Lookups therefore widen in stages — the name exactly as reported first, since stripping is a guess and a track really can be called `Live`, then with packaging removed, then with only the first credited artist, and finally a duration-matched search that tolerates a source reporting the length a second or two out.
-
-Where a record has one, LRCLIB's own **lyricsfile** form is preferred over the LRC. It is the same lyrics as YAML, and it states each line's *end* — which LRC cannot express, leaving a line to implicitly run until the next one starts. That is wrong across every instrumental gap, and it is precisely the span the word timing divides up. The format is documented as supporting word-level timing as well, but no contributed data appears to use it yet: a sample of roughly a hundred records carried only line-level fields, so nothing here guesses at a schema that isn't in the data.
-
-To supply your own, use **Import for this track…** in settings, or drop an `.lrc` file named `Artist - Title.lrc` into `%LocalAppData%\Barline\lyrics` (the settings window names the exact file the current track expects). A file always wins over the network — it is the only route for tracks the database has never heard of, and the way to fix timings you disagree with. Imports are parsed before being kept, so an unreadable file is refused rather than silently replacing working lyrics with nothing. Both standard and word-level (enhanced) LRC are read.
-
-Fetched lyrics are cached under that same folder, one JSON file per track.
-
-## How it works
-
-Windows 11 removed the DeskBand API, so there is no supported way to host content *inside* the taskbar. Instead this is a transparent, non-activating window that shadows the taskbar:
-
-- **It paints no background.** The taskbar's own Mica/acrylic material shows through, so the widget inherits the system backdrop exactly and stays correct across theme, accent and transparency changes without reproducing any of it.
-- **It is a satellite of `Shell_TrayWnd`**, mirroring that window's rect, DPI, visibility and z-order. One mechanism covers auto-hide, fullscreen apps, DPI changes and Explorer restarts. Auto-hide needs no special handling at all: the taskbar slides off-screen and the widget slides with it.
-- **Metadata comes from SMTC** (`GlobalSystemMediaTransportControlsSessionManager`), the same source the Windows volume flyout reads — so Spotify, Apple Music, browsers and podcast apps work without per-app integration.
-- **The visualiser** captures the system mix via WASAPI loopback, runs a Hann-windowed 1024-point FFT, and maps it into log-spaced bands, one per bar. Each band has its own dB window, because measured against real music the bands sit ~30 dB apart and a shared window leaves bass pinned near maximum and treble stuck at zero. Those windows started as four hand-measured values, which described one bar count and no other; they are now a least-squares fit through those measurements (about −4.4 dB per octave), which is what lets the count vary. The fit generalises because a band's level is the RMS *per bin* — a spectral density rather than a total — so slicing the span more finely does not systematically lower it.
-- **Playback position is extrapolated, not read.** SMTC does not tick: a source app publishes a position when it feels like it — measured against Spotify, roughly every 4.3 seconds. Anything that needs to know where playback is *right now* has to carry the last report forward using the app's own timestamp, and re-anchor when the next one lands. Corrections are eased in rather than applied outright, so ordinary drift does not visibly step, while a disagreement large enough to be a seek is applied at once. Each report doubles as a measurement of the extrapolation before it, logged under `BARLINE_DEBUG`.
-
-- **The capture self-heals.** A loopback capture stays bound to one device and doesn't follow the default as it moves, and after idle or sleep it can silently stall without notifying the app — both used to need a restart. A watchdog re-arms it when it has died, when the default output moves elsewhere (e.g. headphones reconnect after sleep), or when it goes quiet while a track is still playing. Capture is also re-armed on resume from sleep, and **Restart visualizer** in the menu forces it by hand.
-
-Hovering crossfades the visualiser into previous / play-pause / next inside a fixed-width zone, so nothing reflows — layout shift on hover is the fastest way to look third-party.
-
-## Project layout
-
-```
-tests/Barline.Tests/    colour maths, contrast floor, hue extraction
-src/Barline/
-├─ Shell/        window hosting, taskbar tracking, Win32 interop
-├─ Media/        SMTC session handling and album art
-├─ Audio/        WASAPI loopback capture and FFT
-├─ Ui/           theme tokens, colour resolution, the visualiser control
-├─ Settings/     the settings model, its JSON store, and the settings window
-├─ Tray/         notification-area icon and menu
-├─ Startup/      run-at-sign-in registration
-└─ Diagnostics/  opt-in logging, demo content
-```
-
-## Development
-
-| Variable | Effect |
-|---|---|
-| `BARLINE_DEBUG=1` | Writes `%TEMP%\barline.log` — taskbar state transitions, media sessions, periodic visualiser band levels, and playback-clock accuracy. |
-| `BARLINE_DEMO=1` | Shows a synthetic track with generated cover art instead of reading SMTC. |
-| `BARLINE_DEMO_TITLE` / `BARLINE_DEMO_ARTIST` | Override the demo track's title/artist (needs `BARLINE_DEMO=1`) — handy for checking the overflow fade at different text lengths. |
-| `BARLINE_SETTINGS=1` | Opens the settings window at startup, instead of right-clicking the tray on every rebuild. |
-
-`BARLINE_DEMO` exists because the widget hides itself when nothing is playing, which otherwise makes the design impossible to inspect on a quiet machine.
-
-Debugging the window layer interactively is awkward — attaching a debugger changes foreground-window behaviour, which is often the thing being observed. Prefer the log.
-
-**Close the running widget before building.** It holds a lock on its own executable, and the build fails on the copy step rather than saying anything useful about why.
-
-## Tests
-
-```bash
-dotnet test
-```
-
-The window and audio layers are verified by observation — they are about real windowing and device behaviour, and a mock of either would only assert that the mock works. What *is* covered is the part with a guarantee attached: the colour maths, the contrast floor, and hue extraction from cover art.
-
-What is *not* covered is how the bars look, which is why the range on offer was chosen by rendering the real control at counts 4–8 and magnifying the actual pixels without interpolation, at both 100% and 200% scaling. No assertion can tell you a 2px bar survives antialiasing.
-
-The contrast tests sweep 4536 hue/saturation/lightness inputs per theme and assert that anything with a hue to keep comes back clearing 3:1, that a real taskbar gets more headroom than the pessimistic estimate aims for, and that hue never moves by more than a few degrees. There are named cases for the ones that are easy to get wrong: saturated blue carries 7% of luminance and needs the most correction to be seen, a pale cover must not resolve to something indistinguishable from white, and a dark one must not paint near-black bars on the light taskbar.
-
-The bar-count tests hold the two sizing invariants — every count occupies the same width and paints the same amount of ink — and pin the default to the original 3px bar, so generalising the rule cannot quietly restyle it. On the audio side they hold the fitted dB windows to within 2 dB of the four that were measured by hand, and assert that every supported count still gives each band an FFT bin of its own. One test deliberately asserts that *seven* bands do not, so the reason the range stops at six is checked rather than just commented.
-
-These tests were checked by mutation — each guarantee was deliberately broken to confirm a test fails. That found two that did not: the sweep tolerated a correction that gave up early (returning "uncorrectable" is legal there, so the assertion never ran), and the letterboxing test used pure black, which the saturation gate already rejects, so it never exercised the lightness gate it was named for. Both are now covered. If you tune the constants in `Legibility` or `AlbumArtPalette`, the suite is what tells you whether you have made bars that cannot be seen.
+Lyric styles are saved as **preset files** in `%LocalAppData%\Barline\presets`. Four built-in presets ship with the app; drop one someone sends you into that folder and it appears in the
+list.
 
 ## Known limitations
 
-- **Primary monitor only.** Secondary-monitor taskbars (`Shell_SecondaryTrayWnd`) are not tracked yet.
-- **Loopback captures the whole mix**, not just the media session on display, so other system audio moves the bars. Per-process loopback exists but needs a much heavier activation path.
-- **Click-to-focus is best-effort.** SMTC identifies sessions only by AUMID; for packaged apps that maps to no process name, and Windows' foreground rules can refuse the activation regardless.
-- Not signed. SmartScreen will warn on first run.
-- **Start with Windows uses two mechanisms.** Unpackaged it writes the per-user `Run` key. Windows ignores that key for packaged apps, so an MSIX build instead uses a startup task, which has to be declared in the package manifest with the TaskId `BarlineStartupTask` — the exact entry is in the remarks on `AutoStartService`. Windows also lets the user revoke a startup task from Task Manager, and the app cannot re-enable it; the settings window says so rather than leaving the toggle looking set.
+- **Primary monitor only.** Secondary-monitor taskbars are not tracked yet.
+- **The visualizer hears everything**, not just the media session on display, so other
+  system audio moves the bars.
+- **Click-to-focus is best-effort.** Windows identifies media sessions in a way that
+  does not always map back to a window it will agree to activate.
+- **Not signed.** SmartScreen will warn on first run.
 
-## Contributing
+## Documentation
 
-Pull requests are welcome. By opening one you agree that your contribution is licensed under GPL-3.0-or-later, and that the maintainer may also release it under other terms — which keeps the door open to offering a commercial licence later without having to track down every past contributor for permission.
+- **[📖 Design notes](docs/design.md)**
+- **[🤝 Contributing](CONTRIBUTING.md)**
+- **[🔒 Privacy](PRIVACY.md)**
 
 ## License
 
-[GPL-3.0-or-later](LICENSE).
+Licensed under [GPL-3.0-or-later](LICENSE).
 
-You may use, study, modify and share this freely, including commercially. The condition is that anything you distribute which builds on it carries the same licence and ships its source. That is the whole point: the work stays open for whoever else wants to learn from it or build on it.
-
-Bundled components keep their own licences, reproduced in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md). NAudio is MIT and is compiled into the executable rather than shipped beside it, so that notice travels with every release rather than living only here.
-
-## Privacy
-
-Barline collects nothing — no analytics, no telemetry, no account. It makes one kind of network request, only while lyrics are switched on, and only to look a track up at LRCLIB. With lyrics off it makes none at all. The full statement is in [PRIVACY.md](PRIVACY.md).
+Third-party component licenses are available in
+[THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
