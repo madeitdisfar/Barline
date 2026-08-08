@@ -1,18 +1,18 @@
 /*
    Barline site styles.
 
-   One accent, taken from the app icon, and used only where something is
-   genuinely interactive. Everything else is greyscale, which is what keeps a
-   page of screenshots from competing with itself.
+   One accent, taken from the app icon, spent only on things that can be clicked.
+   Everything else is greyscale, which is what keeps a page made mostly of
+   screenshots from competing with itself.
 
-   Spacing runs on a 4px scale and type on six sizes. Both are deliberately
-   short lists: the restraint is what makes a page look composed rather than
-   assembled.
+   Spacing runs on a 4px scale and type on six sizes. Both lists are deliberately
+   short: the restraint is what makes a page look composed rather than assembled.
 */
 
 :root {
     --bg: #ffffff;
     --surface: #f7f7f8;
+    --surface-2: #f0f0f2;
     --border: #e5e5e8;
     --border-strong: #d4d4d9;
     --text: #18181b;
@@ -20,6 +20,7 @@
     --text-faint: #8a8a93;
     --accent: #5a4fcf;
     --accent-hover: #4d43b8;
+    --accent-soft: rgba(90, 79, 207, .08);
     --shadow: 0 1px 2px rgba(0, 0, 0, .05), 0 8px 24px rgba(0, 0, 0, .06);
 
     --s1: 4px;
@@ -43,6 +44,7 @@
     :root {
         --bg: #0f0f11;
         --surface: #17171a;
+        --surface-2: #1d1d21;
         --border: #26262b;
         --border-strong: #33333a;
         --text: #ececee;
@@ -50,6 +52,7 @@
         --text-faint: #71717a;
         --accent: #8579f0;
         --accent-hover: #9b91f5;
+        --accent-soft: rgba(133, 121, 240, .12);
         --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 8px 32px rgba(0, 0, 0, .35);
     }
 }
@@ -62,6 +65,8 @@
 
 html {
     scroll-behavior: smooth;
+    /* Anchors land below the sticky bar rather than under it. */
+    scroll-padding-top: 88px;
 }
 
 body {
@@ -77,14 +82,20 @@ body {
 
 .wrap {
     width: 100%;
-    max-width: 940px;
+    max-width: 960px;
     margin: 0 auto;
     padding: 0 var(--s5);
 }
 
 /* ---------- header ---------- */
 
+/* Solid rather than blurred. A translucent bar has to fight whatever scrolls
+   under it, and screenshots of a dark taskbar are exactly what it would lose to. */
 header {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    background: var(--bg);
     border-bottom: 1px solid var(--border);
 }
 
@@ -93,7 +104,7 @@ header {
     align-items: center;
     justify-content: space-between;
     gap: var(--s4);
-    height: 64px;
+    height: 62px;
 }
 
 .brand {
@@ -114,6 +125,7 @@ header {
 
 nav {
     display: flex;
+    align-items: center;
     gap: var(--s5);
 }
 
@@ -128,24 +140,29 @@ nav a:hover {
     color: var(--text);
 }
 
+nav a.nav-cta {
+    color: var(--accent);
+    font-weight: 550;
+}
+
 /* ---------- hero ---------- */
 
 .hero {
-    padding: var(--s8) 0 var(--s7);
+    padding: var(--s9) 0 var(--s7);
     text-align: center;
 }
 
 .hero h1 {
     margin: 0;
-    font-size: 46px;
-    line-height: 1.15;
-    letter-spacing: -.025em;
+    font-size: 48px;
+    line-height: 1.12;
+    letter-spacing: -.028em;
     font-weight: 650;
 }
 
 .hero .lede {
-    margin: var(--s4) auto 0;
-    max-width: 30em;
+    margin: var(--s5) auto 0;
+    max-width: 32em;
     font-size: 18px;
     color: var(--text-muted);
 }
@@ -153,6 +170,7 @@ nav a:hover {
 .actions {
     display: flex;
     justify-content: center;
+    align-items: center;
     flex-wrap: wrap;
     gap: var(--s3);
     margin-top: var(--s6);
@@ -168,43 +186,52 @@ nav a:hover {
     font-size: 15px;
     font-weight: 550;
     text-decoration: none;
-    transition: background-color .15s var(--ease), border-color .15s var(--ease);
+    white-space: nowrap;
+    transition: background-color .15s var(--ease), border-color .15s var(--ease),
+        color .15s var(--ease);
 }
 
-.btn-primary {
+/* The Store is the recommended way in, so it is the only filled button on the
+   page and it sits a little larger than what is beside it. Larger, not louder:
+   one step up in padding and weight is enough to be read as the first choice. */
+.btn-store {
     background: var(--accent);
     color: #fff;
+    padding: 13px 24px;
+    font-size: 16px;
+    font-weight: 600;
 }
 
-.btn-primary:hover {
+.btn-store:hover {
     background: var(--accent-hover);
 }
 
+.btn-store[aria-disabled="true"] {
+    background: var(--accent-soft);
+    color: var(--accent);
+    border-color: var(--accent);
+    cursor: default;
+}
+
 .btn-secondary {
-    background: var(--surface);
+    background: transparent;
     border-color: var(--border-strong);
     color: var(--text);
 }
 
 .btn-secondary:hover {
     border-color: var(--text-faint);
-}
-
-/* Not a link, because it does not go anywhere yet. Styled as unavailable
-   rather than merely inert so the reason is visible without a tooltip. */
-.btn-soon {
-    background: transparent;
-    border-color: var(--border);
-    color: var(--text-faint);
-    cursor: default;
-}
-
-.btn-soon .tag {
-    font-size: 12px;
-    padding: 1px 6px;
-    border-radius: 4px;
     background: var(--surface);
-    border: 1px solid var(--border);
+}
+
+.tag {
+    font-size: 12px;
+    font-weight: 500;
+    padding: 1px 7px;
+    border-radius: 999px;
+    background: var(--bg);
+    border: 1px solid currentColor;
+    opacity: .7;
 }
 
 .note {
@@ -214,17 +241,15 @@ nav a:hover {
 }
 
 .shot-hero {
-    margin-top: var(--s7);
+    margin-top: var(--s8);
 }
 
 /* ---------- figures ---------- */
 
 figure {
-    margin: 0;
+    margin: 0 auto;
 }
 
-/* Not img.shot: the visualizer clip is a <video>, and a selector that only names
-   images leaves it at its intrinsic 1920px, pushing the whole page sideways. */
 .shot {
     display: block;
     width: 100%;
@@ -241,12 +266,28 @@ figcaption {
     text-align: center;
 }
 
-/* Aspect ratio is declared so the row does not collapse and then jump open when
-   the video's dimensions arrive. The dark fill covers the same gap. */
-/* The recording is a 16:9 frame with the widget as a strip across the middle of
-   it, so shown whole it is mostly empty black and sits oddly beside the tight
-   screenshots above. Cropped to the band the widget is actually in. The source
-   is centred, so cover takes the same amount off the top and the bottom. */
+/* Screenshots differ enormously in shape: a taskbar strip is 6:1 and the
+   settings window is nearly square. Sized per shape rather than all stretched
+   to the column, which is what was making the settings window overbearing. */
+.fig-strip {
+    max-width: 620px;
+}
+
+.fig-panel {
+    max-width: 560px;
+}
+
+.fig-tall {
+    max-width: 420px;
+}
+
+.fig-wide {
+    max-width: 100%;
+}
+
+/* The recording is a 16:9 frame with the widget as a strip across the middle, so
+   shown whole it is mostly empty black. Cropped to the band it is actually in;
+   the source is centred, so cover takes the same off the top and the bottom. */
 video.clip {
     aspect-ratio: 1920 / 620;
     object-fit: cover;
@@ -257,31 +298,37 @@ video.clip {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: var(--s5);
+    align-items: start;
 }
 
 /* ---------- sections ---------- */
 
 section {
-    padding: var(--s8) 0;
+    padding: var(--s9) 0;
     border-top: 1px solid var(--border);
+    text-align: center;
 }
 
 section h2 {
     margin: 0 0 var(--s4);
-    font-size: 27px;
-    line-height: 1.25;
-    letter-spacing: -.02em;
+    font-size: 30px;
+    line-height: 1.22;
+    letter-spacing: -.022em;
     font-weight: 620;
 }
 
 section p {
-    margin: 0 0 var(--s4);
-    max-width: 62ch;
+    margin: 0 auto var(--s4);
+    max-width: 54ch;
     color: var(--text-muted);
 }
 
 section p:last-of-type {
-    margin-bottom: var(--s6);
+    margin-bottom: var(--s7);
+}
+
+section .lead-only p:last-of-type {
+    margin-bottom: 0;
 }
 
 section a {
@@ -295,40 +342,241 @@ section a:hover {
     border-bottom-color: var(--accent);
 }
 
-.steps {
-    margin: 0;
-    padding: 0;
-    list-style: none;
-    max-width: 62ch;
-}
-
-.steps li {
-    position: relative;
-    padding-left: var(--s5);
-    margin-bottom: var(--s3);
-    color: var(--text-muted);
-}
-
-.steps li::before {
-    content: "";
-    position: absolute;
-    left: 0;
-    top: .68em;
-    width: 5px;
-    height: 5px;
-    border-radius: 50%;
-    background: var(--border-strong);
-}
-
 .path {
     display: inline-block;
-    padding: 3px 8px;
+    padding: 2px 7px;
     border-radius: 6px;
     background: var(--surface);
     border: 1px solid var(--border);
     font-family: "Cascadia Mono", Consolas, ui-monospace, monospace;
     font-size: 13px;
     color: var(--text);
+}
+
+/* Closing call to action. No border above it, so it reads as the end of the
+   page rather than one more section of it. */
+.closing {
+    border-top: 1px solid var(--border);
+    padding: var(--s9) 0;
+    text-align: center;
+}
+
+.closing h2 {
+    margin: 0 0 var(--s4);
+    font-size: 30px;
+    letter-spacing: -.022em;
+    font-weight: 620;
+}
+
+.closing p {
+    margin: 0 auto;
+    max-width: 46ch;
+    color: var(--text-muted);
+}
+
+/* ---------- download page ---------- */
+
+.page-head {
+    padding: var(--s8) 0 var(--s7);
+    text-align: center;
+}
+
+.page-head h1 {
+    margin: 0;
+    font-size: 40px;
+    letter-spacing: -.026em;
+    line-height: 1.15;
+    font-weight: 650;
+}
+
+.page-head p {
+    margin: var(--s4) auto 0;
+    max-width: 46ch;
+    color: var(--text-muted);
+}
+
+.options {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--s5);
+    padding-bottom: var(--s8);
+}
+
+.option {
+    display: flex;
+    flex-direction: column;
+    padding: var(--s6);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    background: var(--surface);
+    text-align: left;
+}
+
+/* The recommended one is marked by a border in the accent and nothing else. A
+   filled card would shout; a coloured edge is enough to say which to read first. */
+.option-primary {
+    border-color: var(--accent);
+    background: var(--bg);
+    box-shadow: var(--shadow);
+}
+
+.option .kicker {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: var(--s2);
+}
+
+.option .kicker.plain {
+    color: var(--text-faint);
+}
+
+.option h2 {
+    margin: 0 0 var(--s3);
+    font-size: 21px;
+    letter-spacing: -.015em;
+    font-weight: 620;
+}
+
+.option p {
+    margin: 0 0 var(--s5);
+    color: var(--text-muted);
+    font-size: 15px;
+    flex: 1;
+}
+
+.option .btn {
+    align-self: flex-start;
+}
+
+/* ---------- comparison table ---------- */
+
+.compare {
+    padding: var(--s8) 0 var(--s9);
+    border-top: 1px solid var(--border);
+}
+
+.compare h2 {
+    margin: 0 0 var(--s4);
+    font-size: 27px;
+    letter-spacing: -.02em;
+    font-weight: 620;
+    text-align: center;
+}
+
+.compare .intro {
+    margin: 0 auto var(--s7);
+    max-width: 56ch;
+    color: var(--text-muted);
+    text-align: center;
+}
+
+.table-scroll {
+    overflow-x: auto;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 15px;
+    min-width: 520px;
+}
+
+th,
+td {
+    padding: var(--s3) var(--s4);
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+}
+
+thead th {
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    border-bottom: 1px solid var(--border-strong);
+}
+
+thead th.col-store {
+    color: var(--accent);
+}
+
+tbody th {
+    font-weight: 500;
+    color: var(--text);
+    width: 34%;
+}
+
+td {
+    color: var(--text-muted);
+}
+
+tbody tr:last-child th,
+tbody tr:last-child td {
+    border-bottom: none;
+}
+
+td.yes {
+    color: var(--text);
+}
+
+.footnote {
+    margin: var(--s6) 0 0;
+    font-size: 14px;
+    color: var(--text-faint);
+    max-width: 64ch;
+}
+
+/* ---------- sustainability ---------- */
+
+/* The measure lives on the box rather than on the paragraphs inside it. Capping
+   the text alone left it stopping short of a border that carried on without it,
+   which is what read as a ragged right edge. The box is now the width of a
+   comfortable line and centred in the column, so text and border end together. */
+.sustain {
+    margin: var(--s8) auto 0;
+    padding: var(--s7);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    /* A tint rather than a fill, and the heading in accent. Enough to read as a
+       note set apart from the table, not enough to look like an advertisement. */
+    background: var(--accent-soft);
+    text-align: left;
+}
+
+.sustain h3 {
+    margin: 0 0 var(--s4);
+    font-size: 19px;
+    letter-spacing: -.012em;
+    font-weight: 620;
+    color: var(--accent);
+}
+
+.sustain p {
+    margin: 0 0 var(--s4);
+    /* Full contrast and a step up in size: this is a short passage that asks
+       something of the reader, so it should not be the faintest text on the page. */
+    color: var(--text);
+    font-size: 16px;
+    line-height: 1.72;
+}
+
+.sustain p:last-child {
+    margin-bottom: 0;
+}
+
+.sustain .thanks {
+    font-weight: 550;
+}
+
+@media (max-width: 700px) {
+    .sustain {
+        padding: var(--s5);
+    }
 }
 
 /* ---------- footer ---------- */
@@ -417,13 +665,10 @@ footer {
 /* ---------- reveal on scroll ---------- */
 
 /*
-   Scoped to .reveal-on, which only exists when scripting is available and the
+   Scoped to .reveal-on, which exists only when scripting is available and the
    reader has not asked for reduced motion. Without it none of this applies and
-   the page is simply visible, which is the behaviour anything decorative should
-   fall back to.
-
-   A short rise and a fade, once, on the way down. Enough to give the page a
-   sense of assembling itself, not enough to make anyone wait for it.
+   the page is simply visible, which is what anything decorative should fall
+   back to.
 */
 .reveal-on .reveal {
     opacity: 0;
@@ -438,9 +683,19 @@ footer {
 
 /* ---------- narrow ---------- */
 
+@media (max-width: 760px) {
+    .options {
+        grid-template-columns: 1fr;
+    }
+}
+
 @media (max-width: 700px) {
+    html {
+        scroll-padding-top: 76px;
+    }
+
     .hero {
-        padding: var(--s7) 0 var(--s6);
+        padding: var(--s8) 0 var(--s6);
     }
 
     .hero h1 {
@@ -451,12 +706,20 @@ footer {
         font-size: 16px;
     }
 
-    section {
-        padding: var(--s7) 0;
+    section,
+    .closing,
+    .compare {
+        padding-top: var(--s8);
+        padding-bottom: var(--s8);
     }
 
-    section h2 {
-        font-size: 23px;
+    section h2,
+    .closing h2 {
+        font-size: 24px;
+    }
+
+    .page-head h1 {
+        font-size: 30px;
     }
 
     .pair {
@@ -465,5 +728,13 @@ footer {
 
     nav {
         gap: var(--s4);
+    }
+
+    nav a {
+        font-size: 14px;
+    }
+
+    .shot-hero {
+        margin-top: var(--s6);
     }
 }

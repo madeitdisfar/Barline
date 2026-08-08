@@ -6,27 +6,26 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Barline · A now-playing widget for the Windows 11 taskbar</title>
     <meta name="description"
-          content="Barline shows album art, the track, an audio visualizer and synced lyrics on the Windows 11 taskbar. Free and open source.">
+          content="Album art, the track, a live audio visualizer and word-by-word lyrics, on the Windows 11 taskbar. Free and open source.">
     <link rel="icon" href="img/icon.png">
     <link rel="stylesheet" href="style.css">
+
+    <meta property="og:title" content="Barline">
+    <meta property="og:description"
+          content="A now-playing widget for the Windows 11 taskbar, with a live audio visualizer and synced lyrics.">
+    <meta property="og:image" content="img/main-screenshot.png">
+    <meta property="og:type" content="website">
 
     <!--
         Set before first paint, so nothing can appear and then be hidden again.
         Only when scripting is on and the reader has not asked for less motion:
-        without both, the page stays exactly as it is written and everything is
-        visible from the start.
+        without both, the page stays as written and everything is visible.
     -->
     <script>
         if (!matchMedia("(prefers-reduced-motion: reduce)").matches) {
             document.documentElement.classList.add("reveal-on");
         }
     </script>
-
-    <meta property="og:title" content="Barline">
-    <meta property="og:description"
-          content="A now-playing widget for the Windows 11 taskbar, with an audio visualizer and synced lyrics.">
-    <meta property="og:image" content="img/main-screenshot.png">
-    <meta property="og:type" content="website">
 </head>
 
 <body>
@@ -38,10 +37,11 @@
                 Barline
             </a>
             <nav>
+                <a href="#visualizer">Visualizer</a>
                 <a href="#lyrics">Lyrics</a>
-                <a href="#install">Install</a>
                 <a href="privacy.html">Privacy</a>
                 <a href="https://github.com/madeitdisfar/Barline">GitHub</a>
+                <a class="nav-cta" href="download.html">Download</a>
             </nav>
         </div>
     </header>
@@ -49,30 +49,23 @@
     <main>
 
         <div class="wrap hero">
-            <h1>Now playing, on the taskbar</h1>
+            <h1>Now Playing, on the Taskbar</h1>
             <p class="lede">
-                Barline shows album art, the track and artist, a visualizer driven by the
-                audio actually playing, and lyrics in time with the song. It sits where the
-                Widgets button normally does.
+                Album art, the track, a live visualizer, and synchronized lyrics.
+                All displayed directly on the taskbar.
             </p>
 
             <div class="actions">
-                <span class="btn btn-soon">
-                    Microsoft Store
-                    <span class="tag">Coming soon</span>
+                <span class="btn btn-store" aria-disabled="true">
+                    Get it from Microsoft Store
+                    <span class="tag">Soon</span>
                 </span>
-                <a class="btn btn-primary"
-                   href="https://github.com/madeitdisfar/Barline/releases/latest">
-                    Download for Windows
-                </a>
-                <a class="btn btn-secondary" href="https://github.com/madeitdisfar/Barline">
-                    View the source
-                </a>
+                <a class="btn btn-secondary" href="download.html">Other ways to download</a>
             </div>
 
-            <p class="note">Free and open source. Windows 11. Nothing else to install.</p>
+            <p class="note">Free and open source. Built for Windows 11.</p>
 
-            <figure class="shot-hero">
+            <figure class="shot-hero fig-wide">
                 <img class="shot" src="img/main-screenshot.png"
                      alt="Barline running at the left end of the Windows 11 taskbar">
             </figure>
@@ -80,26 +73,27 @@
 
         <section id="taskbar">
             <div class="wrap">
-                <h2>It reads as part of Windows</h2>
+                <h2>Seamless Integration with the Taskbar</h2>
                 <p>
-                    Barline paints no background of its own, so the taskbar's own material
-                    shows through it. That is what keeps it correct through every theme,
-                    accent colour and transparency setting without imitating any of them.
+                    Barline paints no background at all. The taskbar's own material shows
+                    through it, so it stays right through every theme, accent and
+                    transparency change without copying any of them.
                 </p>
                 <p>
-                    It follows the taskbar rather than sitting on top of it. Change your
-                    display scaling, turn on auto-hide, or open something fullscreen, and it
-                    behaves the way the rest of the taskbar does.
+                    It moves with the taskbar too. Change your scaling, turn on auto-hide,
+                    open something fullscreen, and it follows along without getting in the way.
                 </p>
 
                 <div class="pair">
                     <figure>
-                        <img class="shot" src="img/screenshot.png" alt="Album art, title and artist on the taskbar">
-                        <figcaption>Album art, title, artist and the visualizer</figcaption>
+                        <img class="shot" src="img/screenshot.png"
+                             alt="Album art, title and artist on the taskbar">
+                        <figcaption>Album art, track and visualizer</figcaption>
                     </figure>
                     <figure>
-                        <img class="shot" src="img/screenshot-2.png" alt="Transport controls shown on hover">
-                        <figcaption>Hover for previous, play and next</figcaption>
+                        <img class="shot" src="img/screenshot-2.png"
+                             alt="Transport controls shown on hover">
+                        <figcaption>Controls appear on hover</figcaption>
                     </figure>
                 </div>
             </div>
@@ -107,125 +101,105 @@
 
         <section id="visualizer">
             <div class="wrap">
-                <h2>The bars are real</h2>
+                <h2>Live Visualizer</h2>
                 <p>
-                    The visualizer reads the audio your computer is actually playing rather
-                    than running an animation to a beat it guessed. Choose four, five or six
-                    bars, and the row stays the same width whichever you pick.
+                    The visualizer reads what your computer is actually playing, and displays it real-time.
                 </p>
                 <p>
-                    Bar colour can follow your Windows accent, the album art, or a colour you
-                    choose. Whatever it works out to is corrected until it stands out against
-                    the taskbar, so a dark cover cannot leave you with bars you can barely see.
+                    Four, five or six bars, coloured by your Windows accent, by the album
+                    art, or by a colour you pick.
+                    Colors are automatically adjusted to be visible against the taskbar.
                 </p>
 
-                <figure>
+                <figure class="fig-strip">
                     <video class="shot clip" src="img/visualizer.mp4"
                            autoplay muted loop playsinline preload="metadata"
                            disablepictureinpicture
                            aria-label="The visualizer bars moving with music as it plays"></video>
-                    <figcaption>The bars following a track as it plays</figcaption>
+                    <figcaption>Recorded while a track was playing</figcaption>
                 </figure>
             </div>
         </section>
 
         <section id="lyrics">
             <div class="wrap">
-                <h2>Lyrics, in time with the song</h2>
+                <h2>Lyrics Display</h2>
                 <p>
-                    Words light up as they are sung. Lyrics come from
-                    <a href="https://lrclib.net">LRCLIB</a>, and they go in a floating panel
-                    above the taskbar with room for a full line, in a look you choose.
+                    Lyrics are displayed in a floating panel above the
+                    taskbar, with room for a full line and a look you choose.
                 </p>
 
                 <div class="pair">
                     <figure>
-                        <img class="shot" src="img/lyrics-panel.png" alt="The lyrics panel above the taskbar">
+                        <img class="shot" src="img/lyrics-panel.png"
+                             alt="The lyrics panel above the taskbar">
                     </figure>
                     <figure>
-                        <img class="shot" src="img/lyrics-panel-2.png" alt="The lyrics panel with a different style">
+                        <img class="shot" src="img/lyrics-panel-2.png"
+                             alt="The lyrics panel in a different style">
                     </figure>
                 </div>
 
-                <p style="margin-top: var(--s6)">
-                    Or inside the widget itself, in place of the title until you hover it.
+                <p style="margin-top: var(--s7)">
+                    Or inside the widget itself, in place of the track until you hover it.
                 </p>
 
-                <figure>
-                    <img class="shot" src="img/lyrics-inline.png" alt="Lyrics shown inside the widget">
+                <figure class="fig-strip">
+                    <img class="shot" src="img/lyrics-inline.png"
+                         alt="Lyrics shown inside the widget">
                 </figure>
 
-                <p style="margin-top: var(--s6)">
-                    Lyrics are off until you turn them on, because looking a track up sends its
-                    title and artist to LRCLIB. If you have better timings than the database
-                    does, drop in your own <span class="path">.lrc</span> file and it takes
-                    priority.
+                <p style="margin-top: var(--s7); margin-bottom: 0">
+                    Lyrics are pulled from <a href="https://lrclib.net">LRCLIB</a>, free and open lyrics library.
+                    Have better timings? Drop in your own
+                    <span class="path">.lrc</span> file and it wins.
                 </p>
             </div>
         </section>
 
         <section id="settings">
             <div class="wrap">
-                <h2>Make it yours</h2>
+                <h2>Yours to Style</h2>
                 <p>
-                    Font, size, weight, colour, effects, background and corner radius. Every
-                    change applies as you make it, with the widget on screen the whole time,
-                    so you are always looking at the result rather than a preview of it.
+                    Font, size, weight, colour, effects, background, corner radius. Make it
+                    look however you like, and every change applies the moment you make it.
                 </p>
                 <p>
-                    Styles are saved as preset files. Four come with the app, and one someone
-                    sends you can be dropped straight into the folder.
+                    Save a style as a preset file, and load it again from settings whenever
+                    you want it back.
                 </p>
 
-                <figure>
+                <figure class="fig-tall">
                     <img class="shot" src="img/settings.png" alt="The Barline settings window">
                 </figure>
             </div>
         </section>
 
         <section id="privacy-note">
-            <div class="wrap">
-                <h2>It keeps to itself</h2>
+            <div class="wrap lead-only">
+                <h2>It Keeps to Itself</h2>
                 <p>
-                    No telemetry, no account, and no network access at all unless you switch
-                    lyrics on. When you do, a lookup sends the track title and artist and
-                    nothing else. Everything Barline saves stays on your computer.
+                    No telemetry, no account, and no network at all unless lyrics are on.
+                    When they are, a lookup sends the title and artist and nothing else.
+                    Everything Barline saves stays on your computer.
                 </p>
-                <p><a href="privacy.html">Read the privacy policy</a></p>
+                <p style="margin-bottom: 0"><a href="privacy.html">Read the privacy policy</a></p>
             </div>
         </section>
 
-        <section id="install">
+        <div class="closing">
             <div class="wrap">
-                <h2>Install it</h2>
-                <p>
-                    Requires Windows 11. Download the latest release, unzip it anywhere, and
-                    run <span class="path">Barline.exe</span>. The build carries its own
-                    runtime, so there is nothing else to install.
-                </p>
-                <p>First, free up the space it lives in:</p>
-                <ul class="steps">
-                    <li>Settings, then Personalization, then Taskbar</li>
-                    <li>Under Taskbar items, turn Widgets off</li>
-                </ul>
-                <p style="margin-top: var(--s5)">
-                    Right-click the widget for settings, or use the icon in the notification
-                    area. To build it yourself instead, see
-                    <a href="https://github.com/madeitdisfar/Barline/blob/main/CONTRIBUTING.md">CONTRIBUTING.md</a>.
-                </p>
-
-                <div class="actions" style="justify-content: flex-start">
-                    <a class="btn btn-primary"
-                       href="https://github.com/madeitdisfar/Barline/releases/latest">
-                        Download for Windows
-                    </a>
-                    <span class="btn btn-soon">
-                        Microsoft Store
-                        <span class="tag">Coming soon</span>
+                <h2>Put It on Your Taskbar</h2>
+                <p>Built for Windows 11. Free, and open source under GPL-3.0.</p>
+                <div class="actions">
+                    <span class="btn btn-store" aria-disabled="true">
+                        Get it from Microsoft Store
+                        <span class="tag">Soon</span>
                     </span>
+                    <a class="btn btn-secondary" href="download.html">Other ways to download</a>
                 </div>
             </div>
-        </section>
+        </div>
 
     </main>
 
@@ -233,8 +207,8 @@
         <div class="wrap foot">
             <span>Licensed under GPL-3.0-or-later.</span>
             <nav>
+                <a href="download.html">Download</a>
                 <a href="https://github.com/madeitdisfar/Barline">GitHub</a>
-                <a href="https://github.com/madeitdisfar/Barline/releases">Releases</a>
                 <a href="https://github.com/madeitdisfar/Barline/blob/main/docs/design.md">Design notes</a>
                 <a href="privacy.html">Privacy</a>
             </nav>
@@ -246,10 +220,9 @@
             var root = document.documentElement;
             var still = matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-            // A clip that loops on its own is the one thing on this page that
-            // genuinely moves, so it stops for anyone who has asked for less of
-            // that. The section says what it shows, so nothing is lost with it
-            // held on a frame.
+            // A clip that loops on its own is the one thing here that genuinely
+            // moves, so it stops for anyone who has asked for less of that. The
+            // section says what it shows, so nothing is lost holding it still.
             if (still) {
                 var clips = document.querySelectorAll("video.clip");
                 for (var c = 0; c < clips.length; c++) {
@@ -263,7 +236,7 @@
             // Chosen here rather than marked up in the HTML, so the page reads as
             // content rather than as a list of things waiting to be animated.
             var items = document.querySelectorAll(
-                "section h2, section p, section .pair, section figure, section .steps, section .actions"
+                "section h2, section p, section .pair, section figure, .closing h2, .closing p, .closing .actions"
             );
 
             var seen = new IntersectionObserver(function (entries) {
@@ -281,9 +254,8 @@
 
                 // Anything already on screen is shown outright, with no starting
                 // state to animate away from. Following a link straight to a
-                // section, or reloading part way down the page, would otherwise
-                // land on content that is hidden until something happens to
-                // scroll, which is a blank screen for anyone who does not.
+                // section, or reloading part way down, would otherwise land on
+                // content that stays hidden until something scrolls.
                 if (item.getBoundingClientRect().top < window.innerHeight) {
                     item.classList.add("reveal", "shown");
                     continue;
