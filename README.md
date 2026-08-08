@@ -31,7 +31,7 @@ no background of its own, so the taskbar's real Mica material shows through auto
 
 ## Features
 
-### Native taskbar widget 🎵
+### Seamless taskbar widget 🎵
 
 - Displays album art, title, and artist directly on the taskbar.
 - Fixed layout that remains consistent as songs change.
@@ -65,7 +65,7 @@ Supports any player that integrates with Windows Media Controls, including:
 - Chromium-based browsers
 - ...and many others
 
-### 🔒 Privacy first
+### Privacy first 🔒
 
 - No telemetry.
 - No accounts.

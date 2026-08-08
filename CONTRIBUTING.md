@@ -31,7 +31,7 @@ src/Barline/
 ├─ Media/        SMTC session handling, album art, the playback clock
 ├─ Audio/        WASAPI loopback capture and FFT
 ├─ Lyrics/       fetching, parsing, caching, word timing, appearance model
-├─ Ui/           theme tokens, colour resolution, the visualiser control
+├─ Ui/           theme tokens, color resolution, the visualiser control
 ├─ Settings/     the settings model, its JSON store, and the settings window
 ├─ Tray/         notification-area icon and menu
 ├─ Startup/      run-at-sign-in registration
@@ -39,7 +39,7 @@ src/Barline/
 ```
 
 The reasoning behind the design is in [docs/design.md](docs/design.md). Read it before
-changing anything in `Audio/`, `Lyrics/` or the colour path — most of what looks
+changing anything in `Audio/`, `Lyrics/` or the color path — most of what looks
 arbitrary there is load-bearing.
 
 ## Debugging
@@ -65,7 +65,7 @@ dotnet test
 
 The window and audio layers are verified by observation — they are about real
 windowing and device behaviour, and a mock of either would only assert that the mock
-works. What *is* covered is the part with a guarantee attached: the colour maths, the
+works. What *is* covered is the part with a guarantee attached: the color maths, the
 contrast floor, hue extraction from cover art, lyric parsing, and the playback clock.
 
 What is *not* covered is how the bars look, which is why the range on offer was chosen

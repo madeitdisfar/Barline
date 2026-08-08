@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--
+  Package manifest for the Store build.
+
+  The three identity values below come from Partner Center (Product > Product
+  identity) and must match it exactly. A package whose identity differs by a
+  single character is rejected at upload rather than at certification, so it is
+  worth pasting them rather than typing them.
+
+  The Version below is not authoritative and does not need editing when you bump
+  a release. Barline.csproj is the single place a version is written;
+  Build-Package.ps1 reads it from there and stamps it into the copy of this
+  manifest that goes into the package, appending the fourth component that the
+  Store reserves for itself. The value here only keeps this file valid to
+  schema-check and to register by hand.
+-->
+
+<Package
+    xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
+    xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
+    xmlns:uap5="http://schemas.microsoft.com/appx/manifest/uap/windows10/5"
+    xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
+    IgnorableNamespaces="uap uap5 rescap">
+
+  <Identity
+      Name="MinjunKim.Barline"
+      Publisher="CN=80EF5F56-C3FE-43CC-9B2F-B89D5C268561"
+      Version="1.2.1.0"
+      ProcessorArchitecture="x64" />
+
+  <Properties>
+    <DisplayName>Barline</DisplayName>
+    <PublisherDisplayName>Minjun Kim</PublisherDisplayName>
+    <Logo>assets\StoreLogo.scale-100.png</Logo>
+  </Properties>
+
+  <Dependencies>
+    <!--
+      19041 matches SupportedOSPlatformVersion in the project, which is held there
+      so the binary still runs on older Windows 11 installs. Raising it here would
+      hide the app from machines the executable is perfectly happy on.
+    -->
+    <TargetDeviceFamily
+        Name="Windows.Desktop"
+        MinVersion="10.0.19041.0"
+        MaxVersionTested="10.0.26100.0" />
+  </Dependencies>
+
+  <Resources>
+    <Resource Language="en-us" />
+  </Resources>
+
+  <Applications>
+    <Application
+        Id="Barline"
+        Executable="Barline.exe"
+        EntryPoint="Windows.FullTrustApplication">
+
+      <uap:VisualElements
+          DisplayName="Barline"
+          Description="A now-playing widget for the Windows 11 taskbar, with an audio-reactive visualiser and synced lyrics."
+          Square150x150Logo="assets\Square150x150Logo.png"
+          Square44x44Logo="assets\Square44x44Logo.png"
+          BackgroundColor="transparent">
+
+        <uap:DefaultTile
+            ShortName="Barline"
+            Wide310x150Logo="assets\Wide310x150Logo.png"
+            Square71x71Logo="assets\Square71x71Logo.png"
+            Square310x310Logo="assets\Square310x310Logo.png" />
+      </uap:VisualElements>
+
+      <Extensions>
+        <!--
+          The packaged half of AutoStartService. Windows ignores Run key entries
+          written by a packaged app, so this declaration is the only thing that
+          makes "start with Windows" work in the Store build, and TaskId must
+          match AutoStartService.StartupTaskId.
+
+          Enabled="false" deliberately: starting with Windows is something the
+          user turns on, not something installing the app decides for them.
+        -->
+        <uap5:Extension
+            Category="windows.startupTask"
+            Executable="Barline.exe"
+            EntryPoint="Windows.FullTrustApplication">
+          <uap5:StartupTask
+              TaskId="BarlineStartupTask"
+              Enabled="false"
+              DisplayName="Barline" />
+        </uap5:Extension>
+      </Extensions>
+    </Application>
+  </Applications>
+
+  <Capabilities>
+    <!-- Required for any Win32 process in a package. -->
+    <rescap:Capability Name="runFullTrust" />
+
+    <!--
+      Declared because looking up lyrics reaches lrclib.net. Nothing else leaves
+      the machine, and the lookup is off until the user turns it on.
+
+      Deliberately no microphone capability: the visualiser reads the render
+      endpoint through WASAPI loopback, which is not capture and is not the
+      microphone. Declaring it would be untrue and would show this app asking for
+      the microphone in the Store listing.
+    -->
+    <Capability Name="internetClient" />
+  </Capabilities>
+
+</Package>
