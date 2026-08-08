@@ -26,7 +26,7 @@
   <Identity
       Name="MinjunKim.Barline"
       Publisher="CN=80EF5F56-C3FE-43CC-9B2F-B89D5C268561"
-      Version="1.2.1.0"
+      Version="2.0.0.0"
       ProcessorArchitecture="x64" />
 
   <Properties>

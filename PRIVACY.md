@@ -24,8 +24,8 @@ While it is on, looking up the lyrics for a track sends the following to
 
 Nothing else is sent. No identifier, no account, no device information, and no record
 of when or how often you listen. LRCLIB requires no key and no sign-in. The request
-identifies the application and its version — as `Barline/1.2.1` — so the service can
-recognise a misbehaving client; it does not identify you.
+identifies the application and its version, in the form `Barline/2.0.0`, so the
+service can recognise a misbehaving client; it does not identify you.
 
 Results are cached on your machine, including the misses, so a track is looked up
 once rather than once per play. Your network connection exposes the request to

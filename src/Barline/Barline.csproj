@@ -25,7 +25,7 @@
          are set here rather than left to the SDK's blank defaults. Version is the
          single source: AssemblyVersion, FileVersion and the LRCLIB user agent all
          derive from it. -->
-    <Version>1.2.1</Version>
+    <Version>2.0.0</Version>
     <!-- The SDK otherwise appends the commit hash, which then shows up as the
          product version in the file's Properties dialog. -->
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
