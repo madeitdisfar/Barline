@@ -117,10 +117,33 @@ foreach ($tile in $tiles) {
 }
 
 # Target sizes are what Windows reaches for in the taskbar, the Start list and
-# Alt+Tab. The unplated variants are the same image drawn without the coloured
-# backplate behind it, which is what a taskbar icon needs.
-foreach ($size in 16, 24, 32, 48, 256) {
-    foreach ($suffix in "targetsize-$size", "targetsize-$size.altform-unplated") {
+# Alt+Tab.
+#
+# The unplated variants matter more than they look. Without one for the size the
+# taskbar asks for, Windows paints a solid plate behind the icon and the rounded
+# corners simply fill in, which turns a rounded tile into a hard square. 44 is
+# included deliberately even though it is not a normal target size: it is the one
+# Microsoft's own guidance pairs with Square44x44Logo, and leaving it out is what
+# sends the taskbar back to the plated asset.
+#
+# lightunplated is the same image again, for a light taskbar. Windows picks
+# between them by theme, and an app that supplies only one gets plated on the
+# other.
+foreach ($size in 16, 24, 32, 44, 48, 256) {
+    # Underscore, not a dot, between the two qualifiers. A dot ends the resource
+    # name, so "targetsize-48.altform-unplated" indexes as a resource literally
+    # called "Square44x44Logo.targetsize-48.png" that carries only the altform
+    # qualifier, and nothing ever asks for it. Windows requests Square44x44Logo
+    # at a target size and unplated, finds no candidate with both, and falls back
+    # to the plated asset. An underscore keeps them as two qualifiers on one
+    # resource, which is what makes unplated actually reachable.
+    $suffixes = @(
+        "targetsize-$size",
+        "targetsize-${size}_altform-unplated",
+        "targetsize-${size}_altform-lightunplated"
+    )
+
+    foreach ($suffix in $suffixes) {
         $path = Join-Path $OutputDirectory "Square44x44Logo.$suffix.png"
 
         Write-Asset -Source $icon -Path $path -Width $size -Height $size -Fill 1.00
