@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Privacy policy · Barline</title>
+    <meta name="description"
+          content="Barline collects nothing. What leaves your computer, what stays on it, and when.">
+    <link rel="icon" href="img/icon.png">
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <header>
+        <div class="wrap bar">
+            <a class="brand" href="./">
+                <img src="img/icon.png" alt="">
+                Barline
+            </a>
+            <nav>
+                <a href="./">Home</a>
+                <a href="https://github.com/madeitdisfar/Barline">GitHub</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="wrap prose">
+
+        <h1>Privacy policy</h1>
+        <p class="updated">Barline. Last updated 6 August 2026.</p>
+
+        <p>
+            Barline collects nothing. There is no analytics, no telemetry, no crash
+            reporting, no account, and no advertising. Nothing you do in the app is
+            reported to its author, and the app never sees your identity.
+        </p>
+        <p>
+            The app makes exactly one kind of network request, described below.
+            Everything else it needs stays on your machine.
+        </p>
+
+        <h2>What leaves your computer</h2>
+
+        <p>
+            <strong>Only when you turn lyrics on.</strong> The lyrics feature is off by
+            default and does nothing until you switch it on under Settings, then Lyrics,
+            then Show lyrics.
+        </p>
+        <p>
+            While it is on, looking up the lyrics for a track sends the following to
+            <a href="https://lrclib.net">LRCLIB</a>, a free public lyrics database:
+        </p>
+        <ul>
+            <li>the track title</li>
+            <li>the artist name</li>
+            <li>the album name, when the source app reports one</li>
+            <li>the track length in seconds</li>
+        </ul>
+        <p>
+            Nothing else is sent. No identifier, no account, no device information, and no
+            record of when or how often you listen. LRCLIB requires no key and no sign-in.
+            The request identifies the application and its version, in the form
+            <span class="path">Barline/2.0.0</span>, so the service can recognise a
+            misbehaving client. It does not identify you.
+        </p>
+        <p>
+            Results are cached on your machine, including the misses, so a track is looked
+            up once rather than once per play. Your network connection exposes the request
+            to LRCLIB and to anyone able to observe your traffic, as with any web request.
+            LRCLIB's own handling of requests is governed by its operators, not by this
+            policy.
+        </p>
+        <p><strong>If lyrics are off, Barline makes no network requests at all.</strong></p>
+
+        <h2>What is stored on your computer</h2>
+
+        <p>In Barline's own data folder:</p>
+        <ul>
+            <li><span class="path">settings.json</span>, your preferences</li>
+            <li><span class="path">presets\</span>, saved appearance presets</li>
+            <li>
+                <span class="path">lyrics\</span>, cached lyrics and any
+                <span class="path">.lrc</span> files you import yourself
+            </li>
+        </ul>
+        <p>
+            Where that folder is depends on how you installed Barline. The portable build
+            keeps it at <span class="path">%LocalAppData%\Barline</span>. The Microsoft
+            Store build keeps it inside its own package folder, which Windows deletes when
+            you uninstall the app. Either way, Settings, then Lyrics, then Open folder
+            takes you there.
+        </p>
+        <p>
+            Under <span class="path">%TEMP%</span>, only if you set
+            <span class="path">BARLINE_DEBUG=1</span> yourself:
+        </p>
+        <ul>
+            <li>
+                <span class="path">barline.log</span>, a diagnostic log recording taskbar
+                state, media sessions and playback timing. It is off unless you
+                deliberately enable it.
+            </li>
+        </ul>
+        <p>
+            All of this stays on your machine. You can delete any of it at any time and the
+            app falls back to defaults. Cached lyrics can be cleared from Settings, then
+            Lyrics.
+        </p>
+
+        <h2>What the app reads locally</h2>
+
+        <p>
+            Barline reads what is currently playing through the Windows System Media
+            Transport Controls, the same source as the volume flyout, which gives it the
+            title, artist, album art and playback position. It also captures system audio
+            output to drive the visualizer.
+            <strong>Audio is analysed for loudness in the moment and never recorded,
+                stored, or transmitted.</strong>
+            None of this leaves your computer except as described above.
+        </p>
+
+        <h2>Children</h2>
+
+        <p>
+            Barline is not directed at children and collects no personal information from
+            anyone.
+        </p>
+
+        <h2>Changes</h2>
+
+        <p>
+            Any change to this policy will appear on this page, and its history is public
+            in the <a href="https://github.com/madeitdisfar/Barline">repository</a>.
+        </p>
+
+        <h2>Contact</h2>
+
+        <p>
+            Open an issue at
+            <a href="https://github.com/madeitdisfar/Barline/issues">github.com/madeitdisfar/Barline/issues</a>.
+        </p>
+
+    </main>
+
+    <footer>
+        <div class="wrap foot">
+            <span>Licensed under GPL-3.0-or-later.</span>
+            <nav>
+                <a href="./">Home</a>
+                <a href="https://github.com/madeitdisfar/Barline">GitHub</a>
+            </nav>
+        </div>
+    </footer>
+
+</body>
+
+</html>

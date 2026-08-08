@@ -1,0 +1,469 @@
+/*
+   Barline site styles.
+
+   One accent, taken from the app icon, and used only where something is
+   genuinely interactive. Everything else is greyscale, which is what keeps a
+   page of screenshots from competing with itself.
+
+   Spacing runs on a 4px scale and type on six sizes. Both are deliberately
+   short lists: the restraint is what makes a page look composed rather than
+   assembled.
+*/
+
+:root {
+    --bg: #ffffff;
+    --surface: #f7f7f8;
+    --border: #e5e5e8;
+    --border-strong: #d4d4d9;
+    --text: #18181b;
+    --text-muted: #5f5f68;
+    --text-faint: #8a8a93;
+    --accent: #5a4fcf;
+    --accent-hover: #4d43b8;
+    --shadow: 0 1px 2px rgba(0, 0, 0, .05), 0 8px 24px rgba(0, 0, 0, .06);
+
+    --s1: 4px;
+    --s2: 8px;
+    --s3: 12px;
+    --s4: 16px;
+    --s5: 24px;
+    --s6: 32px;
+    --s7: 48px;
+    --s8: 72px;
+    --s9: 112px;
+
+    --radius: 8px;
+    --radius-lg: 12px;
+
+    /* The app's own motion, so a hover here feels like a hover there. */
+    --ease: cubic-bezier(.33, 0, .67, 1);
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --bg: #0f0f11;
+        --surface: #17171a;
+        --border: #26262b;
+        --border-strong: #33333a;
+        --text: #ececee;
+        --text-muted: #a1a1aa;
+        --text-faint: #71717a;
+        --accent: #8579f0;
+        --accent-hover: #9b91f5;
+        --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 8px 32px rgba(0, 0, 0, .35);
+    }
+}
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Segoe UI Variable Text", "Segoe UI", -apple-system,
+        BlinkMacSystemFont, system-ui, sans-serif;
+    font-size: 16px;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+}
+
+.wrap {
+    width: 100%;
+    max-width: 940px;
+    margin: 0 auto;
+    padding: 0 var(--s5);
+}
+
+/* ---------- header ---------- */
+
+header {
+    border-bottom: 1px solid var(--border);
+}
+
+.bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--s4);
+    height: 64px;
+}
+
+.brand {
+    display: flex;
+    align-items: center;
+    gap: var(--s3);
+    font-weight: 600;
+    letter-spacing: -.01em;
+    color: var(--text);
+    text-decoration: none;
+}
+
+.brand img {
+    width: 26px;
+    height: 26px;
+    border-radius: 6px;
+}
+
+nav {
+    display: flex;
+    gap: var(--s5);
+}
+
+nav a {
+    color: var(--text-muted);
+    text-decoration: none;
+    font-size: 15px;
+    transition: color .15s var(--ease);
+}
+
+nav a:hover {
+    color: var(--text);
+}
+
+/* ---------- hero ---------- */
+
+.hero {
+    padding: var(--s8) 0 var(--s7);
+    text-align: center;
+}
+
+.hero h1 {
+    margin: 0;
+    font-size: 46px;
+    line-height: 1.15;
+    letter-spacing: -.025em;
+    font-weight: 650;
+}
+
+.hero .lede {
+    margin: var(--s4) auto 0;
+    max-width: 30em;
+    font-size: 18px;
+    color: var(--text-muted);
+}
+
+.actions {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: var(--s3);
+    margin-top: var(--s6);
+}
+
+.btn {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--s2);
+    padding: 11px 20px;
+    border-radius: var(--radius);
+    border: 1px solid transparent;
+    font-size: 15px;
+    font-weight: 550;
+    text-decoration: none;
+    transition: background-color .15s var(--ease), border-color .15s var(--ease);
+}
+
+.btn-primary {
+    background: var(--accent);
+    color: #fff;
+}
+
+.btn-primary:hover {
+    background: var(--accent-hover);
+}
+
+.btn-secondary {
+    background: var(--surface);
+    border-color: var(--border-strong);
+    color: var(--text);
+}
+
+.btn-secondary:hover {
+    border-color: var(--text-faint);
+}
+
+/* Not a link, because it does not go anywhere yet. Styled as unavailable
+   rather than merely inert so the reason is visible without a tooltip. */
+.btn-soon {
+    background: transparent;
+    border-color: var(--border);
+    color: var(--text-faint);
+    cursor: default;
+}
+
+.btn-soon .tag {
+    font-size: 12px;
+    padding: 1px 6px;
+    border-radius: 4px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+}
+
+.note {
+    margin-top: var(--s4);
+    font-size: 14px;
+    color: var(--text-faint);
+}
+
+.shot-hero {
+    margin-top: var(--s7);
+}
+
+/* ---------- figures ---------- */
+
+figure {
+    margin: 0;
+}
+
+/* Not img.shot: the visualizer clip is a <video>, and a selector that only names
+   images leaves it at its intrinsic 1920px, pushing the whole page sideways. */
+.shot {
+    display: block;
+    width: 100%;
+    height: auto;
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow);
+}
+
+figcaption {
+    margin-top: var(--s3);
+    font-size: 13px;
+    color: var(--text-faint);
+    text-align: center;
+}
+
+/* Aspect ratio is declared so the row does not collapse and then jump open when
+   the video's dimensions arrive. The dark fill covers the same gap. */
+/* The recording is a 16:9 frame with the widget as a strip across the middle of
+   it, so shown whole it is mostly empty black and sits oddly beside the tight
+   screenshots above. Cropped to the band the widget is actually in. The source
+   is centred, so cover takes the same amount off the top and the bottom. */
+video.clip {
+    aspect-ratio: 1920 / 620;
+    object-fit: cover;
+    background: #0b0b0d;
+}
+
+.pair {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--s5);
+}
+
+/* ---------- sections ---------- */
+
+section {
+    padding: var(--s8) 0;
+    border-top: 1px solid var(--border);
+}
+
+section h2 {
+    margin: 0 0 var(--s4);
+    font-size: 27px;
+    line-height: 1.25;
+    letter-spacing: -.02em;
+    font-weight: 620;
+}
+
+section p {
+    margin: 0 0 var(--s4);
+    max-width: 62ch;
+    color: var(--text-muted);
+}
+
+section p:last-of-type {
+    margin-bottom: var(--s6);
+}
+
+section a {
+    color: var(--accent);
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+    transition: border-color .15s var(--ease);
+}
+
+section a:hover {
+    border-bottom-color: var(--accent);
+}
+
+.steps {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    max-width: 62ch;
+}
+
+.steps li {
+    position: relative;
+    padding-left: var(--s5);
+    margin-bottom: var(--s3);
+    color: var(--text-muted);
+}
+
+.steps li::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: .68em;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--border-strong);
+}
+
+.path {
+    display: inline-block;
+    padding: 3px 8px;
+    border-radius: 6px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    font-family: "Cascadia Mono", Consolas, ui-monospace, monospace;
+    font-size: 13px;
+    color: var(--text);
+}
+
+/* ---------- footer ---------- */
+
+footer {
+    border-top: 1px solid var(--border);
+    padding: var(--s6) 0 var(--s7);
+    color: var(--text-faint);
+    font-size: 14px;
+}
+
+.foot {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--s5);
+    justify-content: space-between;
+    align-items: baseline;
+}
+
+.foot nav {
+    gap: var(--s4);
+}
+
+.foot a {
+    color: var(--text-muted);
+    text-decoration: none;
+    font-size: 14px;
+}
+
+.foot a:hover {
+    color: var(--text);
+}
+
+/* ---------- prose pages ---------- */
+
+.prose {
+    padding: var(--s7) 0 var(--s8);
+}
+
+.prose h1 {
+    font-size: 34px;
+    letter-spacing: -.02em;
+    margin: 0 0 var(--s2);
+}
+
+.prose .updated {
+    color: var(--text-faint);
+    font-size: 14px;
+    margin: 0 0 var(--s6);
+}
+
+.prose h2 {
+    font-size: 20px;
+    margin: var(--s7) 0 var(--s3);
+    letter-spacing: -.01em;
+}
+
+.prose p,
+.prose li {
+    color: var(--text-muted);
+    max-width: 68ch;
+}
+
+.prose ul {
+    padding-left: var(--s5);
+}
+
+.prose li {
+    margin-bottom: var(--s2);
+}
+
+.prose strong {
+    color: var(--text);
+    font-weight: 600;
+}
+
+.prose a {
+    color: var(--accent);
+    text-decoration: none;
+}
+
+.prose a:hover {
+    text-decoration: underline;
+}
+
+/* ---------- reveal on scroll ---------- */
+
+/*
+   Scoped to .reveal-on, which only exists when scripting is available and the
+   reader has not asked for reduced motion. Without it none of this applies and
+   the page is simply visible, which is the behaviour anything decorative should
+   fall back to.
+
+   A short rise and a fade, once, on the way down. Enough to give the page a
+   sense of assembling itself, not enough to make anyone wait for it.
+*/
+.reveal-on .reveal {
+    opacity: 0;
+    transform: translateY(10px);
+}
+
+.reveal-on .reveal.shown {
+    opacity: 1;
+    transform: none;
+    transition: opacity .45s var(--ease), transform .45s var(--ease);
+}
+
+/* ---------- narrow ---------- */
+
+@media (max-width: 700px) {
+    .hero {
+        padding: var(--s7) 0 var(--s6);
+    }
+
+    .hero h1 {
+        font-size: 34px;
+    }
+
+    .hero .lede {
+        font-size: 16px;
+    }
+
+    section {
+        padding: var(--s7) 0;
+    }
+
+    section h2 {
+        font-size: 23px;
+    }
+
+    .pair {
+        grid-template-columns: 1fr;
+    }
+
+    nav {
+        gap: var(--s4);
+    }
+}

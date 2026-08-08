@@ -50,3 +50,6 @@ ehthumbs.db
 Desktop.ini
 $RECYCLE.BIN/
 *.lnk
+
+## Claude Code local config
+.claude/
