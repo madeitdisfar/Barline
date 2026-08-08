@@ -36,11 +36,16 @@ own handling of requests is governed by its operators, not by this policy.
 
 ## What is stored on your computer
 
-Under `%LocalAppData%\Barline`:
+In Barline's own data folder:
 
 - `settings.json` — your preferences.
 - `presets\` — saved appearance presets.
 - `lyrics\` — cached lyrics, and any `.lrc` files you import yourself.
+
+Where that folder is depends on how you installed Barline. The portable build
+keeps it at `%LocalAppData%\Barline`. The Microsoft Store build keeps it inside its
+own package folder, which Windows deletes when you uninstall the app. Either way,
+**Settings → Lyrics → Open folder** takes you there.
 
 Under `%TEMP%`, only if you set `BARLINE_DEBUG=1` yourself:
 

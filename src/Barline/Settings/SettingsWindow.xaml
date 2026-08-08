@@ -1048,29 +1048,30 @@
                     Margin="0,8,0,0"
                     Visibility="Collapsed">
                 <StackPanel>
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
+                    <TextBlock Style="{StaticResource CardLabel}" Text="Preset" />
+                    <TextBlock Style="{StaticResource CardDescription}"
+                               Text="A saved copy of the whole lyric style: where the lyrics go, the panel's size, and how they look. Kept as a file you can share." />
 
-                        <StackPanel Grid.Column="0" VerticalAlignment="Center">
-                            <TextBlock Style="{StaticResource CardLabel}" Text="Preset" />
-                            <TextBlock Style="{StaticResource CardDescription}"
-                                       Text="A saved copy of everything below — where the lyrics go, the panel's size, and how they look. Kept as a file you can share." />
-                        </StackPanel>
-
-                        <StackPanel Grid.Column="1" Orientation="Horizontal"
-                                    Margin="16,0,0,0" VerticalAlignment="Center">
-                            <ComboBox x:Name="PresetPicker"
-                                      Style="{StaticResource CardCombo}"
-                                      Width="130" />
-                            <Button x:Name="SavePresetButton"
-                                    Style="{StaticResource CardButton}"
-                                    Margin="8,0,0,0"
-                                    Content="Save as…" />
-                        </StackPanel>
-                    </Grid>
+                    <!-- Below the description rather than beside it, the same way the
+                         import card lays out its pair. Three controls in the right-hand
+                         column left the description a strip narrow enough to wrap to six
+                         lines, which read as a layout fault rather than a description. -->
+                    <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+                        <ComboBox x:Name="PresetPicker"
+                                  Style="{StaticResource CardCombo}"
+                                  Width="130" />
+                        <Button x:Name="SavePresetButton"
+                                Style="{StaticResource CardButton}"
+                                Margin="8,0,0,0"
+                                Content="Save as…" />
+                        <!-- Presets are files meant to be shared, and where they live
+                             depends on how the app was installed. Opening the folder is
+                             more reliable than naming it. -->
+                        <Button x:Name="OpenPresetsButton"
+                                Style="{StaticResource CardButton}"
+                                Margin="8,0,0,0"
+                                Content="Open folder" />
+                    </StackPanel>
 
                     <!-- Collapsed rather than merely empty: a TextBlock with no text
                          still measures a line box, which left a gap under the picker

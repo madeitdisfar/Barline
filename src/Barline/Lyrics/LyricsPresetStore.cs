@@ -1,6 +1,7 @@
 using System.IO;
 using System.Text.Json;
 using Barline.Diagnostics;
+using Barline.Platform;
 using Barline.Settings;
 
 namespace Barline.Lyrics;
@@ -37,10 +38,7 @@ internal sealed class LyricsPresetStore
 
     public LyricsPresetStore()
     {
-        _directory = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "Barline",
-            "presets");
+        _directory = AppPaths.Presets;
     }
 
     public string DirectoryPath => _directory;

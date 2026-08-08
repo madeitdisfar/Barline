@@ -223,7 +223,7 @@ internal partial class SettingsWindow : Window
         });
 
         ImportButton.Click += (_, _) => ImportLyricsFile();
-        OpenFolderButton.Click += (_, _) => OpenLyricsFolder();
+        OpenFolderButton.Click += (_, _) => OpenFolder(_lyrics.CacheDirectory, ImportStatus);
         ClearCacheButton.Click += (_, _) => ClearLyricsCache();
 
         AutoStartToggle.Checked += (_, _) => OnAutoStartToggled(true);
@@ -728,6 +728,7 @@ internal partial class SettingsWindow : Window
 
         PresetPicker.SelectionChanged += (_, _) => LoadSelectedPreset();
         SavePresetButton.Click += (_, _) => SaveCurrentAsPreset();
+        OpenPresetsButton.Click += (_, _) => OpenFolder(_presets.DirectoryPath, PresetStatus);
 
         ConfigureAppearanceSlider(
             FontSizeSlider, FontSizeText, LyricsAppearance.MinFontSize, LyricsAppearance.MaxFontSize, 1d,
@@ -1174,21 +1175,30 @@ internal partial class SettingsWindow : Window
         UpdateCacheSize();
     }
 
-    private void OpenLyricsFolder()
+    /// <summary>
+    /// Shows a folder in Explorer, creating it first so the button works before
+    /// anything has been written there.
+    /// </summary>
+    /// <remarks>
+    /// These paths moved once already, when the packaged build started keeping its
+    /// data where Windows can delete it on uninstall. Opening the folder rather than
+    /// printing it means that kind of change costs nobody a support question.
+    /// </remarks>
+    private void OpenFolder(string path, TextBlock status)
     {
         try
         {
-            Directory.CreateDirectory(_lyrics.CacheDirectory);
+            Directory.CreateDirectory(path);
 
             Process.Start(new ProcessStartInfo
             {
-                FileName = _lyrics.CacheDirectory,
+                FileName = path,
                 UseShellExecute = true,
             });
         }
         catch (Exception ex)
         {
-            Say(ImportStatus, $"Could not open the folder: {ex.Message}");
+            Say(status, $"Could not open the folder: {ex.Message}");
         }
     }
 

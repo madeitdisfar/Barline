@@ -129,8 +129,10 @@ whole time, so every change is previewed where it counts.
 Bar color follows your **accent**, the **album art** (crossfading as tracks change),
 or a color you choose. Bar colors automatically adjust to maintain a minimum 3:1 contrast ratio against the taskbar, ensuring the visualizer remains visible regardless of album artwork. The settings window shows the color that will actually be drawn.
 
-Lyric styles are saved as **preset files** in `%LocalAppData%\Barline\presets`. Four built-in presets ship with the app; drop one someone sends you into that folder and it appears in the
-list.
+Lyric styles are saved as **preset files**. Four built-in presets ship with the app;
+drop one someone sends you into the presets folder and it appears in the list. Use
+**Open folder** next to the preset picker to get there, since the location differs
+between the portable and Microsoft Store builds.
 
 ## Known limitations
 

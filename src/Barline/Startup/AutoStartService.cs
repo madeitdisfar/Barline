@@ -1,6 +1,6 @@
-using System.Runtime.InteropServices;
 using Microsoft.Win32;
 using Barline.Diagnostics;
+using Barline.Platform;
 using Windows.ApplicationModel;
 
 namespace Barline.Startup;
@@ -72,7 +72,7 @@ internal sealed class AutoStartService
     internal const string StartupTaskId = "BarlineStartupTask";
 
     /// <summary>Whether this process is running from an MSIX package.</summary>
-    public bool IsPackaged { get; } = DetectPackaged();
+    public bool IsPackaged => PackageContext.IsPackaged;
 
     public async Task<AutoStartState> GetStateAsync()
     {
@@ -178,29 +178,4 @@ internal sealed class AutoStartService
         }
     }
 
-    // ---- Package detection --------------------------------------------------
-
-    private const int AppModelErrorNoPackage = 15700;
-
-    [DllImport("kernel32.dll", CharSet = CharSet.Unicode)]
-    private static extern int GetCurrentPackageFullName(ref int packageFullNameLength, char[]? packageFullName);
-
-    /// <summary>
-    /// Asks Windows for this process's package identity. Querying rather than
-    /// catching the exception <c>Package.Current</c> throws, which is the same answer
-    /// obtained by more expensive means.
-    /// </summary>
-    private static bool DetectPackaged()
-    {
-        try
-        {
-            int length = 0;
-            return GetCurrentPackageFullName(ref length, null) != AppModelErrorNoPackage;
-        }
-        catch (Exception ex)
-        {
-            DebugLog.Write($"autostart: package detection failed: {ex.Message}");
-            return false;
-        }
-    }
 }

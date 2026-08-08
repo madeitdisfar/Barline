@@ -3,6 +3,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using Barline.Diagnostics;
+using Barline.Platform;
 
 namespace Barline.Lyrics;
 
@@ -101,10 +102,7 @@ internal sealed class LyricsCache
 
     public LyricsCache()
     {
-        _directory = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "Barline",
-            "lyrics");
+        _directory = AppPaths.LyricsCache;
     }
 
     public string DirectoryPath => _directory;

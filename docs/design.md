@@ -227,7 +227,8 @@ radius applies to all of them alike.
 
 ### Presets are files
 
-Presets live in `%LocalAppData%\Barline\presets`. They are saved copies of the style,
+Presets live in the `presets` folder under Barline's data directory (see
+[Where data lives](#where-data-lives)). They are saved copies of the style,
 not a separate source of truth: the settings window edits it directly and you see it
 immediately, and a preset is that snapshot under a name. The alternative — the file
 being the only home for these values — would mean every tweak was a file edit and the
@@ -248,13 +249,36 @@ Changes apply and persist immediately — there is no OK or Apply button, matchi
 Windows 11 Settings, and the widget is on the taskbar the whole time so every change is
 already previewed where it counts.
 
-The file lives at `%LocalAppData%\Barline\settings.json`. A missing or malformed file
+The file is `settings.json` in the data directory below. A missing or malformed file
 falls back to defaults rather than failing to start, so it is safe to delete or
 hand-edit, and it is written via a temp file and a swap so a crash mid-write cannot
 truncate it. A file written by an older build is folded forward on load and rewritten
 at once, so the fold happens once rather than on every launch until something happens
 to change. A setting naming an option a newer build no longer knows costs that one
 setting rather than resetting the whole file.
+
+## Where data lives
+
+Two roots, because the two builds are uninstalled differently.
+
+Unpackaged, everything sits under `%LocalAppData%\Barline`. Removing that build means
+deleting a folder, so anything left behind was always the user's to clear up.
+
+Packaged, the root is the package's own local folder, which Windows deletes on
+uninstall. That is the contract a packaged app is expected to honour, and writing to
+`%LocalAppData%\Barline` from a package would leave a folder behind that nothing owns
+and nothing removes. MSIX offers a redirection shim that would achieve the same
+without a code change, but it works by letting the app believe it is writing
+somewhere it is not, which is exactly the indirection that later produces "I put a
+preset in the folder and it cannot see it".
+
+The packaged path is longer and not memorable, so the settings window opens these
+folders rather than printing them. That is also what makes the location an
+implementation detail rather than something documented in two places that can drift.
+
+The two builds therefore do not share state: installing the packaged build alongside
+the portable one starts from defaults, the same way any two separate installations
+would.
 
 ## Starting with Windows
 

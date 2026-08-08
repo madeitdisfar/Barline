@@ -2,6 +2,7 @@ using System.IO;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Barline.Diagnostics;
+using Barline.Platform;
 
 namespace Barline.Settings;
 
@@ -49,10 +50,8 @@ internal sealed class SettingsStore
 
     public SettingsStore()
     {
-        _directory = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "Barline");
-        _path = Path.Combine(_directory, "settings.json");
+        _directory = AppPaths.Root;
+        _path = AppPaths.SettingsFile;
 
         Current = Load();
 
