@@ -11,7 +11,7 @@ namespace Barline.Platform;
 /// <para>
 /// Gathered in one place because these facts are stated in several: the LRCLIB user
 /// agent carries the version and a link to the project, the About card shows both to
-/// the user, and the licence obliges the binary to say where its source can be had.
+/// the user, and the license obliges the binary to say where its source can be had.
 /// Three copies of a URL is three chances for one of them to be wrong, and the one
 /// that went wrong last time was the one nobody looked at.
 /// </para>

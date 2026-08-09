@@ -48,7 +48,7 @@ internal sealed class TrayIcon : IDisposable
         _visualizerItem.CheckedChanged += OnVisualizerItemChanged;
 
         // Manual fallback: the watchdog recovers a stalled capture on its own, but
-        // this lets the user force it immediately if the visualiser ever stops
+        // this lets the user force it immediately if the visualizer ever stops
         // responding to audio.
         var restartItem = new ToolStripMenuItem("Restart visualizer");
         restartItem.Click += (_, _) => RestartVisualizerRequested?.Invoke(this, EventArgs.Empty);
@@ -78,7 +78,7 @@ internal sealed class TrayIcon : IDisposable
     public void ShowContextMenu() => _menu.Show(Control.MousePosition);
 
     /// <summary>
-    /// Reflects a visualiser-visibility change made elsewhere (the settings window)
+    /// Reflects a visualizer-visibility change made elsewhere (the settings window)
     /// so the menu's checkmark does not go stale.
     /// </summary>
     public void SetVisualizerChecked(bool enabled)
@@ -97,7 +97,7 @@ internal sealed class TrayIcon : IDisposable
 
     /// <summary>
     /// Draws the tray icon rather than shipping an .ico, so it always matches the
-    /// widget's own visualiser motif and stays crisp at any tray size.
+    /// widget's own visualizer motif and stays crisp at any tray size.
     /// </summary>
     private static Icon CreateIcon()
     {

@@ -6,7 +6,7 @@ namespace Barline.Diagnostics;
 /// Opt-in file logging for the window-tracking layer.
 /// <para>
 /// Enabled by setting <c>BARLINE_DEBUG=1</c>. This layer is difficult to debug
-/// interactively: attaching a debugger changes foreground-window behaviour,
+/// interactively: attaching a debugger changes foreground-window behavior,
 /// which is exactly what we need to observe. A log file avoids that.
 /// </para>
 /// </summary>

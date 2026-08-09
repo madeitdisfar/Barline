@@ -252,7 +252,7 @@ internal sealed class LyricsService : IDisposable
         // line ends, which is worth having — but only the enhanced LRC extension
         // carries per-word times, and an estimate bounded by a true line end is still
         // an estimate. Preferring lyricsfile unconditionally would throw away actual
-        // data in favour of a better guess.
+        // data in favor of a better guess.
         if (synced.Lines.Any(line => line.Words is not null)) return synced;
 
         // Otherwise take the stated line ends: the LRC leaves them to be inferred from

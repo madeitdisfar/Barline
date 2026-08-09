@@ -14,7 +14,7 @@ namespace Barline.Platform;
 /// </para>
 /// <para>
 /// Packaged, the root is the package's own local folder. Windows deletes that on
-/// uninstall, which is the contract a packaged app is expected to honour; writing to
+/// uninstall, which is the contract a packaged app is expected to honor; writing to
 /// <c>%LocalAppData%\Barline</c> from a package would leave a folder behind that
 /// nothing owns and nothing removes. The path is longer and less memorable, which is
 /// why the settings window opens these folders rather than printing them.

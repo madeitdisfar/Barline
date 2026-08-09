@@ -51,7 +51,7 @@
                 BorderBrush="{DynamicResource CardStrokeBrush}"
                 BorderThickness="1">
             <!--
-                A read-only TextBox rather than a TextBlock: a licence is a thing
+                A read-only TextBox rather than a TextBlock: a license is a thing
                 people copy out of, and selection is the whole difference.
 
                 Monospaced and wrapped. Both files are hard-wrapped to about 90

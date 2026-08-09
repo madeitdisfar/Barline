@@ -35,7 +35,7 @@ public class AlbumArtPaletteTests
     }
 
     [Fact]
-    public void The_seed_normalises_lightness_and_carries_only_hue_and_saturation()
+    public void The_seed_normalizes_lightness_and_carries_only_hue_and_saturation()
     {
         // Documented contract: choosing a final lightness belongs to Legibility,
         // because it depends on the taskbar rather than on the artwork.
@@ -96,7 +96,7 @@ public class AlbumArtPaletteTests
     /// above: these shadow pixels are strongly saturated, so only their lightness
     /// disqualifies them. They also could not be drawn as-is — corrected for contrast,
     /// a near-black navy becomes a bright blue that nobody looking at the sleeve would
-    /// say was its colour, while the orange genuinely is.
+    /// say was its color, while the orange genuinely is.
     /// </remarks>
     [Fact]
     public void A_near_black_majority_does_not_outvote_a_bright_accent()
@@ -118,10 +118,10 @@ public class AlbumArtPaletteTests
     }
 
     [Fact]
-    public void A_greyscale_cover_yields_no_seed()
+    public void A_grayscale_cover_yields_no_seed()
     {
-        // Inventing a hue here would show the user a colour that is not in their
-        // artwork; the caller falls back to the theme colour instead.
+        // Inventing a hue here would show the user a color that is not in their
+        // artwork; the caller falls back to the theme color instead.
         var art = Pixels(64, 64, (x, _) =>
         {
             byte level = (byte)(x * 255 / 63);
@@ -134,7 +134,7 @@ public class AlbumArtPaletteTests
     [Theory]
     [InlineData(0xFF, 0xFF, 0xFF)]      // pure white
     [InlineData(0x00, 0x00, 0x00)]      // pure black
-    [InlineData(0x77, 0x77, 0x77)]      // mid grey
+    [InlineData(0x77, 0x77, 0x77)]      // mid gray
     public void A_flat_neutral_cover_yields_no_seed(byte r, byte g, byte b)
     {
         Assert.Null(AlbumArtPalette.TryExtractSeed(Solid(64, 64, Color.FromRgb(r, g, b))));

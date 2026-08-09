@@ -134,7 +134,7 @@ internal sealed class TaskbarTracker : IDisposable
     }
 
     // WINEVENT_OUTOFCONTEXT delivers the callback on the thread that installed
-    // the hook, which is the UI thread. No marshalling required.
+    // the hook, which is the UI thread. No marshaling required.
     private void OnWinEvent(
         IntPtr hWinEventHook, uint eventType, IntPtr hwnd,
         int idObject, int idChild, uint dwEventThread, uint dwmsEventTime)

@@ -4,7 +4,7 @@ using Xunit;
 namespace Barline.Tests;
 
 /// <summary>
-/// Track-name normalisation, which is what decides the hit rate. Coverage is rarely
+/// Track-name normalization, which is what decides the hit rate. Coverage is rarely
 /// the reason a lyrics lookup fails — the name the session reports simply is not the
 /// name the track is filed under.
 /// </summary>

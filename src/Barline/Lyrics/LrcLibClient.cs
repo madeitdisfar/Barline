@@ -54,7 +54,7 @@ internal sealed class LrcLibClient : IDisposable
 
     /// <summary>
     /// LRCLIB asks clients to identify themselves and link to the project, so that a
-    /// misbehaving one can be recognised and contacted rather than simply blocked.
+    /// misbehaving one can be recognized and contacted rather than simply blocked.
     /// </summary>
     /// <remarks>
     /// Both parts come from <see cref="AppInfo"/> rather than being written out here,

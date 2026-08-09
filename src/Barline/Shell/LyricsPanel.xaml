@@ -24,7 +24,7 @@
             Padding="18,12">
 
         <!-- Two layers, exactly overlaid. The halo is the whole line, blurred and
-             static, so it can be bitmap-cached and rasterised once per line — an
+             static, so it can be bitmap-cached and rasterized once per line — an
              effect on the live text would be re-rendered every frame as the word
              highlight moves. Only used by the styles that want one. -->
         <Grid VerticalAlignment="Center">
@@ -37,7 +37,7 @@
                        Text="" />
 
             <!-- Large enough to count as large text, which is what makes the 3:1
-                 contrast the colour correction guarantees the right bar for it. -->
+                 contrast the color correction guarantees the right bar for it. -->
             <TextBlock x:Name="CurrentLine"
                        LineStackingStrategy="BlockLineHeight"
                        TextTrimming="CharacterEllipsis"

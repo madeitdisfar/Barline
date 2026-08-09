@@ -145,7 +145,7 @@ public partial class App : Application
             return;
         }
 
-        // Already open: restore it if minimised and pull it to the front rather than
+        // Already open: restore it if minimized and pull it to the front rather than
         // opening a second copy.
         if (_settingsWindow.WindowState == WindowState.Minimized)
             _settingsWindow.WindowState = WindowState.Normal;

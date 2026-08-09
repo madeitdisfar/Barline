@@ -22,7 +22,7 @@ shadows the taskbar:
   and Explorer restarts. Auto-hide needs no special handling at all: the taskbar
   slides off-screen and the widget slides with it.
 
-Hovering crossfades the visualiser into previous / play-pause / next inside a
+Hovering crossfades the visualizer into previous / play-pause / next inside a
 fixed-width zone, so nothing reflows — layout shift on hover is the fastest way to
 look third-party.
 
@@ -41,16 +41,16 @@ not visibly step, while a disagreement large enough to be a seek is applied at o
 Each report doubles as a measurement of the extrapolation before it, logged under
 `BARLINE_DEBUG`.
 
-## The visualiser
+## The visualizer
 
-The visualiser captures the system mix via WASAPI loopback, runs a Hann-windowed
+The visualizer captures the system mix via WASAPI loopback, runs a Hann-windowed
 1024-point FFT, and maps it into log-spaced bands, one per bar.
 
 Each band has its own dB window, because measured against real music the bands sit
 ~30 dB apart and a shared window leaves bass pinned near maximum and treble stuck at
 zero. Those windows started as four hand-measured values, which described one bar
 count and no other; they are now a least-squares fit through those measurements (about
-−4.4 dB per octave), which is what lets the count vary. The fit generalises because a
+−4.4 dB per octave), which is what lets the count vary. The fit generalizes because a
 band's level is the RMS *per bin* — a spectral density rather than a total — so
 slicing the span more finely does not systematically lower it.
 
@@ -64,31 +64,31 @@ resume from sleep, and **Restart visualizer** in the menu forces it by hand.
 ### Why six bars is the ceiling
 
 Bar counts divide a fixed width *and* a fixed amount of ink, so a higher count means
-thinner bars rather than a wider or heavier visualiser: the widget never reflows the
-taskbar layout, and the row keeps the visual weight its colour was corrected for.
+thinner bars rather than a wider or heavier visualizer: the widget never reflows the
+taskbar layout, and the row keeps the visual weight its color was corrected for.
 
 Six is the ceiling for two independent reasons. Seven bars would be 1.7px wide, and
-neighbouring tall bars visibly merge at 100% display scaling — worse on the light
-taskbar, where the bar colour is translucent as well as thin. Seven bands would also
+neighboring tall bars visibly merge at 100% display scaling — worse on the light
+taskbar, where the bar color is translucent as well as thin. Seven bands would also
 outrun the transform: a 1024-point FFT at 48 kHz resolves 46.9 Hz per bin, and the
-lowest band's 40–89.8 Hz span falls inside the single bin its neighbour starts from,
+lowest band's 40–89.8 Hz span falls inside the single bin its neighbor starts from,
 so the bottom two bars would carry identical data and move as one.
 
-## Colour and legibility
+## Color and legibility
 
-Every bar colour mode except `Default` is **corrected for legibility** before it is
+Every bar color mode except `Default` is **corrected for legibility** before it is
 drawn. The hue is the artwork's (or yours) to choose; the lightness is not. A dark
 navy cover on the dark taskbar or a pale yellow one on the light taskbar would
-otherwise paint bars that are technically coloured and practically invisible, so the
+otherwise paint bars that are technically colored and practically invisible, so the
 hue is kept and the lightness is pushed until the bars clear a 3:1 contrast ratio —
 WCAG's threshold for non-text graphics — against the taskbar. Saturation is held
-inside a band for the same reason, so a correction can neither bleach the hue to grey
+inside a band for the same reason, so a correction can neither bleach the hue to gray
 nor push it into neon. A cover with no usable hue at all, like a black-and-white
 sleeve, falls back to `Default` rather than inventing a tint.
 
-Because of that, the settings window shows each mode's **resolved** colour and hex —
+Because of that, the settings window shows each mode's **resolved** color and hex —
 what will actually be drawn, not what was picked — over a strip painted the same shade
-the correction measures against. Showing the picked colour instead would misrepresent
+the correction measures against. Showing the picked color instead would misrepresent
 the whole feature.
 
 ## Lyrics
@@ -172,13 +172,13 @@ pixels on a wide screen, which is too coarse to line the panel up with anything.
 In the widget, instrumental gaps are timed too, and during one the title returns
 rather than the previous line hanging around. So does pausing: a lyric sitting there
 over music nobody is playing reads as stuck, and what you want to know about a paused
-track is what it is. Turning the visualiser off gives that reserved width back to the
+track is what it is. Turning the visualizer off gives that reserved width back to the
 text — 150px becomes 238px, over half as much again — since the zone beside it is then
 drawing nothing.
 
 ## The style is the setting
 
-Font family, size, weight and italic, text colour, unsung-word opacity, casing,
+Font family, size, weight and italic, text color, unsung-word opacity, casing,
 effect, background and corner radius are all settings — **and so are where the lyrics
 go, which anchor the panel uses, and how big it is.** A 20px line over a tinted panel
 and a 12px line in the widget are different designs, and a look that does not say
@@ -188,7 +188,7 @@ be.
 
 Deliberately *not* part of it: whether lyrics are on, whether they light up a word or
 a line at a time, and what the panel does when hovered. Those are preferences about
-behaviour rather than descriptions of a look, and a preset someone shares with you has
+behavior rather than descriptions of a look, and a preset someone shares with you has
 no business changing them.
 
 The settings window groups by **what a setting applies to**, not by what a preset
@@ -209,19 +209,19 @@ than on the text itself, in the widget as well as in the panel. Two reasons, and
 first is not performance: a blur applied to the text is not a glow, it is the same
 glyphs out of focus. What reads as a glow is a sharp line sitting on a blurred copy of
 itself. The second is that an effect on the live text would be re-rendered every frame
-as the highlight moves, where a static layer rasterises once per line. Measured with
-the visualiser and the sweep both running, the whole widget sits near 2% CPU, so there
+as the highlight moves, where a static layer rasterizes once per line. Measured with
+the visualizer and the sweep both running, the whole widget sits near 2% CPU, so there
 is no performance trade-off to warn about.
 
 ### Backgrounds, and the one that was removed
 
-**Backgrounds** are `Tinted` (see-through colour at the opacity you choose), `Solid`,
+**Backgrounds** are `Tinted` (see-through color at the opacity you choose), `Solid`,
 or `None`.
 
 A compositor-blurred acrylic option existed briefly and was removed: Windows
 composites that blur across the whole window rectangle, and a transparent window takes
 its shape from per-pixel alpha rather than from a region, so acrylic could never
-honour a corner radius. One background behaving differently from the rest was not
+honor a corner radius. One background behaving differently from the rest was not
 worth what it bought — every background is now painted by the app, and the corner
 radius applies to all of them alike.
 
@@ -265,7 +265,7 @@ Unpackaged, everything sits under `%LocalAppData%\Barline`. Removing that build 
 deleting a folder, so anything left behind was always the user's to clear up.
 
 Packaged, the root is the package's own local folder, which Windows deletes on
-uninstall. That is the contract a packaged app is expected to honour, and writing to
+uninstall. That is the contract a packaged app is expected to honor, and writing to
 `%LocalAppData%\Barline` from a package would leave a folder behind that nothing owns
 and nothing removes. MSIX offers a redirection shim that would achieve the same
 without a code change, but it works by letting the app believe it is writing
@@ -298,7 +298,7 @@ copies are fetched results and neither is worth more than the other.
 ## About, and why it is not decoration
 
 The `LICENSE` and `THIRD-PARTY-NOTICES.md` files are copied beside the executable by
-the build, because a binary is conveyed under the GPL only if it carries the licence
+the build, because a binary is conveyed under the GPL only if it carries the license
 and says where its Corresponding Source can be had, and NAudio is MIT and compiled
 *into* the binary rather than sitting next to it, so its notice reaches nobody unless
 it is carried deliberately.

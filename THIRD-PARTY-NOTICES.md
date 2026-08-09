@@ -1,7 +1,7 @@
 # Third-party notices
 
 Barline is distributed under [GPL-3.0-or-later](LICENSE). It bundles the components
-below, which remain under their own licences. Those licences are reproduced here
+below, which remain under their own licenses. Those licenses are reproduced here
 because the components ship inside the released executable rather than beside it,
 and their terms require the notice to travel with the copy.
 
@@ -9,7 +9,7 @@ and their terms require the notice to travel with the copy.
 
 ## NAudio 2.2.1
 
-Used for WASAPI loopback capture, which is what drives the visualiser.
+Used for WASAPI loopback capture, which is what drives the visualizer.
 
 Copyright © Mark Heath 2023
 Authors: Mark Heath & Contributors

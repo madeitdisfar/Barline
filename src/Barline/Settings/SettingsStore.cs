@@ -29,7 +29,7 @@ internal sealed class SettingsStore
     {
         WriteIndented = true,
         // By name, so the file reads as configuration rather than as magic numbers —
-        // and tolerantly, so a value this build no longer recognises costs one setting
+        // and tolerantly, so a value this build no longer recognizes costs one setting
         // rather than the whole file.
         Converters = { new TolerantEnumConverterFactory() },
     };
@@ -106,11 +106,11 @@ internal sealed class SettingsStore
 
             if (loaded is null)
             {
-                DebugLog.Write("settings: file deserialised to null; using defaults");
+                DebugLog.Write("settings: file deserialized to null; using defaults");
                 return new WidgetSettings();
             }
 
-            // Read before normalising, which is what clears them.
+            // Read before normalizing, which is what clears them.
             _migrated = loaded.Version != WidgetSettings.CurrentVersion;
 
             // A hand edit can put values out of range without making the file

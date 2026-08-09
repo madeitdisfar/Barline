@@ -5,7 +5,7 @@ namespace Barline.Tests;
 
 /// <summary>
 /// LRC parsing. The format is barely specified and every producer bends it, so these
-/// tests are mostly about salvaging real-world files rather than honouring a spec.
+/// tests are mostly about salvaging real-world files rather than honoring a spec.
 /// </summary>
 public class LrcParserTests
 {

@@ -8,7 +8,7 @@ namespace Barline.Lyrics;
 /// <remarks>
 /// <para>
 /// The format is barely specified and every producer bends it, so this is written to
-/// salvage rather than validate: an unrecognised line is skipped, not fatal. A file
+/// salvage rather than validate: an unrecognized line is skipped, not fatal. A file
 /// that is half malformed should still show the half that works.
 /// </para>
 /// <para>

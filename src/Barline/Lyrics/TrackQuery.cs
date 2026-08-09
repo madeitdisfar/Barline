@@ -17,7 +17,7 @@ internal readonly record struct TrackCandidate(string Title, string Artist);
 /// any database as written, so a naive lookup misses tracks that are plainly there.
 /// </para>
 /// <para>
-/// Candidates are yielded from most to least faithful rather than normalising once
+/// Candidates are yielded from most to least faithful rather than normalizing once
 /// and hoping. The unedited name is tried first, because stripping is a guess and a
 /// track really can be called <c>Live</c>; only when that fails is the guess made.
 /// </para>

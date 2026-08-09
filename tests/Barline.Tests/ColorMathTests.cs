@@ -5,7 +5,7 @@ using Xunit;
 namespace Barline.Tests;
 
 /// <summary>
-/// Pins the colour-space conversions the legibility correction is built on. If these
+/// Pins the color-space conversions the legibility correction is built on. If these
 /// drift, every contrast guarantee above them is measuring the wrong thing.
 /// </summary>
 public class ColorMathTests
@@ -30,11 +30,11 @@ public class ColorMathTests
     [InlineData(0x00, 0x00, 0x00, 0d)]
     [InlineData(0xFF, 0xFF, 0xFF, 1d)]
     [InlineData(0x80, 0x80, 0x80, 0.5019d)]
-    public void ToHsl_reports_greys_as_unsaturated(byte r, byte g, byte b, double expectedLightness)
+    public void ToHsl_reports_grays_as_unsaturated(byte r, byte g, byte b, double expectedLightness)
     {
         var (_, saturation, lightness) = ColorMath.ToHsl(Color.FromRgb(r, g, b));
 
-        // Hue is deliberately not asserted: it is undefined for a grey, and the
+        // Hue is deliberately not asserted: it is undefined for a gray, and the
         // callers all gate on saturation before reading it.
         Assert.Equal(0d, saturation);
         Assert.Equal(expectedLightness, lightness, precision: 3);
@@ -44,7 +44,7 @@ public class ColorMathTests
     public void FromHsl_round_trips_through_ToHsl()
     {
         // Saturation stays clear of zero and lightness clear of the extremes, where
-        // 8-bit quantisation legitimately destroys hue information.
+        // 8-bit quantization legitimately destroys hue information.
         for (int hue = 0; hue < 360; hue += 7)
         {
             foreach (double saturation in new[] { 0.35d, 0.6d, 0.85d, 1.0d })
@@ -69,7 +69,7 @@ public class ColorMathTests
     [InlineData(360d)]      // wraps to 0
     [InlineData(720d)]
     [InlineData(-120d)]     // negative wraps forward
-    public void FromHsl_normalises_hue_outside_one_turn(double hue)
+    public void FromHsl_normalizes_hue_outside_one_turn(double hue)
     {
         var color = ColorMath.FromHsl(hue, 1d, 0.5d);
         var expected = ColorMath.FromHsl(((hue % 360d) + 360d) % 360d, 1d, 0.5d);

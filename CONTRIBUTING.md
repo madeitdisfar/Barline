@@ -4,7 +4,7 @@ Pull requests are welcome.
 
 **By opening one you agree that your contribution is licensed under GPL-3.0-or-later,
 and that the maintainer may also release it under other terms** — which keeps the door
-open to offering a commercial licence later without having to track down every past
+open to offering a commercial license later without having to track down every past
 contributor for permission.
 
 ## Building
@@ -25,13 +25,13 @@ shape is not a flag you have to remember.
 ## Project layout
 
 ```
-tests/Barline.Tests/    colour maths, contrast floor, hue extraction, lyric parsing
+tests/Barline.Tests/    color maths, contrast floor, hue extraction, lyric parsing
 src/Barline/
 ├─ Shell/        window hosting, taskbar tracking, Win32 interop
 ├─ Media/        SMTC session handling, album art, the playback clock
 ├─ Audio/        WASAPI loopback capture and FFT
 ├─ Lyrics/       fetching, parsing, caching, word timing, appearance model
-├─ Ui/           theme tokens, color resolution, the visualiser control
+├─ Ui/           theme tokens, color resolution, the visualizer control
 ├─ Settings/     the settings model, its JSON store, and the settings window
 ├─ Tray/         notification-area icon and menu
 ├─ Startup/      run-at-sign-in registration
@@ -46,7 +46,7 @@ arbitrary there is load-bearing.
 
 | Variable | Effect |
 |---|---|
-| `BARLINE_DEBUG=1` | Writes `%TEMP%\barline.log` — taskbar state transitions, media sessions, periodic visualiser band levels, and playback-clock accuracy. |
+| `BARLINE_DEBUG=1` | Writes `%TEMP%\barline.log` — taskbar state transitions, media sessions, periodic visualizer band levels, and playback-clock accuracy. |
 | `BARLINE_DEMO=1` | Shows a synthetic track with generated cover art instead of reading SMTC. |
 | `BARLINE_DEMO_TITLE` / `BARLINE_DEMO_ARTIST` | Override the demo track's title/artist (needs `BARLINE_DEMO=1`) — handy for checking the overflow fade at different text lengths. |
 | `BARLINE_SETTINGS=1` | Opens the settings window at startup, instead of right-clicking the tray on every rebuild. |
@@ -55,7 +55,7 @@ arbitrary there is load-bearing.
 otherwise makes the design impossible to inspect on a quiet machine.
 
 Debugging the window layer interactively is awkward — attaching a debugger changes
-foreground-window behaviour, which is often the thing being observed. Prefer the log.
+foreground-window behavior, which is often the thing being observed. Prefer the log.
 
 ## Tests
 
@@ -64,7 +64,7 @@ dotnet test
 ```
 
 The window and audio layers are verified by observation — they are about real
-windowing and device behaviour, and a mock of either would only assert that the mock
+windowing and device behavior, and a mock of either would only assert that the mock
 works. What *is* covered is the part with a guarantee attached: the color maths, the
 contrast floor, hue extraction from cover art, lyric parsing, and the playback clock.
 
@@ -83,7 +83,7 @@ must not paint near-black bars on the light taskbar.
 
 The bar-count tests hold the two sizing invariants — every count occupies the same
 width and paints the same amount of ink — and pin the default to the original 3px bar,
-so generalising the rule cannot quietly restyle it. On the audio side they hold the
+so generalizing the rule cannot quietly restyle it. On the audio side they hold the
 fitted dB windows to within 2 dB of the four that were measured by hand, and assert
 that every supported count still gives each band an FFT bin of its own. One test
 deliberately asserts that *seven* bands do not, so the reason the range stops at six is

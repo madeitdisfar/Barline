@@ -77,7 +77,7 @@ internal partial class LyricsPanel : Window
 
     /// <summary>
     /// Rebuilt per line rather than per frame. Only the active word's brush changes
-    /// colour as it is sung, so the others are shared and never touched again.
+    /// color as it is sung, so the others are shared and never touched again.
     /// </summary>
     private readonly SolidColorBrush _activeBrush = new();
 
@@ -134,7 +134,7 @@ internal partial class LyricsPanel : Window
     // ---- Appearance --------------------------------------------------------
 
     /// <summary>
-    /// Realises the current appearance: surface, type, colour and effect.
+    /// Realizes the current appearance: surface, type, color and effect.
     /// </summary>
     private void ApplyAppearance()
     {
@@ -165,7 +165,7 @@ internal partial class LyricsPanel : Window
         }
 
         // The text itself changes with the appearance (casing), so the line has to be
-        // rebuilt rather than merely recoloured.
+        // rebuilt rather than merely recolored.
         _lineIndex = -2;
         _activeWord = -1;
         PaintWords(0d);
@@ -316,17 +316,17 @@ internal partial class LyricsPanel : Window
     /// <remarks>
     /// Polled from the lyric tick rather than handled as mouse events, because
     /// <c>WS_EX_TRANSPARENT</c> means this window never receives any. That is also
-    /// what makes the behaviour worth having: the panel cannot be clicked away, so it
+    /// what makes the behavior worth having: the panel cannot be clicked away, so it
     /// needs some way to stop covering what is under it.
     /// </remarks>
     private void UpdateHover()
     {
-        var behaviour = _settings.Current.LyricsHover;
+        var behavior = _settings.Current.LyricsHover;
 
         // Against the rect actually passed to SetWindowPos, in physical pixels. The
         // window's own Left/Top are WPF's idea of where it is and do not follow a
         // position set through the Win32 call.
-        bool over = behaviour != LyricsHoverBehavior.None &&
+        bool over = behavior != LyricsHoverBehavior.None &&
             _shown &&
             _placedWidth > 0 &&
             GetCursorPos(out var cursor) &&
@@ -336,7 +336,7 @@ internal partial class LyricsPanel : Window
         if (over == _hovered) return;
         _hovered = over;
 
-        switch (behaviour)
+        switch (behavior)
         {
             case LyricsHoverBehavior.Hide:
                 Place(_tracker.Current);
@@ -468,7 +468,7 @@ internal partial class LyricsPanel : Window
     /// <remarks>
     /// Runs rather than a gradient mask over the whole line. A horizontal gradient
     /// assumes the line is one row, and this one can wrap — the sweep would run across
-    /// both at once. Runs also cost nothing to re-colour, where a mask would need the
+    /// both at once. Runs also cost nothing to re-color, where a mask would need the
     /// pixel position of every word measured.
     /// </remarks>
     private void BuildLine(LyricsDocument document, int index)
@@ -519,9 +519,9 @@ internal partial class LyricsPanel : Window
     }
 
     /// <summary>
-    /// Colours the line for a given point in it. Cheap enough to run every frame:
+    /// Colors the line for a given point in it. Cheap enough to run every frame:
     /// brushes are only reassigned when the word changes, and between words only one
-    /// brush's colour moves.
+    /// brush's color moves.
     /// </summary>
     private void PaintWords(double progressIntoWord)
     {

@@ -4,25 +4,25 @@ using Barline.Lyrics;
 namespace Barline.Settings;
 
 /// <summary>
-/// Where the visualiser's bar colour comes from.
+/// Where the visualizer's bar color comes from.
 /// </summary>
 /// <remarks>
-/// Serialised by name, not by number, so the file stays readable and reordering
+/// Serialized by name, not by number, so the file stays readable and reordering
 /// this enum can never silently repoint an existing setting.
 /// </remarks>
 internal enum VisualizerColorMode
 {
     /// <summary>
-    /// The built-in theme colour — white on the dark taskbar, a medium grey on the
+    /// The built-in theme color — white on the dark taskbar, a medium gray on the
     /// light one. The only mode that needs no legibility correction, because both
     /// values are chosen against the taskbar material by hand.
     /// </summary>
     Default,
 
-    /// <summary>The user's Windows accent colour, corrected for legibility.</summary>
+    /// <summary>The user's Windows accent color, corrected for legibility.</summary>
     SystemAccent,
 
-    /// <summary>A fixed colour from <see cref="WidgetSettings.CustomBarColor"/>.</summary>
+    /// <summary>A fixed color from <see cref="WidgetSettings.CustomBarColor"/>.</summary>
     Custom,
 
     /// <summary>The dominant hue of the current album art, corrected for legibility.</summary>
@@ -71,17 +71,17 @@ internal sealed class WidgetSettings
     public VisualizerColorMode VisualizerColor { get; set; } = VisualizerColorMode.Default;
 
     /// <summary>
-    /// Colour for <see cref="VisualizerColorMode.Custom"/>, as <c>#RRGGBB</c>.
+    /// Color for <see cref="VisualizerColorMode.Custom"/>, as <c>#RRGGBB</c>.
     /// </summary>
     /// <remarks>
-    /// Still corrected for legibility against the taskbar, so a colour picked here
+    /// Still corrected for legibility against the taskbar, so a color picked here
     /// is a request for a hue rather than for exact bytes.
     /// </remarks>
     public string? CustomBarColor { get; set; }
 
     /// <summary>
     /// Whether the bars are drawn at all. Previously in-memory only, so turning the
-    /// visualiser off did not survive a restart.
+    /// visualizer off did not survive a restart.
     /// </summary>
     public bool VisualizerEnabled { get; set; } = true;
 
@@ -123,7 +123,7 @@ internal sealed class WidgetSettings
     /// Word timing is estimated from the line for almost every track, since virtually
     /// no source carries it. The estimate is good but it is an estimate, and on a
     /// track it fits badly the whole line at once is the calmer choice. Like the hover
-    /// behaviour, it is a preference rather than a look, so presets leave it alone.
+    /// behavior, it is a preference rather than a look, so presets leave it alone.
     /// </remarks>
     public bool LyricsWordByWord { get; set; } = true;
 
@@ -137,14 +137,14 @@ internal sealed class WidgetSettings
     /// <para>
     /// The ceiling is six for two independent reasons, either of which would set it
     /// there alone. Visually, the bars divide a fixed width, so seven bars are 1.7px
-    /// wide and the tall neighbouring ones visibly merge at 100% scaling — worse on
-    /// the light taskbar, where the bar colour is translucent as well as thin.
+    /// wide and the tall neighboring ones visibly merge at 100% scaling — worse on
+    /// the light taskbar, where the bar color is translucent as well as thin.
     /// </para>
     /// <para>
     /// Technically, a 1024-point FFT at 48kHz resolves 46.9Hz per bin, and the
     /// lowest band spans 40Hz to <c>40 × 256^(1/n)</c>. At seven bands that upper
     /// edge is 89.8Hz, which falls in the same bin the second band starts from, so
-    /// the lowest band becomes a strict subset of its neighbour and the two bottom
+    /// the lowest band becomes a strict subset of its neighbor and the two bottom
     /// bars move as one.
     /// </para>
     /// </remarks>
@@ -152,7 +152,7 @@ internal sealed class WidgetSettings
     public const int MaxBarCount = 6;
 
     /// <summary>
-    /// How many bars the visualiser draws. Bars share a fixed width and ink budget,
+    /// How many bars the visualizer draws. Bars share a fixed width and ink budget,
     /// so this trades detail for thickness and never widens the widget.
     /// </summary>
     public int VisualizerBarCount { get; set; } = DefaultBarCount;
@@ -163,7 +163,7 @@ internal sealed class WidgetSettings
     /// <remarks>
     /// The file is documented as safe to edit, so out-of-range values are an
     /// expected input rather than a corrupt one. Clamping beats rejecting the whole
-    /// file: a mistyped bar count should not also discard the user's colour.
+    /// file: a mistyped bar count should not also discard the user's color.
     /// </remarks>
     public void Normalize()
     {

@@ -9,7 +9,7 @@ namespace Barline.Settings;
 /// </summary>
 /// <remarks>
 /// <para>
-/// The stock converter throws on an unrecognised name, and because these enums sit
+/// The stock converter throws on an unrecognized name, and because these enums sit
 /// inside the settings file, one unknown value takes the whole file down with it —
 /// every unrelated setting reverts to its default. That is a harsh penalty for a
 /// setting having been renamed or, as with the acrylic background, removed.

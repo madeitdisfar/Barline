@@ -11,7 +11,7 @@ namespace Barline.Tests;
 /// <remarks>
 /// A style now says where the lyrics go as well as how they look, which is what stopped
 /// the same preset describing two different designs. The cost is that a preset written
-/// before that says nothing about placement, and has to be recognised rather than read
+/// before that says nothing about placement, and has to be recognized rather than read
 /// as one that chose the defaults.
 /// </remarks>
 public class LyricsStyleTests
@@ -22,7 +22,7 @@ public class LyricsStyleTests
     };
 
     /// <summary>
-    /// The load-bearing detail behind the whole migration: the serialiser leaves an
+    /// The load-bearing detail behind the whole migration: the serializer leaves an
     /// absent key at whatever the object was constructed with, so a Schema that
     /// defaulted to the current version would make every old file claim to be current.
     /// </summary>

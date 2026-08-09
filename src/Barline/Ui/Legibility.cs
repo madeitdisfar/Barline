@@ -3,14 +3,14 @@ using System.Windows.Media;
 namespace Barline.Ui;
 
 /// <summary>
-/// Forces an arbitrary colour to be visible against the taskbar, keeping its hue.
+/// Forces an arbitrary color to be visible against the taskbar, keeping its hue.
 /// </summary>
 /// <remarks>
 /// <para>
-/// This is the guarantee behind the album-art and accent colour modes. A hue taken
+/// This is the guarantee behind the album-art and accent color modes. A hue taken
 /// from artwork is whatever the artwork happened to contain: a dark navy cover on the
 /// dark taskbar, or a pale yellow one on the light taskbar, would produce bars that
-/// are technically coloured and practically invisible. Hue and (within a band)
+/// are technically colored and practically invisible. Hue and (within a band)
 /// saturation are the artwork's to choose; lightness is not.
 /// </para>
 /// <para>
@@ -28,22 +28,22 @@ internal static class Legibility
     public const double MinContrast = 3.0d;
 
     // The hue has to survive being pushed toward light or dark, so saturation is held
-    // inside a band: too low and the correction bleaches it to grey, too high and an
+    // inside a band: too low and the correction bleaches it to gray, too high and an
     // album tint turns into neon that stops reading as system UI.
     private const double MinSaturation = 0.40d;
     private const double MaxSaturation = 0.85d;
 
     /// <summary>Below this there is no hue to preserve and correcting is meaningless.</summary>
-    private const double GreyThreshold = 0.05d;
+    private const double GrayThreshold = 0.05d;
 
-    // The lightness band a corrected colour starts inside, chosen around the
-    // hand-tuned Default colours so a corrected bar carries the same visual weight as
+    // The lightness band a corrected color starts inside, chosen around the
+    // hand-tuned Default colors so a corrected bar carries the same visual weight as
     // the built-in one.
     //
     // Bounded on BOTH sides on purpose. A floor alone is not enough: a pale pink cover
     // arrives at lightness 0.98, clears the contrast floor against the dark taskbar
     // untouched, and paints bars that are legible but indistinguishable from white —
-    // the album's colour technically preserved and visually gone. The ceiling pulls it
+    // the album's color technically preserved and visually gone. The ceiling pulls it
     // back to where the hue is actually visible. On the light taskbar the same bound
     // stops a dark cover from painting the near-black bars that read as too heavy.
     private const double DarkThemeMinLightness = 0.62d;
@@ -67,7 +67,7 @@ internal static class Legibility
     {
         var (hue, saturation, lightness) = ColorMath.ToHsl(color);
 
-        if (saturation < GreyThreshold) return null;
+        if (saturation < GrayThreshold) return null;
 
         saturation = Math.Clamp(saturation, MinSaturation, MaxSaturation);
 

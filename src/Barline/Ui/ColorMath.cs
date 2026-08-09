@@ -3,7 +3,7 @@ using System.Windows.Media;
 namespace Barline.Ui;
 
 /// <summary>
-/// Colour-space helpers shared by album-art extraction and legibility correction.
+/// Color-space helpers shared by album-art extraction and legibility correction.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -15,7 +15,7 @@ namespace Barline.Ui;
 /// text, so the relevant bar is SC 1.4.11's 3:1 rather than 4.5:1.
 /// </para>
 /// <para>
-/// Alpha is ignored throughout: every colour that goes through contrast correction is
+/// Alpha is ignored throughout: every color that goes through contrast correction is
 /// opaque, and blending a translucent bar against estimated taskbar material would be
 /// guesswork stacked on guesswork.
 /// </para>
@@ -33,7 +33,7 @@ internal static class ColorMath
         double lightness = (max + min) / 2d;
         double delta = max - min;
 
-        // Pure grey: hue is undefined, and any value we invented would later be
+        // Pure gray: hue is undefined, and any value we invented would later be
         // amplified by the saturation floor into a tint that is not in the artwork.
         if (delta <= double.Epsilon) return (0d, 0d, lightness);
 
@@ -59,7 +59,7 @@ internal static class ColorMath
         double sector = hue / 60d;
         double second = chroma * (1d - Math.Abs(sector % 2d - 1d));
 
-        // Normalising hue above keeps sector < 6, so the final arm is sector 5.
+        // Normalizing hue above keeps sector < 6, so the final arm is sector 5.
         (double r, double g, double b) = (int)sector switch
         {
             0 => (chroma, second, 0d),
@@ -78,18 +78,18 @@ internal static class ColorMath
         (byte)Math.Clamp(Math.Round(value * 255d), 0d, 255d);
 
     public static double RelativeLuminance(Color color) =>
-        0.2126d * Linearise(color.R) +
-        0.7152d * Linearise(color.G) +
-        0.0722d * Linearise(color.B);
+        0.2126d * Linearize(color.R) +
+        0.7152d * Linearize(color.G) +
+        0.0722d * Linearize(color.B);
 
     /// <summary>Undoes the sRGB transfer curve, per WCAG's definition.</summary>
-    private static double Linearise(byte channel)
+    private static double Linearize(byte channel)
     {
         double v = channel / 255d;
         return v <= 0.03928d ? v / 12.92d : Math.Pow((v + 0.055d) / 1.055d, 2.4d);
     }
 
-    /// <summary>Contrast ratio between two colours, from 1:1 to 21:1.</summary>
+    /// <summary>Contrast ratio between two colors, from 1:1 to 21:1.</summary>
     public static double ContrastRatio(Color a, Color b)
     {
         double la = RelativeLuminance(a);

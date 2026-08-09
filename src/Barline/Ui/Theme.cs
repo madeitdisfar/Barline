@@ -5,7 +5,7 @@ using Barline.Diagnostics;
 namespace Barline.Ui;
 
 /// <summary>
-/// Windows 11 Fluent colour tokens, resolved against the live system theme.
+/// Windows 11 Fluent color tokens, resolved against the live system theme.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -48,15 +48,15 @@ internal sealed class Theme
     public Brush ArtPlaceholder { get; private set; } = Brushes.Transparent;
 
     /// <summary>
-    /// Default visualiser bar colour. Its own token rather than the primary text
-    /// colour: white bars read fine on the dark taskbar, but near-black bars on the
+    /// Default visualizer bar color. Its own token rather than the primary text
+    /// color: white bars read fine on the dark taskbar, but near-black bars on the
     /// light taskbar are the heaviest thing on screen, so light mode softens them to
-    /// a medium grey.
+    /// a medium gray.
     /// </summary>
     /// <remarks>
     /// A <see cref="Color"/> rather than a brush because <c>BarColorResolver</c> may
     /// need to animate to and from it, and because its alpha participates in that
-    /// interpolation. Holding both a colour and a brush for one token would only
+    /// interpolation. Holding both a color and a brush for one token would only
     /// invite the two to drift.
     /// </remarks>
     public Color BarDefault { get; private set; } = Colors.White;
@@ -91,7 +91,7 @@ internal sealed class Theme
     // ---- Settings-window tokens -------------------------------------------
     //
     // The overlay paints onto real taskbar material and so needs almost no surface
-    // colours. A settings window is a normal window and needs the full set: WinUI's
+    // colors. A settings window is a normal window and needs the full set: WinUI's
     // SolidBackgroundFillColorBase, CardBackgroundFillColorDefault,
     // CardStrokeColorDefault, ControlAltFillColorSecondary and
     // ControlStrongStrokeColorDefault, reproduced at their exact values for the same
@@ -112,7 +112,7 @@ internal sealed class Theme
     /// <summary>Toggle-switch border and knob when off (WinUI ControlStrongStrokeColorDefault).</summary>
     public Brush ControlStrongStroke { get; private set; } = Brushes.Gray;
 
-    /// <summary>The accent colour as a brush, for toggle switches that are on.</summary>
+    /// <summary>The accent color as a brush, for toggle switches that are on.</summary>
     public Brush AccentFill { get; private set; } = Brushes.DodgerBlue;
 
     /// <summary>
@@ -130,7 +130,7 @@ internal sealed class Theme
 
     public event EventHandler? Changed;
 
-    private bool _initialised;
+    private bool _initialized;
 
     public Theme() => Refresh();
 
@@ -143,10 +143,10 @@ internal sealed class Theme
         bool light = ReadIsLightTheme();
         var accent = ReadAccent();
 
-        if (_initialised && light == IsLight && accent == Accent)
+        if (_initialized && light == IsLight && accent == Accent)
             return;
 
-        _initialised = true;
+        _initialized = true;
         IsLight = light;
         Accent = accent;
 

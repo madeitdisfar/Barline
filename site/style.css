@@ -2,7 +2,7 @@
    Barline site styles.
 
    One accent, taken from the app icon, spent only on things that can be clicked.
-   Everything else is greyscale, which is what keeps a page made mostly of
+   Everything else is grayscale, which is what keeps a page made mostly of
    screenshots from competing with itself.
 
    Spacing runs on a 4px scale and type on six sizes. Both lists are deliberately
@@ -287,7 +287,7 @@ figcaption {
 
 /* The recording is a 16:9 frame with the widget as a strip across the middle, so
    shown whole it is mostly empty black. Cropped to the band it is actually in;
-   the source is centred, so cover takes the same off the top and the bottom. */
+   the source is centered, so cover takes the same off the top and the bottom. */
 video.clip {
     aspect-ratio: 1920 / 620;
     object-fit: cover;
@@ -413,7 +413,7 @@ section a:hover {
 }
 
 /* The recommended one is marked by a border in the accent and nothing else. A
-   filled card would shout; a coloured edge is enough to say which to read first. */
+   filled card would shout; a colored edge is enough to say which to read first. */
 .option-primary {
     border-color: var(--accent);
     background: var(--bg);
@@ -536,7 +536,7 @@ td.yes {
 /* The measure lives on the box rather than on the paragraphs inside it. Capping
    the text alone left it stopping short of a border that carried on without it,
    which is what read as a ragged right edge. The box is now the width of a
-   comfortable line and centred in the column, so text and border end together. */
+   comfortable line and centered in the column, so text and border end together. */
 .sustain {
     margin: var(--s8) auto 0;
     padding: var(--s7);

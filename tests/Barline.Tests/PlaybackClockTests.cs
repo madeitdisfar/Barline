@@ -31,7 +31,7 @@ public class PlaybackClockTests
     /// <summary>
     /// Positions are compared with a tolerance throughout: these are floating-point
     /// extrapolations, and asserting exact ticks would test the arithmetic rather
-    /// than the behaviour.
+    /// than the behavior.
     /// </summary>
     private static void AssertClose(TimeSpan expected, TimeSpan actual, TimeSpan tolerance)
     {
@@ -65,7 +65,7 @@ public class PlaybackClockTests
     }
 
     [Fact]
-    public void Playback_rate_is_honoured()
+    public void Playback_rate_is_honored()
     {
         var clock = new PlaybackClock();
         clock.Anchor(Report(30d, rate: 1.5d), At(0));
@@ -101,7 +101,7 @@ public class PlaybackClockTests
     // ---- Corrections -------------------------------------------------------
 
     /// <summary>
-    /// The behaviour the class exists for. Ordinary drift must not step the position,
+    /// The behavior the class exists for. Ordinary drift must not step the position,
     /// because anything driven by this clock would visibly twitch every time a source
     /// app published a report.
     /// </summary>

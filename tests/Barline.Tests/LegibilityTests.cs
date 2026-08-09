@@ -8,7 +8,7 @@ namespace Barline.Tests;
 /// The contrast guarantee. An album's dominant hue is whatever the artwork happens to
 /// contain, so the widget cannot assume anything about it — these tests exist so that
 /// tuning the lightness bands or saturation clamps cannot quietly reintroduce bars
-/// that are technically coloured and practically invisible.
+/// that are technically colored and practically invisible.
 /// </summary>
 public class LegibilityTests
 {
@@ -40,7 +40,7 @@ public class LegibilityTests
     /// </summary>
     [Theory]
     [MemberData(nameof(Themes))]
-    public void Every_correctable_colour_clears_the_contrast_floor(bool preferLighter)
+    public void Every_correctable_color_clears_the_contrast_floor(bool preferLighter)
     {
         Color backdrop = BackdropFor(preferLighter);
         int corrected = 0;
@@ -52,9 +52,9 @@ public class LegibilityTests
 
             if (result is null)
             {
-                // Null is only legitimate for a colour with no hue to keep. Anything
-                // visibly coloured must be correctable — otherwise covers silently
-                // fall back to the theme colour, which is a quality regression the
+                // Null is only legitimate for a color with no hue to keep. Anything
+                // visibly colored must be correctable — otherwise covers silently
+                // fall back to the theme color, which is a quality regression the
                 // contrast assertion below cannot see, because it never runs.
                 Assert.True(inputSaturation < 0.15d,
                     $"{input} has saturation {inputSaturation:F2} but was uncorrectable");
@@ -109,8 +109,8 @@ public class LegibilityTests
             var result = Legibility.TryCoerce(input, backdrop, preferLighter);
             if (result is null) continue;
 
-            // Measured against the input colour's own hue, not an ideal one: at low
-            // saturation an 8-bit colour cannot represent an exact hue, and that error
+            // Measured against the input color's own hue, not an ideal one: at low
+            // saturation an 8-bit color cannot represent an exact hue, and that error
             // is not the correction's doing.
             var (inHue, _, _) = ColorMath.ToHsl(input);
             var (outHue, _, _) = ColorMath.ToHsl(result.Value);
@@ -126,25 +126,25 @@ public class LegibilityTests
     [InlineData(0x80, 0x80, 0x80)]
     [InlineData(0x33, 0x33, 0x33)]
     [InlineData(0x10, 0x10, 0x10)]
-    public void Greys_are_rejected_rather_than_tinted(byte r, byte g, byte b)
+    public void Grays_are_rejected_rather_than_tinted(byte r, byte g, byte b)
     {
-        var grey = Color.FromRgb(r, g, b);
+        var gray = Color.FromRgb(r, g, b);
 
-        // There is no hue to preserve, so any colour returned here would be one the
+        // There is no hue to preserve, so any color returned here would be one the
         // saturation floor invented — a tint that is not in the source.
-        Assert.Null(Legibility.TryCoerce(grey, Theme.DarkBackdrop, preferLighter: true));
-        Assert.Null(Legibility.TryCoerce(grey, Theme.LightBackdrop, preferLighter: false));
+        Assert.Null(Legibility.TryCoerce(gray, Theme.DarkBackdrop, preferLighter: true));
+        Assert.Null(Legibility.TryCoerce(gray, Theme.LightBackdrop, preferLighter: false));
     }
 
     /// <summary>
     /// Regression test for a bug a contrast floor alone does not catch: a pale cover
     /// arrives at lightness 0.98, already clears the floor against the dark taskbar
-    /// untouched, and paints bars indistinguishable from white — the album's colour
+    /// untouched, and paints bars indistinguishable from white — the album's color
     /// technically preserved and visually gone. The lightness band is bounded above
     /// for exactly this case.
     /// </summary>
     [Fact]
-    public void A_pale_source_is_pulled_back_to_a_visible_colour()
+    public void A_pale_source_is_pulled_back_to_a_visible_color()
     {
         var pale = ColorMath.FromHsl(340d, 1.0d, 0.98d);
 

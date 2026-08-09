@@ -7,7 +7,7 @@ using Barline.Lyrics;
 namespace Barline.Ui;
 
 /// <summary>
-/// Turns a <see cref="LyricsAppearance"/> into the WPF properties that realise it.
+/// Turns a <see cref="LyricsAppearance"/> into the WPF properties that realize it.
 /// </summary>
 /// <remarks>
 /// Shared so the floating panel and the inline display read the same appearance the
@@ -20,7 +20,7 @@ internal static class LyricsTypography
     public static Color TextColor(LyricsAppearance appearance) =>
         Parse(appearance.TextColor, Colors.White);
 
-    /// <summary>The text colour at the opacity an unsung word is drawn with.</summary>
+    /// <summary>The text color at the opacity an unsung word is drawn with.</summary>
     public static Color UnsungColor(LyricsAppearance appearance)
     {
         var color = TextColor(appearance);

@@ -19,7 +19,7 @@ using SessionManager = GlobalSystemMediaTransportControlsSessionManager;
 /// up there — Spotify, Apple Music, browsers, podcast apps — works here for free.
 /// </para>
 /// <para>
-/// Every WinRT event arrives on a thread-pool thread. All publishing is marshalled
+/// Every WinRT event arrives on a thread-pool thread. All publishing is marshaled
 /// to the UI dispatcher so consumers never have to think about it.
 /// </para>
 /// </remarks>

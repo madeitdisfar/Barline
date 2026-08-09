@@ -27,10 +27,10 @@ namespace Barline.Settings;
 /// it actually matters.
 /// </para>
 /// <para>
-/// Each colour mode shows the colour it would really produce, resolved through the
+/// Each color mode shows the color it would really produce, resolved through the
 /// same contrast correction the widget uses. That matters more here than anywhere
 /// else: what the user gets is deliberately not what the artwork or the picker said,
-/// and showing the picked colour instead of the drawn one would misrepresent the
+/// and showing the picked color instead of the drawn one would misrepresent the
 /// feature.
 /// </para>
 /// </remarks>
@@ -53,7 +53,7 @@ internal partial class SettingsWindow : Window
     private readonly Dictionary<VisualizerColorMode, RadioButton> _modeOptions;
 
     /// <summary>
-    /// The label shown against each colour mode, read back from the control rather than
+    /// The label shown against each color mode, read back from the control rather than
     /// restated here, so the folded card and the option it names cannot drift apart.
     /// </summary>
     private readonly Dictionary<VisualizerColorMode, TextBlock> _modeLabels;
@@ -94,9 +94,9 @@ internal partial class SettingsWindow : Window
     /// <remarks>
     /// Always set through <see cref="WithoutFeedback"/> rather than by hand. Leaving it
     /// to each caller to remember produced a real bug: selecting "Default" re-checked
-    /// whichever palette swatch matched the stored custom colour, whose Checked handler
+    /// whichever palette swatch matched the stored custom color, whose Checked handler
     /// then wrote the mode straight back to Custom — so the option could not be
-    /// changed at all once a palette colour had been picked.
+    /// changed at all once a palette color had been picked.
     /// </remarks>
     private bool _syncing;
 
@@ -172,8 +172,8 @@ internal partial class SettingsWindow : Window
             [LyricsHoverBehavior.Hide] = HoverHideOption,
         };
 
-        foreach (var (behaviour, option) in _hoverOptions)
-            option.Checked += (_, _) => Mutate(s => s.LyricsHover = behaviour);
+        foreach (var (behavior, option) in _hoverOptions)
+            option.Checked += (_, _) => Mutate(s => s.LyricsHover = behavior);
 
         _lyricsPositionOptions = new Dictionary<LyricsPanelPosition, RadioButton>
         {
@@ -236,7 +236,7 @@ internal partial class SettingsWindow : Window
         BuildSwatches();
 
         // The preview animates on its own decorative motion: no LevelSource is set,
-        // so it never touches the audio capture just to show a colour.
+        // so it never touches the audio capture just to show a color.
         PreviewBars.BarBrush = _preview.Brush;
         PreviewBars.IsActive = true;
 
@@ -284,7 +284,7 @@ internal partial class SettingsWindow : Window
     }
 
     /// <summary>
-    /// A new track means a new album-art colour, so the swatch, the hex readout and
+    /// A new track means a new album-art color, so the swatch, the hex readout and
     /// the preview bars all have to be recomputed.
     /// </summary>
     private void OnAlbumArtChanged(object? sender, EventArgs e) => RefreshPreview();
@@ -437,7 +437,7 @@ internal partial class SettingsWindow : Window
     {
         var color = _preview.Preview(mode, art);
 
-        // Swatches sit on the card, not on the taskbar, so a translucent bar colour
+        // Swatches sit on the card, not on the taskbar, so a translucent bar color
         // (the light-mode default is 53% black) is composited over the backdrop
         // estimate first — otherwise it would read against the wrong surface.
         var brush = new SolidColorBrush(Flatten(color, _theme.BackdropEstimate));
@@ -447,7 +447,7 @@ internal partial class SettingsWindow : Window
         hex.Text = $"#{color.R:X2}{color.G:X2}{color.B:X2}";
     }
 
-    /// <summary>Composites a possibly-translucent colour over an opaque one.</summary>
+    /// <summary>Composites a possibly-translucent color over an opaque one.</summary>
     private static Color Flatten(Color color, Color over)
     {
         if (color.A == 0xFF) return color;
@@ -855,7 +855,7 @@ internal partial class SettingsWindow : Window
             new SolidColorBrush(LyricsTypography.TextColor(appearance));
 
         // Shown at the opacity it will actually be drawn with, over the chequerboard
-        // in the swatch template — otherwise a 20% tint looks like a solid dark colour.
+        // in the swatch template — otherwise a 20% tint looks like a solid dark color.
         var background = LyricsTypography.Parse(appearance.BackgroundColor, Color.FromRgb(0x2C, 0x2C, 0x2C));
         byte alpha = appearance.Background == LyricsBackground.Solid
             ? (byte)0xFF
@@ -865,17 +865,17 @@ internal partial class SettingsWindow : Window
             new SolidColorBrush(Color.FromArgb(alpha, background.R, background.G, background.B));
     }
 
-    // ---- Colour palette ----------------------------------------------------
+    // ---- Color palette ----------------------------------------------------
 
     /// <summary>Which well the palette is currently editing.</summary>
     private bool _pickingTextColor;
 
     /// <summary>
-    /// A fixed palette: twelve hues at two lightnesses, then a greyscale ramp.
+    /// A fixed palette: twelve hues at two lightnesses, then a grayscale ramp.
     /// </summary>
     /// <remarks>
     /// Typing hex is exact but nobody wants to do it to try three shades. This is not
-    /// a full colour picker — a hue/saturation surface would be a control to build and
+    /// a full color picker — a hue/saturation surface would be a control to build and
     /// maintain, and the hex box already covers anything the palette misses.
     /// </remarks>
     private void BuildColorPalette()
@@ -1291,7 +1291,7 @@ internal partial class SettingsWindow : Window
         AutoStartNote.Visibility = note.Length == 0 ? Visibility.Collapsed : Visibility.Visible;
     }
 
-    // ---- Custom colour -----------------------------------------------------
+    // ---- Custom color -----------------------------------------------------
 
     private void BuildSwatches()
     {
@@ -1301,7 +1301,7 @@ internal partial class SettingsWindow : Window
 
             // Mid lightness and high saturation: the swatch communicates a hue, and
             // the correction decides the lightness anyway, so showing anything else
-            // would promise a colour the widget will not paint.
+            // would promise a color the widget will not paint.
             var color = ColorMath.FromHsl(hue, 0.75d, 0.5d);
             var fill = new SolidColorBrush(color);
             fill.Freeze();
@@ -1327,8 +1327,8 @@ internal partial class SettingsWindow : Window
     }
 
     /// <summary>
-    /// Points the palette selection at the stored custom colour. Guards itself, since
-    /// checking a swatch fires the handler that writes the colour back.
+    /// Points the palette selection at the stored custom color. Guards itself, since
+    /// checking a swatch fires the handler that writes the color back.
     /// </summary>
     private void SyncSwatchSelection() => WithoutFeedback(() =>
     {

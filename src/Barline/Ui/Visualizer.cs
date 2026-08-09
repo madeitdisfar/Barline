@@ -4,12 +4,12 @@ using System.Windows.Media;
 namespace Barline.Ui;
 
 /// <summary>
-/// The Apple-Music-style bar visualiser: a small row of rounded bars that respond
+/// The Apple-Music-style bar visualizer: a small row of rounded bars that respond
 /// to what is playing.
 /// </summary>
 /// <remarks>
 /// <para>
-/// The element owns only presentation — smoothing, resting behaviour and drawing.
+/// The element owns only presentation — smoothing, resting behavior and drawing.
 /// Its input is either an external spectrum (see <see cref="SetLevels"/>, driven by
 /// the FFT) or a built-in decorative motion used when no audio source is available.
 /// Keeping the two interchangeable means the render path is identical either way.
@@ -38,10 +38,10 @@ internal sealed class Visualizer : FrameworkElement
     /// </para>
     /// <para>
     /// Holding the width alone would be enough to stop the widget stretching, but it
-    /// would let more bars mean more ink, so a "detailed" visualiser would also read
+    /// would let more bars mean more ink, so a "detailed" visualizer would also read
     /// as a heavier one. Fixing the ink too means changing the count changes the
     /// detail and nothing else — the row keeps its weight against the taskbar, and
-    /// the bar colour keeps the contrast it was corrected for.
+    /// the bar color keeps the contrast it was corrected for.
     /// </para>
     /// </remarks>
     private const double TotalBarInk = 12d;
@@ -185,7 +185,7 @@ internal sealed class Visualizer : FrameworkElement
     /// <summary>
     /// Starts the frame loop. It runs while active to animate, and while inactive
     /// to ease the bars down — <see cref="OnRendering"/> detaches itself once an
-    /// inactive visualiser has settled, or as soon as it stops being visible.
+    /// inactive visualizer has settled, or as soon as it stops being visible.
     /// </summary>
     private void UpdateSubscription()
     {
@@ -293,7 +293,7 @@ internal sealed class Visualizer : FrameworkElement
         // At the default four this is the original 3px bar with a 3px gap.
         var (barWidth, barGap) = BarGeometry(_barCount);
 
-        double centreY = ActualHeight / 2d;
+        double centerY = ActualHeight / 2d;
         double radius = barWidth / 2d;   // fully rounded caps
 
         for (int i = 0; i < _barCount; i++)
@@ -301,7 +301,7 @@ internal sealed class Visualizer : FrameworkElement
             double height = MinBarHeight + _current[i] * (MaxBarHeight - MinBarHeight);
             double x = i * (barWidth + barGap);
 
-            var rect = new Rect(x, centreY - height / 2d, barWidth, height);
+            var rect = new Rect(x, centerY - height / 2d, barWidth, height);
             dc.DrawRoundedRectangle(brush, null, rect, radius, radius);
         }
     }

@@ -129,7 +129,7 @@ public class BandPlanTests
 
     /// <summary>
     /// The constraint that set the ceiling on the range. A band whose bins are all
-    /// shared with its neighbour carries no information of its own, and its bar would
+    /// shared with its neighbor carries no information of its own, and its bar would
     /// move in lockstep with the one beside it.
     /// </summary>
     [Theory]
@@ -144,7 +144,7 @@ public class BandPlanTests
             {
                 Assert.True(
                     HasExclusiveBin(ranges, b),
-                    $"at {count} bands and {sampleRate}Hz, band {b} shares every bin with a neighbour");
+                    $"at {count} bands and {sampleRate}Hz, band {b} shares every bin with a neighbor");
             }
         }
     }

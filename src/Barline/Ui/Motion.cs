@@ -16,7 +16,7 @@ internal static class Motion
     /// <summary>Fluent "fast" — used for hover, where the response must feel instant.</summary>
     public const int FastMs = 150;
 
-    /// <summary>Fluent "normal" — used for content changes like a new track's colour.</summary>
+    /// <summary>Fluent "normal" — used for content changes like a new track's color.</summary>
     public const int NormalMs = 250;
 
     /// <summary>The Fluent standard easing curve, cubic-bezier(0.33, 0, 0.67, 1).</summary>

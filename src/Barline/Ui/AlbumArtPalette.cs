@@ -9,14 +9,14 @@ namespace Barline.Ui;
 /// </summary>
 /// <remarks>
 /// <para>
-/// Deliberately not "the average colour" — averaging a cover mixes complementary
-/// regions into mud, and the mud is usually grey. Instead pixels vote into hue
+/// Deliberately not "the average color" — averaging a cover mixes complementary
+/// regions into mud, and the mud is usually gray. Instead pixels vote into hue
 /// buckets, weighted so that vivid mid-tones count for far more than washed-out or
 /// nearly-black ones, and the winning cluster's hue is returned.
 /// </para>
 /// <para>
 /// The result is a <em>seed</em>: hue and saturation are meaningful, lightness is
-/// normalised to 0.5 and carries no information. Choosing a final lightness is
+/// normalized to 0.5 and carries no information. Choosing a final lightness is
 /// <see cref="BarColorResolver"/>'s job, because it depends on the taskbar the bars
 /// have to be legible against, not on the artwork.
 /// </para>
@@ -42,13 +42,13 @@ internal static class AlbumArtPalette
     private const double MinLightness = 0.10d;
     private const double MaxLightness = 0.93d;
 
-    /// <summary>Below this a pixel is effectively grey and its hue is noise.</summary>
+    /// <summary>Below this a pixel is effectively gray and its hue is noise.</summary>
     private const double MinSaturation = 0.15d;
 
     /// <summary>
     /// Weight the winning cluster must reach, as a fraction of sampled pixels. Since
-    /// a moderately colourful pixel contributes well under 1, this is not a pixel
-    /// percentage — it is tuned so that a greyscale cover fails and a pastel one
+    /// a moderately colorful pixel contributes well under 1, this is not a pixel
+    /// percentage — it is tuned so that a grayscale cover fails and a pastel one
     /// still passes.
     /// </summary>
     private const double MinClusterWeight = 0.01d;
@@ -56,7 +56,7 @@ internal static class AlbumArtPalette
     public static Color? TryExtractSeed(ImageSource? art)
     {
         // Covers everything the app actually produces (BitmapImage from SMTC,
-        // RenderTargetBitmap in demo mode). A DrawingImage would need rasterising
+        // RenderTargetBitmap in demo mode). A DrawingImage would need rasterizing
         // first, and nothing supplies one.
         if (art is not BitmapSource bitmap) return null;
 
@@ -70,7 +70,7 @@ internal static class AlbumArtPalette
         catch (Exception ex)
         {
             // A cover that cannot be sampled is not worth failing over; the caller
-            // falls back to the theme colour.
+            // falls back to the theme color.
             DebugLog.Write($"album art palette failed: {ex.Message}");
             return null;
         }
@@ -93,7 +93,7 @@ internal static class AlbumArtPalette
         if (scale < 1d)
             source = new TransformedBitmap(bitmap, new ScaleTransform(scale, scale));
 
-        // Normalising the format means one unpacking path regardless of what the
+        // Normalizing the format means one unpacking path regardless of what the
         // source app handed us, and un-premultiplies Pbgra32 (demo art) on the way.
         var converted = new FormatConvertedBitmap(source, PixelFormats.Bgra32, null, 0d);
 
@@ -145,12 +145,12 @@ internal static class AlbumArtPalette
     }
 
     /// <summary>
-    /// Finds the strongest hue cluster and averages it into a seed colour.
+    /// Finds the strongest hue cluster and averages it into a seed color.
     /// </summary>
     /// <remarks>
-    /// Each bucket is scored together with its two neighbours: a real hue cluster is
+    /// Each bucket is scored together with its two neighbors: a real hue cluster is
     /// wider than 15° and frequently straddles a boundary, so scoring buckets in
-    /// isolation can split one dominant colour into two losing halves.
+    /// isolation can split one dominant color into two losing halves.
     /// </remarks>
     private static Color? Winner(
         double[] weights, double[] hueSums, double[] saturationSums, int sampled)
@@ -182,7 +182,7 @@ internal static class AlbumArtPalette
             int left = (best + BucketCount - 1) % BucketCount;
             int right = (best + 1) % BucketCount;
 
-            // Re-base the neighbours onto the winning bucket's start before summing.
+            // Re-base the neighbors onto the winning bucket's start before summing.
             // Their stored offsets are relative to their own starts, one bucket away.
             double hueSum =
                 hueSums[left] - BucketWidth * weights[left] +

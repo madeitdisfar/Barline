@@ -8,7 +8,7 @@ namespace Barline.Audio;
 
 /// <summary>
 /// Captures the system audio mix via WASAPI loopback and exposes it as smoothed
-/// band levels for the visualiser.
+/// band levels for the visualizer.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -65,7 +65,7 @@ internal sealed class LoopbackAnalyzer : IDisposable
     public bool IsRunning { get; private set; }
 
     /// <summary>
-    /// How many bands the spectrum is split into. Follows the visualiser's bar
+    /// How many bands the spectrum is split into. Follows the visualizer's bar
     /// count, so every bar is fed by a band of its own.
     /// </summary>
     public int BandCount
@@ -152,7 +152,7 @@ internal sealed class LoopbackAnalyzer : IDisposable
         catch (Exception ex)
         {
             // No audio endpoint, or the device is in exclusive mode. The
-            // visualiser falls back to its decorative motion; the watchdog retries.
+            // visualizer falls back to its decorative motion; the watchdog retries.
             DebugLog.Write($"loopback unavailable: {ex.Message}");
             DisposeCapture();
         }
@@ -200,7 +200,7 @@ internal sealed class LoopbackAnalyzer : IDisposable
             // Follow the default device. WasapiLoopbackCapture stays bound to the
             // endpoint it was created on, so when the default output moves — e.g.
             // headphones reconnect after sleep — the capture keeps listening to the
-            // old (now silent) device and the visualiser goes dead. Re-arm onto the
+            // old (now silent) device and the visualizer goes dead. Re-arm onto the
             // new default. This is independent of the stall check below, which the
             // wrong-device case would never satisfy (that capture never had data).
             string? currentDefaultId = TryGetDefaultRenderId();
@@ -318,7 +318,7 @@ internal sealed class LoopbackAnalyzer : IDisposable
     /// </summary>
     /// <returns>
     /// False when capture is unavailable or the mix has gone silent, which tells
-    /// the visualiser to fall back to its decorative motion.
+    /// the visualizer to fall back to its decorative motion.
     /// </returns>
     public bool TryGetLevels(Span<double> destination)
     {

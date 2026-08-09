@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <!-- Mirrors the widget's target so the referenced assembly loads as-is.
-         UseWPF is required for System.Windows.Media, which the colour types and
+         UseWPF is required for System.Windows.Media, which the color types and
          the album-art sampler are built on. -->
     <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
     <UseWPF>true</UseWPF>

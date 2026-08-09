@@ -8,7 +8,7 @@
     the Start list. Hand-cutting those is tedious and drifts the moment the icon
     changes, so they are generated from a single 256px source instead.
 
-    Tile assets get padding, because Windows draws them on a coloured plate and an
+    Tile assets get padding, because Windows draws them on a colored plate and an
     icon touching the edge looks wrong. The small and target sizes are drawn close
     to full bleed, since they are already small enough that padding wastes them.
 
@@ -74,7 +74,7 @@ function Write-Asset {
     $graphics.CompositingQuality = [System.Drawing.Drawing2D.CompositingQuality]::HighQuality
 
     # Square, and sized off the shorter edge so a wide tile keeps the icon square
-    # and centred rather than stretching it.
+    # and centered rather than stretching it.
     $side = [Math]::Round([Math]::Min($Width, $Height) * $Fill)
     $x = [Math]::Round(($Width - $side) / 2)
     $y = [Math]::Round(($Height - $side) / 2)

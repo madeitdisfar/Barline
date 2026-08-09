@@ -60,7 +60,7 @@
             <Setter Property="Margin" Value="0,2,0,0" />
         </Style>
 
-        <!-- The settings card: the single most recognisable piece of Windows 11
+        <!-- The settings card: the single most recognizable piece of Windows 11
              Settings. 4px radius, faint fill, hairline border. -->
         <Style x:Key="Card" TargetType="Border">
             <Setter Property="CornerRadius" Value="4" />
@@ -143,7 +143,7 @@
             </Setter>
         </Style>
 
-        <!-- Colour-mode option. Checked state fills the ring with the accent and puts
+        <!-- Color-mode option. Checked state fills the ring with the accent and puts
              a knockout dot in it, as WinUI's RadioButton does. -->
         <Style x:Key="ColorOption" TargetType="RadioButton">
             <Setter Property="HorizontalContentAlignment" Value="Stretch" />
@@ -295,7 +295,7 @@
             </Setter>
         </Style>
 
-        <!-- A colour well that opens the palette. Its own fill is set from code, so the
+        <!-- A color well that opens the palette. Its own fill is set from code, so the
              template only supplies the frame and the hover state. -->
         <Style x:Key="SwatchButton" TargetType="Button">
             <Setter Property="Width" Value="44" />
@@ -306,7 +306,7 @@
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
                         <Grid>
-                            <!-- Chequerboard behind, so a partly transparent colour
+                            <!-- Chequerboard behind, so a partly transparent color
                                  reads as transparent rather than as a darker one. -->
                             <Border CornerRadius="3" SnapsToDevicePixels="True">
                                 <Border.Background>
@@ -451,7 +451,7 @@
                                         BorderThickness="1"
                                         SnapsToDevicePixels="True">
                                     <!-- CanContentScroll is what lets the items panel
-                                         virtualise; without it every item is realised
+                                         virtualize; without it every item is realized
                                          up front. -->
                                     <ScrollViewer Style="{DynamicResource OverlayScrollViewer}"
                                                   CanContentScroll="True"
@@ -521,7 +521,7 @@
             </Setter>
         </Style>
 
-        <!-- Swatch button for the custom palette. Content is the colour itself, so
+        <!-- Swatch button for the custom palette. Content is the color itself, so
              the template is just a rounded fill with a selection ring. -->
         <!-- Sized so all twelve hues fit one row inside the card at the default window
              width. At 32px plus an 8px gap they came to exactly the available width and
@@ -783,7 +783,7 @@
 
         <!-- The scrollbar overlays the content instead of taking a column beside it.
              A reserved gutter is visible even when nothing scrolls, and it shifts the
-             whole page sideways the moment the custom-colour card expands. -->
+             whole page sideways the moment the custom-color card expands. -->
         <Style x:Key="OverlayScrollViewer" TargetType="ScrollViewer">
             <Setter Property="VerticalScrollBarVisibility" Value="Auto" />
             <Setter Property="HorizontalScrollBarVisibility" Value="Disabled" />
@@ -900,7 +900,7 @@
                 </Grid>
             </Border>
 
-            <!-- === Bar colour === -->
+            <!-- === Bar color === -->
 
             <Expander x:Name="BarColorExpander" Style="{StaticResource ExpanderCard}">
                 <Expander.Header>
@@ -996,7 +996,7 @@
                                Margin="8,10,0,0"
                                Text="Each hex is what will actually be drawn — colors are adjusted to stay visible against the taskbar." />
 
-                    <!-- === Custom colour === -->
+                    <!-- === Custom color === -->
 
                     <StackPanel x:Name="CustomCard" Margin="0,4,0,0" Visibility="Collapsed">
                         <Border Style="{StaticResource RowDivider}" />
@@ -1122,7 +1122,7 @@
 
             <!-- Everything that only means something for a panel, in one place — the
                  anchor and size, which a preset saves, and the highlight and hover
-                 behaviour, which it deliberately does not. Grouping by what a setting
+                 behavior, which it deliberately does not. Grouping by what a setting
                  applies to rather than by what gets saved is the difference between a
                  structure you can read and one you have to be told. -->
             <Expander x:Name="LyricsPanelExpander"
@@ -1335,7 +1335,7 @@
                         <StackPanel Grid.Column="1" Margin="16,0,0,0" VerticalAlignment="Center">
                             <!-- Each family is drawn in itself, which is how every
                                  other font picker works and the only way to choose one
-                                 without trying it. Virtualised, because there are
+                                 without trying it. Virtualized, because there are
                                  several hundred and each carries its own typeface. -->
                             <ComboBox x:Name="FontPicker"
                                       Style="{StaticResource CardCombo}"
@@ -1389,7 +1389,7 @@
 
                     <Border Style="{StaticResource RowDivider}" />
 
-                    <!-- Colour -->
+                    <!-- Color -->
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
@@ -1732,7 +1732,7 @@
 
             <!--
                 Not decoration. A Store install has no folder anyone can open: the
-                licence, the third-party notices and the version all ship inside a
+                license, the third-party notices and the version all ship inside a
                 package under WindowsApps, whose root refuses to be listed, so this
                 card is the only route to any of them. GPL-3.0 also asks the binary to
                 say where its source can be had, which is what the GitHub button is

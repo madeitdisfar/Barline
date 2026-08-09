@@ -8,7 +8,7 @@ namespace Barline.Tests;
 /// The sizing rule behind the bar-count setting: more bars must mean more detail and
 /// nothing else. The widget sits in a fixed zone on the taskbar, so a count that
 /// widened it would reflow the layout, and one that added ink would quietly make the
-/// visualiser heavier than the colour was corrected for.
+/// visualizer heavier than the color was corrected for.
 /// </summary>
 public class BarGeometryTests
 {
@@ -24,7 +24,7 @@ public class BarGeometryTests
     }
 
     /// <summary>
-    /// The count the design was drawn at. Pinned exactly, so generalising the rule
+    /// The count the design was drawn at. Pinned exactly, so generalizing the rule
     /// cannot quietly restyle the default.
     /// </summary>
     [Fact]
@@ -79,9 +79,9 @@ public class BarGeometryTests
 
     /// <summary>
     /// The thinness floor the range was chosen around. Below two logical pixels the
-    /// bars stop surviving antialiasing at 100% scaling: neighbouring tall bars merge
-    /// into a block and the gaps grey out, which is worse on the light taskbar where
-    /// the bar colour is translucent as well as thin.
+    /// bars stop surviving antialiasing at 100% scaling: neighboring tall bars merge
+    /// into a block and the gaps gray out, which is worse on the light taskbar where
+    /// the bar color is translucent as well as thin.
     /// </summary>
     [Theory]
     [MemberData(nameof(SupportedCounts))]

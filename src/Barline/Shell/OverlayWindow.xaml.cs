@@ -103,7 +103,7 @@ internal partial class OverlayWindow : Window, IAlbumArtSource
 
     /// <summary>
     /// Art for the track on display, or null when nothing is playing. Lets the
-    /// settings window preview the album-art colour mode against the same cover the
+    /// settings window preview the album-art color mode against the same cover the
     /// widget is currently showing.
     /// </summary>
     public ImageSource? CurrentAlbumArt => _track?.AlbumArt;
@@ -146,12 +146,12 @@ internal partial class OverlayWindow : Window, IAlbumArtSource
             HideNow();
         };
 
-        // Pull-based: the visualiser samples the latest spectrum once per frame.
+        // Pull-based: the visualizer samples the latest spectrum once per frame.
         // Returning false (no capture, or silence) drops it back to decorative motion.
         Bars.LevelSource = levels => _analyzer.TryGetLevels(levels);
 
-        // Assigned once. The resolver animates this brush's colour in place, so the
-        // visualiser never sees its colour change and needs no notification.
+        // Assigned once. The resolver animates this brush's color in place, so the
+        // visualizer never sees its color change and needs no notification.
         Bars.BarBrush = _barColor.Brush;
 
         ApplyBarCount();
@@ -248,7 +248,7 @@ internal partial class OverlayWindow : Window, IAlbumArtSource
     }
 
     /// <summary>
-    /// Crossfades the visualiser and the transport controls in place. Both live in
+    /// Crossfades the visualizer and the transport controls in place. Both live in
     /// the same fixed-width zone, so nothing moves — only opacity changes.
     /// </summary>
     private void SetHovered(bool hovered)
@@ -416,7 +416,7 @@ internal partial class OverlayWindow : Window, IAlbumArtSource
         ArtLayer.Visibility = hasArt ? Visibility.Visible : Visibility.Collapsed;
         ArtFallbackGlyph.Visibility = hasArt ? Visibility.Collapsed : Visibility.Visible;
 
-        // In album-art mode the bar colour is part of the track's identity, so it is
+        // In album-art mode the bar color is part of the track's identity, so it is
         // resolved here rather than only on theme changes.
         ApplyBarColor();
 
@@ -499,7 +499,7 @@ internal partial class OverlayWindow : Window, IAlbumArtSource
         Resources["SubtlePressedBrush"] = _theme.SubtlePressed;
         Resources["ArtPlaceholderBrush"] = _theme.ArtPlaceholder;
 
-        // Every colour mode is theme-dependent: the default token switches outright,
+        // Every color mode is theme-dependent: the default token switches outright,
         // and the corrected modes are measured against the new taskbar material.
         ApplyBarColor();
     }
@@ -622,7 +622,7 @@ internal partial class OverlayWindow : Window, IAlbumArtSource
     private void ApplyBarColor() => _barColor.Update(_track?.AlbumArt);
 
     /// <summary>
-    /// Keeps the bar count and the band count in step. The analyser is set first, so
+    /// Keeps the bar count and the band count in step. The analyzer is set first, so
     /// a newly added bar is fed real audio on the frame it appears rather than
     /// climbing up from zero.
     /// </summary>

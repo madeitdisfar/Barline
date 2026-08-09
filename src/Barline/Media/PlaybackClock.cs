@@ -75,7 +75,7 @@ internal sealed class PlaybackClock
     /// <summary>
     /// Whether the session reports a position worth trusting. False for sources that
     /// publish no timeline at all — live streams, and some browser sessions — which
-    /// must fall back to unsynced behaviour rather than showing a confident guess.
+    /// must fall back to unsynced behavior rather than showing a confident guess.
     /// </summary>
     public bool IsUsable
     {

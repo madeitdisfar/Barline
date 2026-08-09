@@ -35,7 +35,7 @@
     <Authors>Minjun Kim</Authors>
     <Company>Minjun Kim</Company>
     <Copyright>Copyright © 2026 Minjun Kim</Copyright>
-    <Description>A now-playing widget for the Windows 11 taskbar, with an audio-reactive visualiser and synced lyrics.</Description>
+    <Description>A now-playing widget for the Windows 11 taskbar, with an audio-reactive visualizer and synced lyrics.</Description>
     <!-- No console window, and don't let WPF pick a stale culture -->
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
     <!-- WFO0003 tells WinForms apps to configure DPI via ApplicationHighDpiMode
@@ -79,7 +79,7 @@
 
   <ItemGroup>
     <!-- Both ship beside the executable, and both have to: a binary is conveyed
-         under the GPL only if it carries the licence and says where its source is,
+         under the GPL only if it carries the license and says where its source is,
          and NAudio is MIT and compiled into the binary rather than sitting next to
          it, so its notice reaches nobody unless it is carried along deliberately.
          The notices file links to LICENSE as a sibling, which is only true if both
@@ -98,7 +98,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Everything in this app is internal, including the colour logic the tests
+    <!-- Everything in this app is internal, including the color logic the tests
          exist to pin down. Exposing internals to the test project keeps them that
          way for consumers while letting the tests exercise the real assembly rather
          than a second compilation of the same files. -->

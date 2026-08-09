@@ -25,7 +25,7 @@ While it is on, looking up the lyrics for a track sends the following to
 Nothing else is sent. No identifier, no account, no device information, and no record
 of when or how often you listen. LRCLIB requires no key and no sign-in. The request
 identifies the application and its version, in the form `Barline/2.0.0`, so the
-service can recognise a misbehaving client; it does not identify you.
+service can recognize a misbehaving client; it does not identify you.
 
 Results are cached on your machine, including the misses, so a track is looked up
 once rather than once per play. Your network connection exposes the request to
@@ -61,7 +61,7 @@ falls back to defaults. Cached lyrics can be cleared from **Settings → Lyrics*
 Barline reads what is currently playing through the Windows System Media Transport
 Controls — the same source as the volume flyout — which gives it the title, artist,
 album art and playback position. It also captures system audio output to drive the
-visualiser. **Audio is analysed for loudness in the moment and never recorded,
+visualizer. **Audio is analyzed for loudness in the moment and never recorded,
 stored, or transmitted.** None of this leaves your computer except as described above.
 
 ## Children

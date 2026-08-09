@@ -7,7 +7,7 @@ namespace Barline.Audio;
 
 /// <summary>
 /// Turns a stream of mono samples into a small number of perceptually spaced band
-/// levels suitable for driving the visualiser.
+/// levels suitable for driving the visualizer.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -37,7 +37,7 @@ internal sealed class SpectrumProcessor
     private const double TotalOctaves = 8d;
 
     /// <summary>
-    /// Where each band's dB window sits, as a function of its centre frequency in
+    /// Where each band's dB window sits, as a function of its center frequency in
     /// octaves above <see cref="LowestHz"/>.
     /// </summary>
     /// <remarks>
@@ -56,7 +56,7 @@ internal sealed class SpectrumProcessor
     /// only at one band's floor — so the default four bars behave as before.
     /// </para>
     /// <para>
-    /// It generalises to other counts because <see cref="Compute"/> takes the RMS
+    /// It generalizes to other counts because <see cref="Compute"/> takes the RMS
     /// across a band's bins, which is average power per bin — a spectral density,
     /// not a total. Narrowing a band therefore does not systematically lower its
     /// level, so the same trend line holds however finely the span is cut.
@@ -134,13 +134,13 @@ internal sealed class SpectrumProcessor
         {
             double lowHz = LowestHz * Math.Pow(2d, TotalOctaves * b / bandCount);
             double highHz = LowestHz * Math.Pow(2d, TotalOctaves * (b + 1) / bandCount);
-            double centreOctave = TotalOctaves * (b + 0.5d) / bandCount;
+            double centerOctave = TotalOctaves * (b + 0.5d) / bandCount;
 
             plan[b] = new Band(
                 lowHz,
                 highHz,
-                FloorDbAtLowest + (FloorDbPerOctave * centreOctave),
-                CeilingDbAtLowest + (CeilingDbPerOctave * centreOctave));
+                FloorDbAtLowest + (FloorDbPerOctave * centerOctave),
+                CeilingDbAtLowest + (CeilingDbPerOctave * centerOctave));
         }
 
         return plan;

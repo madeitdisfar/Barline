@@ -212,7 +212,7 @@
                        Text="" />
         </Grid>
 
-        <!-- Fixed-width right zone. The visualiser and the transport controls share
+        <!-- Fixed-width right zone. The visualizer and the transport controls share
              it and crossfade in place, so hovering never reflows the art or text —
              layout shift on hover is the fastest way to look third-party. -->
         <Grid Grid.Column="2" Width="88">

@@ -6,7 +6,7 @@ using Barline.Settings;
 namespace Barline.Ui;
 
 /// <summary>
-/// Produces the visualiser's bar brush from the chosen colour mode, the system theme
+/// Produces the visualizer's bar brush from the chosen color mode, the system theme
 /// and the current album art — and guarantees the result is actually visible on the
 /// taskbar.
 /// </summary>
@@ -15,14 +15,14 @@ namespace Barline.Ui;
 /// The legibility correction is the point of this class. An album's dominant hue is
 /// whatever the artwork happens to contain: a dark navy cover on the dark taskbar or
 /// a pale yellow one on the light taskbar would render bars that are technically
-/// coloured and practically invisible. So the hue the artwork chose is kept, and the
+/// colored and practically invisible. So the hue the artwork chose is kept, and the
 /// lightness is overruled until the bars clear a contrast floor against the taskbar.
 /// </para>
 /// <para>
 /// It owns a single, unfrozen brush for the lifetime of the widget and animates its
-/// colour, rather than handing out a new frozen brush per change. That gives a track
-/// change a crossfade instead of a snap, and means the visualiser never has to know
-/// its colour can change at all.
+/// color, rather than handing out a new frozen brush per change. That gives a track
+/// change a crossfade instead of a snap, and means the visualizer never has to know
+/// its color can change at all.
 /// </para>
 /// </remarks>
 internal sealed class BarColorResolver
@@ -31,7 +31,7 @@ internal sealed class BarColorResolver
     private readonly SettingsStore _settings;
 
     /// <summary>
-    /// Deliberately not frozen: its colour is animated in place. The visualiser holds
+    /// Deliberately not frozen: its color is animated in place. The visualizer holds
     /// this same instance for the app's lifetime.
     /// </summary>
     private readonly SolidColorBrush _brush = new(Colors.White);
@@ -44,7 +44,7 @@ internal sealed class BarColorResolver
     private Color? _memoSeed;
 
     /// <summary>
-    /// The colour last animated toward. Tracked separately rather than read back off
+    /// The color last animated toward. Tracked separately rather than read back off
     /// the brush, because mid-animation the brush reports an interpolated value — so
     /// comparing against it would restart the animation on every metadata tick.
     /// </summary>
@@ -56,18 +56,18 @@ internal sealed class BarColorResolver
         _settings = settings;
     }
 
-    /// <summary>The brush to hand the visualiser. Stable for the app's lifetime.</summary>
+    /// <summary>The brush to hand the visualizer. Stable for the app's lifetime.</summary>
     public Brush Brush => _brush;
 
     /// <summary>
-    /// Recomputes the bar colour. Cheap to call often — the expensive part (art
-    /// extraction) is memoised, and an unchanged result animates nothing.
+    /// Recomputes the bar color. Cheap to call often — the expensive part (art
+    /// extraction) is memoized, and an unchanged result animates nothing.
     /// </summary>
     /// <summary>
-    /// The colour a given mode would produce right now, without selecting it.
+    /// The color a given mode would produce right now, without selecting it.
     /// </summary>
     /// <remarks>
-    /// Lets the settings window show every option's real, corrected colour side by
+    /// Lets the settings window show every option's real, corrected color side by
     /// side — which is the honest way to present this, since what the user gets is
     /// never exactly what the artwork or the picker said.
     /// </remarks>
@@ -85,7 +85,7 @@ internal sealed class BarColorResolver
         if (first)
         {
             // Nothing to crossfade from on the first resolve; animating here would
-            // show white bars easing into the real colour at startup.
+            // show white bars easing into the real color at startup.
             _brush.Color = target;
         }
         else
@@ -100,7 +100,7 @@ internal sealed class BarColorResolver
         }
 
         DebugLog.Write(
-            $"bar colour: mode={_settings.Current.VisualizerColor} " +
+            $"bar color: mode={_settings.Current.VisualizerColor} " +
             $"-> #{target.A:X2}{target.R:X2}{target.G:X2}{target.B:X2}");
     }
 
@@ -122,7 +122,7 @@ internal sealed class BarColorResolver
                 return seed is null ? _theme.BarDefault : MakeLegible(seed.Value);
 
             default:
-                // The built-in colours are already chosen against real taskbar
+                // The built-in colors are already chosen against real taskbar
                 // material by hand, including their alpha, so they bypass correction
                 // entirely — running them through it would only discard that.
                 return _theme.BarDefault;
@@ -140,8 +140,8 @@ internal sealed class BarColorResolver
     }
 
     /// <summary>
-    /// Corrects a colour for visibility, falling back to the theme's own bar colour
-    /// when the input has no hue worth keeping (a greyscale cover, a grey accent).
+    /// Corrects a color for visibility, falling back to the theme's own bar color
+    /// when the input has no hue worth keeping (a grayscale cover, a gray accent).
     /// </summary>
     private Color MakeLegible(Color color)
     {
@@ -149,7 +149,7 @@ internal sealed class BarColorResolver
         var coerced = Legibility.TryCoerce(color, _theme.BackdropEstimate, !_theme.IsLight);
 
         if (coerced is null)
-            DebugLog.Write("bar colour: no legible variant of the source; using theme default");
+            DebugLog.Write("bar color: no legible variant of the source; using theme default");
 
         return coerced ?? _theme.BarDefault;
     }
@@ -160,7 +160,7 @@ internal sealed class BarColorResolver
 
         try
         {
-            // Accepts "#RRGGBB", "#AARRGGBB" and the named colours, so a hand-edited
+            // Accepts "#RRGGBB", "#AARRGGBB" and the named colors, so a hand-edited
             // file can say "OrangeRed" and be understood.
             return ColorConverter.ConvertFromString(text) as Color?;
         }

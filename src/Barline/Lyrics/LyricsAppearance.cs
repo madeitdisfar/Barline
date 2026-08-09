@@ -7,15 +7,15 @@ namespace Barline.Lyrics;
 /// A compositor-blurred acrylic option used to live here and was removed. Windows
 /// composites that blur across the whole window rectangle, and a transparent window
 /// takes its shape from per-pixel alpha rather than from a region, so acrylic could
-/// never honour a corner radius — one background behaving differently from the rest
+/// never honor a corner radius — one background behaving differently from the rest
 /// was not worth what it bought.
 /// </remarks>
 internal enum LyricsBackground
 {
-    /// <summary>A flat colour at the chosen opacity: see-through, but not blurred.</summary>
+    /// <summary>A flat color at the chosen opacity: see-through, but not blurred.</summary>
     Tinted,
 
-    /// <summary>A flat opaque colour.</summary>
+    /// <summary>A flat opaque color.</summary>
     Solid,
 
     /// <summary>Nothing at all — text straight over the desktop.</summary>
@@ -28,7 +28,7 @@ internal enum LyricsBackground
 /// <remarks>
 /// A "Soften" option used to sit alongside Glow and was removed: both drew a blurred
 /// copy of the line underneath, so the only thing separating them was the radius and
-/// colour — and those are settings. Two names for one effect is a worse choice to
+/// color — and those are settings. Two names for one effect is a worse choice to
 /// offer than one.
 /// </remarks>
 internal enum LyricsEffect
@@ -64,10 +64,10 @@ internal enum LyricsPanelPosition
     /// <summary>Just above the widget, tracking the taskbar's left edge.</summary>
     AboveWidget,
 
-    /// <summary>Centred horizontally, just above the taskbar.</summary>
+    /// <summary>Centered horizontally, just above the taskbar.</summary>
     BottomCenter,
 
-    /// <summary>Centred horizontally, near the top of the screen.</summary>
+    /// <summary>Centered horizontally, near the top of the screen.</summary>
     TopCenter,
 
     /// <summary>
@@ -87,16 +87,16 @@ internal enum LyricsPanelPosition
 /// different looks, and a look that does not say which of the two it is describes
 /// nothing — the same preset applied to both modes was the confusion this replaced.
 /// So a preset carries the mode, the anchor and the panel size along with the type and
-/// colour, and loading one puts the lyrics where that look was designed to live.
+/// color, and loading one puts the lyrics where that look was designed to live.
 /// </para>
 /// <para>
 /// What is deliberately <em>not</em> here: whether lyrics are on at all, whether they
 /// light up a word or a line at a time, and what the panel does when hovered. Those are
-/// preferences about behaviour rather than descriptions of a look, and carrying them in
+/// preferences about behavior rather than descriptions of a look, and carrying them in
 /// a shared preset would mean someone else's file quietly changing how yours behaves.
 /// </para>
 /// <para>
-/// Serialised both into the settings file — as the live values the settings window
+/// Serialized both into the settings file — as the live values the settings window
 /// edits — and on its own as a preset. One type covers both, so a preset is exactly a
 /// saved copy of what you are looking at, with no second schema to keep in step.
 /// </para>
@@ -116,9 +116,9 @@ internal sealed class LyricsAppearance
     /// only how lyrics look and says nothing about where they go.
     /// </summary>
     /// <remarks>
-    /// Deliberately without an initialiser. A property that defaults to the current
+    /// Deliberately without an initializer. A property that defaults to the current
     /// version reads back as current from a file that never mentioned it, which is
-    /// exactly the case this exists to detect — the serialiser leaves absent keys at
+    /// exactly the case this exists to detect — the serializer leaves absent keys at
     /// whatever the object was constructed with. Stamped on the way out by
     /// <see cref="LyricsPresetStore.Write"/>, so anything we wrote says so and anything
     /// older reads as zero.
@@ -164,9 +164,9 @@ internal sealed class LyricsAppearance
 
     public bool Italic { get; set; }
 
-    // ---- Colour -----------------------------------------------------------
+    // ---- Color -----------------------------------------------------------
 
-    /// <summary>Colour of a word once it has been sung, as <c>#RRGGBB</c>.</summary>
+    /// <summary>Color of a word once it has been sung, as <c>#RRGGBB</c>.</summary>
     public string TextColor { get; set; } = "#FFFFFF";
 
     /// <summary>
@@ -181,7 +181,7 @@ internal sealed class LyricsAppearance
 
     public double EffectRadius { get; set; } = 16d;
 
-    /// <summary>Effect colour; empty means take the text colour.</summary>
+    /// <summary>Effect color; empty means take the text color.</summary>
     public string EffectColor { get; set; } = string.Empty;
 
     // ---- Panel surface ----------------------------------------------------
