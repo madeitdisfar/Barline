@@ -135,6 +135,10 @@ drop one someone sends you into the presets folder and it appears in the list. U
 **Open folder** next to the preset picker to get there, since the location differs
 between the portable and Microsoft Store builds.
 
+**About** at the bottom of the page shows the version and which build it is, and opens
+the license, the third-party notices and the data folder. That is the only route to any
+of them in the Store build, whose install folder Windows will not let you browse.
+
 ## Known limitations
 
 - **Primary monitor only.** Secondary-monitor taskbars are not tracked yet.
@@ -156,3 +160,6 @@ Licensed under [GPL-3.0-or-later](LICENSE).
 
 Third-party component licenses are available in
 [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
+
+Both files ship beside the executable in every build, and **Settings → About** opens
+them without leaving the app.

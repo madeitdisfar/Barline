@@ -1728,10 +1728,75 @@
                 </Grid>
             </Border>
 
-            <TextBlock x:Name="SettingsPathText"
-                       Style="{StaticResource CardDescription}"
-                       Margin="4,16,0,0"
-                       Foreground="{DynamicResource TextTertiaryBrush}" />
+            <!-- === About === -->
+
+            <!--
+                Not decoration. A Store install has no folder anyone can open: the
+                licence, the third-party notices and the version all ship inside a
+                package under WindowsApps, whose root refuses to be listed, so this
+                card is the only route to any of them. GPL-3.0 also asks the binary to
+                say where its source can be had, which is what the GitHub button is
+                for rather than politeness.
+            -->
+
+            <TextBlock Style="{StaticResource SectionHeader}" Text="About" />
+
+            <Border Style="{StaticResource Card}">
+                <StackPanel>
+                    <TextBlock x:Name="AboutVersionText" Style="{StaticResource CardLabel}" />
+                    <TextBlock x:Name="AboutCopyrightText" Style="{StaticResource CardDescription}" />
+
+                    <Border Style="{StaticResource RowDivider}" />
+
+                    <TextBlock Style="{StaticResource CardLabel}" Text="License and source" />
+                    <TextBlock Style="{StaticResource CardDescription}"
+                               Text="Barline is free software under GPL-3.0-or-later: you can use it, study how it works, change it and pass it on. The complete source is on GitHub." />
+
+                    <WrapPanel Margin="0,12,0,0">
+                        <Button x:Name="LicenseButton"
+                                Style="{StaticResource CardButton}"
+                                Margin="0,0,8,0"
+                                Content="License" />
+                        <Button x:Name="NoticesButton"
+                                Style="{StaticResource CardButton}"
+                                Margin="0,0,8,0"
+                                Content="Third-party notices" />
+                        <Button x:Name="SourceButton"
+                                Style="{StaticResource CardButton}"
+                                Content="Source on GitHub" />
+                    </WrapPanel>
+
+                    <Border Style="{StaticResource RowDivider}" />
+
+                    <TextBlock Style="{StaticResource CardLabel}" Text="Privacy" />
+                    <TextBlock Style="{StaticResource CardDescription}"
+                               Text="Nothing is collected, and nothing leaves this computer except a lyrics lookup, which only happens while lyrics are switched on." />
+
+                    <Button x:Name="PrivacyButton"
+                            Style="{StaticResource CardButton}"
+                            HorizontalAlignment="Left"
+                            Margin="0,12,0,0"
+                            Content="Privacy policy" />
+
+                    <Border Style="{StaticResource RowDivider}" />
+
+                    <TextBlock x:Name="SettingsPathText"
+                               Style="{StaticResource CardDescription}"
+                               Foreground="{DynamicResource TextTertiaryBrush}" />
+
+                    <Button x:Name="OpenDataFolderButton"
+                            Style="{StaticResource CardButton}"
+                            HorizontalAlignment="Left"
+                            Margin="0,12,0,0"
+                            Content="Open folder" />
+
+                    <TextBlock x:Name="AboutStatus"
+                               Style="{StaticResource CardDescription}"
+                               Margin="0,8,0,0"
+                               Visibility="Collapsed"
+                               Foreground="{DynamicResource TextTertiaryBrush}" />
+                </StackPanel>
+            </Border>
 
             <!-- One palette, retargeted to whichever well opened it. Two identical
                  popups would be two things to keep in step. -->

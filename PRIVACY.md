@@ -46,7 +46,7 @@ In Barline's own data folder:
 Where that folder is depends on how you installed Barline. The portable build
 keeps it at `%LocalAppData%\Barline`. The Microsoft Store build keeps it inside its
 own package folder, which Windows deletes when you uninstall the app. Either way,
-**Settings → Lyrics → Open folder** takes you there.
+**Settings → About → Open folder** takes you there.
 
 Under `%TEMP%`, only if you set `BARLINE_DEBUG=1` yourself:
 

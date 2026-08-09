@@ -3,6 +3,7 @@ using System.Net.Http;
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
 using Barline.Diagnostics;
+using Barline.Platform;
 
 namespace Barline.Lyrics;
 
@@ -55,17 +56,14 @@ internal sealed class LrcLibClient : IDisposable
     /// LRCLIB asks clients to identify themselves and link to the project, so that a
     /// misbehaving one can be recognised and contacted rather than simply blocked.
     /// </summary>
+    /// <remarks>
+    /// Both parts come from <see cref="AppInfo"/> rather than being written out here,
+    /// so neither can drift from what shipped. Both already had: the version said 1.0
+    /// while 1.2.0 was released, and the link pointed at a repository that did not
+    /// exist.
+    /// </remarks>
     internal static readonly string UserAgent =
-        $"Barline/{Version} (https://github.com/madeitdisfar/Barline)";
-
-    /// <summary>
-    /// Read from the assembly rather than written out here, so the version LRCLIB is
-    /// told cannot drift from the one actually shipping. It already had once.
-    /// </summary>
-    private static string Version =>
-        typeof(LrcLibClient).Assembly.GetName().Version is { } version
-            ? $"{version.Major}.{version.Minor}.{version.Build}"
-            : "0";
+        $"Barline/{AppInfo.Version} ({AppInfo.RepositoryUrl})";
 
     /// <summary>
     /// How far a search result's length may differ from the track being played.

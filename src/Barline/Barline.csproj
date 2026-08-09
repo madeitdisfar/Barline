@@ -78,9 +78,16 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Ships beside the executable. NAudio is MIT and is compiled into the binary
-         rather than sitting next to it, so its notice has to be carried along
-         deliberately or it does not reach whoever receives a copy. -->
+    <!-- Both ship beside the executable, and both have to: a binary is conveyed
+         under the GPL only if it carries the licence and says where its source is,
+         and NAudio is MIT and compiled into the binary rather than sitting next to
+         it, so its notice reaches nobody unless it is carried along deliberately.
+         The notices file links to LICENSE as a sibling, which is only true if both
+         are present. Settings has an About card that opens them, because the Store
+         build installs under WindowsApps, where the folder cannot be browsed. -->
+    <Content Include="..\..\LICENSE"
+             Link="LICENSE"
+             CopyToOutputDirectory="PreserveNewest" />
     <Content Include="..\..\THIRD-PARTY-NOTICES.md"
              Link="THIRD-PARTY-NOTICES.md"
              CopyToOutputDirectory="PreserveNewest" />

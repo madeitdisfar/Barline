@@ -8,6 +8,7 @@ using System.Windows.Media;
 using Microsoft.Win32;
 using Barline.Lyrics;
 using Barline.Media;
+using Barline.Platform;
 using Barline.Shell;
 using Barline.Startup;
 using Barline.Ui;
@@ -239,10 +240,7 @@ internal partial class SettingsWindow : Window
         PreviewBars.BarBrush = _preview.Brush;
         PreviewBars.IsActive = true;
 
-        // Just the folder: the full path wraps to three lines at this width and pushes
-        // the last card off-screen, and the folder is what anyone would actually open.
-        SettingsPathText.Text =
-            $"Stored in {Path.GetDirectoryName(_settings.FilePath)}";
+        SetUpAbout();
 
         _theme.Changed += OnThemeChanged;
         _settings.Changed += OnSettingsChanged;
@@ -1173,6 +1171,59 @@ internal partial class SettingsWindow : Window
             : $"Cleared {removed} cached track{(removed == 1 ? string.Empty : "s")}.");
 
         UpdateCacheSize();
+    }
+
+    // ---- About -------------------------------------------------------------
+
+    /// <summary>
+    /// Fills in the About card and wires its buttons.
+    /// </summary>
+    /// <remarks>
+    /// Which build this is gets said out loud, because almost everything else that
+    /// varies follows from it: where the data folder is, how the app updates, and
+    /// whether the paid extras are even available. It is also the first thing worth
+    /// knowing about a bug report.
+    /// </remarks>
+    private void SetUpAbout()
+    {
+        AboutVersionText.Text =
+            $"{AppInfo.Name} {AppInfo.Version} " +
+            $"({(PackageContext.IsPackaged ? "Microsoft Store" : "portable")})";
+
+        AboutCopyrightText.Text = AppInfo.Copyright;
+
+        LicenseButton.Click += (_, _) => DocumentWindow.Show(
+            this, _theme, AppInfo.LicenseFile,
+            "The terms Barline is distributed under. This copy ships with the app.");
+
+        NoticesButton.Click += (_, _) => DocumentWindow.Show(
+            this, _theme, AppInfo.NoticesFile,
+            "Components built into Barline, and the terms each of them is under.");
+
+        SourceButton.Click += (_, _) => OpenLink(AppInfo.RepositoryUrl);
+        PrivacyButton.Click += (_, _) => OpenLink(AppInfo.PrivacyUrl);
+
+        // Just the folder: the full path wraps to three lines at this width and pushes
+        // the card out of shape, and the folder is what anyone would actually open.
+        string root = Path.GetDirectoryName(_settings.FilePath) ?? string.Empty;
+
+        SettingsPathText.Text = $"Settings, presets and lyrics are stored in {root}";
+        OpenDataFolderButton.Click += (_, _) => OpenFolder(root, AboutStatus);
+    }
+
+    /// <summary>Hands a URL to the default browser.</summary>
+    private void OpenLink(string url)
+    {
+        try
+        {
+            Process.Start(new ProcessStartInfo { FileName = url, UseShellExecute = true });
+        }
+        catch (Exception ex)
+        {
+            // Worth saying rather than swallowing: with no browser association there
+            // is nothing for the click to do, and the address is the useful part.
+            Say(AboutStatus, $"Could not open {url}: {ex.Message}");
+        }
     }
 
     /// <summary>

@@ -295,6 +295,31 @@ working with nothing to do. Entries still in the old folder are moved on the nex
 launch; one already at the destination is dropped rather than overwritten, since both
 copies are fetched results and neither is worth more than the other.
 
+## About, and why it is not decoration
+
+The `LICENSE` and `THIRD-PARTY-NOTICES.md` files are copied beside the executable by
+the build, because a binary is conveyed under the GPL only if it carries the licence
+and says where its Corresponding Source can be had, and NAudio is MIT and compiled
+*into* the binary rather than sitting next to it, so its notice reaches nobody unless
+it is carried deliberately.
+
+Shipping them is necessary but not sufficient for the Store build. A packaged app
+installs under `WindowsApps`, and while a file in there reads perfectly well by full
+path, the folder's root refuses to be listed — so Explorer cannot reach it and no
+user will ever find a file inside it. The About card is the route: it opens both
+documents, links to the repository, and states the version and which build is
+running.
+
+Those two files are opened in a window of the app's own rather than handed to the
+shell. Neither can be opened that way: `LICENSE` has no extension, and `.md` has no
+handler on a stock Windows install, so both would raise "How do you want to open this
+file?", which reads as a fault rather than a document.
+
+Version, repository and privacy URLs live together in `AppInfo` because they are
+stated in more than one place — the LRCLIB user agent carries the version and a link
+to the project, and the About card shows both. Both of those had already gone wrong
+once while they were written out separately.
+
 ## Starting with Windows
 
 Two mechanisms, because the same binary can run either way. Unpackaged, it writes the
