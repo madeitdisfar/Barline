@@ -312,43 +312,48 @@ ones exempt from that state.
 Since nothing changes, nothing is a state change, so the tracker has nothing to report
 and the widget stays gone. The fix is not to detect it — there is no signal to detect —
 but to stop relying on being told. A bare `SetWindowPos` restores the widget
-immediately, even while the desktop is still showing, so the overlay re-applies its
-placement once a second whenever it should be visible. One call against a window
-already where it belongs costs nothing measurable.
+immediately, even while the desktop is still showing, so the overlay re-asserts its
+z-order every 400ms whenever it should be visible.
 
-Only the showing path re-applies. The hide path is debounced precisely so a transient
+Only the showing path re-asserts. The hide path is debounced precisely so a transient
 state cannot blink the widget, and a timer that could reach it would re-arm that
 debounce forever.
 
-It is polling, so the price was measured rather than waved at. A single `SetWindowPos`
-against this window costs about **0.9ms** — not free, because a layered window with
-per-pixel alpha goes through composition on every call. Driving it at 61 calls a second
-cost 5.1 to 5.6 percentage points of one core across two runs. Once a second is
-therefore around **0.09% of one core**, against the 20 to 23% the visualizer is already
-using while a track plays. With nothing playing the widget is hidden, the guard skips
-the call entirely, and the process sits at 0.7% of one core.
+It is polling, so the price was measured rather than waved at. A *full* placement — the
+shape this used at first — costs about **0.9ms**, because a layered window with
+per-pixel alpha goes through composition on every call; driving it at 61 calls a second
+cost 5.1 to 5.6 percentage points of one core across two runs. At 2.5 calls a second
+that puts a ceiling of roughly **0.2% of one core** on the re-assert, and the call it
+actually issues does strictly less work than the one that was measured.
 
-### Why one second, and not less
+A ceiling rather than a figure, because the difference cannot be measured here. Three
+baseline samples of the same build came in at 23.1%, 20.2% and 29.9% of one core, so
+run-to-run noise swamps a tenth of a point several times over. For scale, that baseline
+is the visualizer animating while a track plays; with nothing playing the widget is
+hidden, the guard skips the call entirely, and the process sits at 0.7% of one core.
 
-400ms was tried, and it removed the Show Desktop gap entirely — sampled 400ms after the
-keystroke the widget was already back. It also introduced a flicker whenever a taskbar
-item was clicked.
+### Ask for the z-order and nothing else
 
-Clicking a taskbar item raises `Shell_TrayWnd` and hands focus to another window. The
-widget is owned by the taskbar, so it rides up with it; a re-assert landing inside that
-reorder collides with it and blinks. The interval decides how often the collision is
-possible, not whether it is, so a second is a frequency low enough to stop noticing
-rather than a cure. The cost of choosing that end of the trade is that Show Desktop
-still takes the widget away for up to a second.
+The re-assert first went through the normal placement, which moves, resizes and
+re-inserts the window into the topmost band. At 400ms that flickered whenever a taskbar
+item was clicked — clicking one raises `Shell_TrayWnd` and hands focus elsewhere, and
+the widget rides up with the taskbar as its owned window, so a full reposition landing
+inside that reorder showed.
 
-The likelier cure is not the interval at all. `Reassert` goes through the normal
-placement, which moves, resizes and re-inserts the window into the topmost band every
-tick — where recovering from Show Desktop was measured to need only a `SetWindowPos`
-with `SWP_NOMOVE | SWP_NOSIZE`. Every tick is doing much more work than the job
-requires, on the kind of window where that work is a full composition pass. Issuing the
-minimal call is the obvious thing to try, and it has deliberately not been tried yet:
-the flicker only appears to somebody clicking around a real taskbar, so the fix cannot
-be confirmed without a person watching it.
+Slowing the timer to a second hid it, and that was the wrong fix: the interval decides
+how often the collision is possible, not whether it is. The cause was the tick doing
+far more work than the job asks for. Recovering from Show Desktop was measured to need
+only a `SetWindowPos` carrying `SWP_NOMOVE | SWP_NOSIZE` — put the window back in the
+composition, change nothing else. On a layered window the difference is a whole
+composition pass against an empty one.
+
+Issuing the minimal call removed the flicker at 400ms, confirmed by hand, which is the
+only way it could be confirmed: it never appeared to any measurement, only to somebody
+clicking around a real taskbar. So the interval stays at 400ms and Show Desktop no
+longer leaves a visible gap.
+
+Geometry is deliberately not this timer's business. It arrives through the tracker,
+which is the path that owns it and the only one that knows when it changed.
 
 Reparenting the widget to `Shell_TrayWnd` would inherit the shell's exemption outright
 and was tried first. It was abandoned: a child's coordinates are relative to its

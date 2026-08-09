@@ -110,12 +110,13 @@ internal partial class OverlayWindow : Window, IAlbumArtSource
     /// showing, so the fix is to keep issuing one rather than to wait to be told.
     /// </para>
     /// <para>
-    /// One second, and shortening it is not free. At 400ms the widget flickered when
-    /// taskbar items were clicked: clicking one raises <c>Shell_TrayWnd</c> and hands
-    /// focus to another window, and a tick landing inside that reorder collides with
-    /// it. The interval decides how often that collision can happen, not whether it
-    /// can, so a second is a frequency low enough to stop noticing rather than a cure.
-    /// The likelier cure is below, in <see cref="Reassert"/>.
+    /// The interval was a second for a while, because at 400ms the widget flickered
+    /// whenever a taskbar item was clicked. That turned out to be the tick's fault
+    /// rather than the interval's: each one re-placed the window in full, and clicking
+    /// a taskbar item raises <c>Shell_TrayWnd</c> and hands focus elsewhere, so a
+    /// reposition landing inside that reorder showed. Slowing the timer only made the
+    /// collision rarer. <see cref="Reassert"/> now asks for the z-order and nothing
+    /// else, which is what lets this run at 400ms and leave no visible gap.
     /// </para>
     /// </remarks>
     private readonly DispatcherTimer _reassert;
@@ -175,18 +176,20 @@ internal partial class OverlayWindow : Window, IAlbumArtSource
             HideNow();
         };
 
-        // A second: long enough not to collide with the taskbar's own reordering, short
-        // enough that Show Desktop takes the widget away only briefly. It does still go
-        // for up to a second, which is the cost of picking the safe end of that trade.
+        // Short enough that Show Desktop never visibly takes the widget: sampled 400ms
+        // after the keystroke it is already back. A second was necessary only while
+        // each tick re-placed the window; now that a tick asks for nothing but the
+        // z-order, the collision that made this flicker has much less to collide with.
         //
-        // This is polling, so the price was measured rather than assumed. One call is
-        // around 0.9ms — not free, because a layered window goes through composition
-        // every time — so once a second is about 0.09% of one core, against the 20-odd
-        // percent the visualizer is already using whenever the widget is up. Nothing
-        // playing means nothing drawn and no call at all.
+        // This is polling, so the price was measured rather than assumed. A full
+        // placement cost around 0.9ms, since a layered window goes through composition
+        // every time; the call issued now does strictly less than that, so 0.2% of one
+        // core is a ceiling rather than a figure. Against it, the visualizer is already
+        // using 20-odd percent whenever the widget is up, and nothing playing means
+        // nothing drawn and no call at all.
         _reassert = new DispatcherTimer(DispatcherPriority.Background)
         {
-            Interval = TimeSpan.FromSeconds(1),
+            Interval = TimeSpan.FromMilliseconds(400),
         };
         _reassert.Tick += (_, _) => Reassert();
         _reassert.Start();
@@ -723,20 +726,23 @@ internal partial class OverlayWindow : Window, IAlbumArtSource
     /// </remarks>
     /// <remarks>
     /// <para>
-    /// This goes through <see cref="Apply"/>, which moves, resizes and re-inserts the
-    /// window at the top of the topmost band every time. Recovering from Show Desktop
-    /// needs none of that: a <c>SetWindowPos</c> with <c>SWP_NOMOVE | SWP_NOSIZE</c>
-    /// was measured bringing the widget straight back while the desktop was still
-    /// showing. So every tick is doing considerably more work than the job requires,
-    /// on a layered window, where that work means a full composition pass.
+    /// Deliberately not <see cref="Apply"/>. Recovering from Show Desktop needs the
+    /// window put back into the composition and nothing else: a <c>SetWindowPos</c>
+    /// carrying <c>SWP_NOMOVE | SWP_NOSIZE</c> was measured bringing the widget
+    /// straight back while the desktop was still showing. Going through the full
+    /// placement instead moved, resized and re-inserted the window on every tick, which
+    /// on a layered window is a whole composition pass to achieve what an empty one
+    /// achieves.
     /// </para>
     /// <para>
-    /// That is the suspected cause of the flicker described on <see cref="_reassert"/>,
-    /// and issuing the minimal call here instead is the obvious thing to try. It has
-    /// not been, because the flicker only shows up to a person clicking around a real
-    /// taskbar, and a fix nobody has watched fail is not a fix. Reusing
-    /// <see cref="Apply"/> does at least mean one placement path rather than two that
-    /// can disagree.
+    /// That surplus work is what made a shorter interval flicker: clicking a taskbar
+    /// item raises the taskbar and the widget rides up with it as its owned window, and
+    /// a full reposition landing inside that reorder is visible. Asking for nothing but
+    /// the z-order gives the collision far less to collide with.
+    /// </para>
+    /// <para>
+    /// Geometry is not this timer's business. It arrives through the tracker, which is
+    /// the path that owns it and the only one that knows when it changed.
     /// </para>
     /// </remarks>
     private void Reassert()
@@ -746,7 +752,8 @@ internal partial class OverlayWindow : Window, IAlbumArtSource
         var state = _tracker.Current;
         if (!state.IsAvailable || !state.ShouldShow || _track?.HasContent != true) return;
 
-        Apply(state);
+        SetWindowPos(_hwnd, HWND_TOPMOST, 0, 0, 0, 0,
+            SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_SHOWWINDOW);
     }
 
     /// <summary>
