@@ -295,6 +295,37 @@ working with nothing to do. Entries still in the old folder are moved on the nex
 launch; one already at the destination is dropped rather than overwritten, since both
 copies are fetched results and neither is worth more than the other.
 
+## Show Desktop
+
+Show Desktop used to take the widget away and keep it away, until something unrelated
+moved the taskbar and brought it back — which is why clicking the taskbar looked like
+the cure.
+
+It is worth writing down what it is *not*, because every plausible explanation turns
+out to be wrong. Measured while Show Desktop was active and confirmed engaged (the
+foreground window really was `Progman`): `WS_VISIBLE` still set, `IsIconic` false,
+`WS_EX_TOPMOST` still set, DWM reporting the window uncloaked, and its position in the
+z-order unchanged and still above `Shell_TrayWnd`. Nothing about the window changes at
+all. Windows simply stops compositing it, because the shell's own windows are the only
+ones exempt from that state.
+
+Since nothing changes, nothing is a state change, so the tracker has nothing to report
+and the widget stays gone. The fix is not to detect it — there is no signal to detect —
+but to stop relying on being told. A bare `SetWindowPos` restores the widget
+immediately, even while the desktop is still showing, so the overlay re-applies its
+placement once a second whenever it should be visible. One call against a window
+already where it belongs costs nothing measurable.
+
+Only the showing path re-applies. The hide path is debounced precisely so a transient
+state cannot blink the widget, and a timer that could reach it would re-arm that
+debounce once a second forever.
+
+Reparenting the widget to `Shell_TrayWnd` would inherit the shell's exemption outright
+and was tried first. It was abandoned: a child's coordinates are relative to its
+parent, and the DPI handling that follows from that put the window at twice its
+intended offset. Re-asserting achieves the same result without touching the
+positioning model.
+
 ## The first launch
 
 The widget hides itself when nothing is playing, which is right for every launch

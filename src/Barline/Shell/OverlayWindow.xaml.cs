@@ -91,6 +91,27 @@ internal partial class OverlayWindow : Window, IAlbumArtSource
     /// </remarks>
     private readonly DispatcherTimer _hideDebounce;
 
+    /// <summary>
+    /// Puts the widget back after Show Desktop takes it off screen.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Show Desktop does nothing to this window that can be observed. Measured while
+    /// it was active: <c>WS_VISIBLE</c> still set, not iconic, <c>WS_EX_TOPMOST</c>
+    /// still set, DWM reporting it uncloaked, and its position in the z-order
+    /// unchanged and still above <c>Shell_TrayWnd</c>. It simply stops being
+    /// composited, because the shell's own windows are the only ones exempt.
+    /// </para>
+    /// <para>
+    /// Nothing about that is a state change, so the tracker has nothing to report and
+    /// the widget stays gone — until something unrelated moves the taskbar and the
+    /// placement runs again, which is why clicking the taskbar brings it back. A bare
+    /// <c>SetWindowPos</c> restores it immediately, even while the desktop is still
+    /// showing, so the fix is to keep issuing one rather than to wait to be told.
+    /// </para>
+    /// </remarks>
+    private readonly DispatcherTimer _reassert;
+
     private uint _taskbarCreatedMessage;
     private IntPtr _hwnd;
     private IntPtr _ownerHandle;
@@ -145,6 +166,16 @@ internal partial class OverlayWindow : Window, IAlbumArtSource
             _hideDebounce.Stop();
             HideNow();
         };
+
+        // A second is soon enough that the widget is back before anyone reads the
+        // desktop it was covering, and one SetWindowPos a second against a window
+        // that is already where it should be costs nothing measurable.
+        _reassert = new DispatcherTimer(DispatcherPriority.Background)
+        {
+            Interval = TimeSpan.FromSeconds(1),
+        };
+        _reassert.Tick += (_, _) => Reassert();
+        _reassert.Start();
 
         // Pull-based: the visualizer samples the latest spectrum once per frame.
         // Returning false (no capture, or silence) drops it back to decorative motion.
@@ -666,6 +697,24 @@ internal partial class OverlayWindow : Window, IAlbumArtSource
         // topmost windows; ownership (below) keeps it above the taskbar itself.
         SetWindowPos(_hwnd, HWND_TOPMOST, x, y, width, height,
             SWP_NOACTIVATE | SWP_SHOWWINDOW);
+    }
+
+    /// <summary>
+    /// Re-applies the current placement, on a timer. See <see cref="_reassert"/>.
+    /// </summary>
+    /// <remarks>
+    /// Deliberately only the showing case. The hide path is debounced precisely so a
+    /// transient state cannot blink the widget, and a timer that could reach it would
+    /// re-arm that debounce once a second forever.
+    /// </remarks>
+    private void Reassert()
+    {
+        if (_hwnd == IntPtr.Zero) return;
+
+        var state = _tracker.Current;
+        if (!state.IsAvailable || !state.ShouldShow || _track?.HasContent != true) return;
+
+        Apply(state);
     }
 
     /// <summary>
