@@ -167,12 +167,17 @@ internal partial class OverlayWindow : Window, IAlbumArtSource
             HideNow();
         };
 
-        // A second is soon enough that the widget is back before anyone reads the
-        // desktop it was covering, and one SetWindowPos a second against a window
-        // that is already where it should be costs nothing measurable.
+        // Short enough that Show Desktop reads as the widget staying put rather than
+        // blinking away and back.
+        //
+        // This is polling, so the cost was measured rather than assumed. One call is
+        // around 0.9ms — not free, since a layered window goes through composition
+        // every time — which at this interval is about 0.2% of one core, against the
+        // 20-odd percent the visualizer is already using whenever the widget is up.
+        // Nothing playing means nothing drawn and no call at all.
         _reassert = new DispatcherTimer(DispatcherPriority.Background)
         {
-            Interval = TimeSpan.FromSeconds(1),
+            Interval = TimeSpan.FromMilliseconds(400),
         };
         _reassert.Tick += (_, _) => Reassert();
         _reassert.Start();

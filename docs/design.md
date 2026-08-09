@@ -318,7 +318,18 @@ already where it belongs costs nothing measurable.
 
 Only the showing path re-applies. The hide path is debounced precisely so a transient
 state cannot blink the widget, and a timer that could reach it would re-arm that
-debounce once a second forever.
+debounce forever.
+
+The interval is 400ms, and it is polling, so it was measured rather than waved at. A
+single `SetWindowPos` against this window costs about **0.9ms** — not free, because a
+layered window with per-pixel alpha goes through composition on every call. Driving it
+at 61 calls a second cost 5.1 to 5.6 percentage points of one core across two runs, so
+at 2.5 calls a second the re-assert costs roughly **0.2% of one core**.
+
+For scale: while a track is playing and the visualizer is animating, the widget already
+uses 20 to 23% of one core, so this adds about one percent to what it was doing anyway.
+With nothing playing the widget is hidden, the guard skips the call entirely, and the
+process sits at 0.7% of one core.
 
 Reparenting the widget to `Shell_TrayWnd` would inherit the shell's exemption outright
 and was tried first. It was abandoned: a child's coordinates are relative to its
