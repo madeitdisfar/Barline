@@ -109,6 +109,14 @@ internal partial class OverlayWindow : Window, IAlbumArtSource
     /// <c>SetWindowPos</c> restores it immediately, even while the desktop is still
     /// showing, so the fix is to keep issuing one rather than to wait to be told.
     /// </para>
+    /// <para>
+    /// One second, and shortening it is not free. At 400ms the widget flickered when
+    /// taskbar items were clicked: clicking one raises <c>Shell_TrayWnd</c> and hands
+    /// focus to another window, and a tick landing inside that reorder collides with
+    /// it. The interval decides how often that collision can happen, not whether it
+    /// can, so a second is a frequency low enough to stop noticing rather than a cure.
+    /// The likelier cure is below, in <see cref="Reassert"/>.
+    /// </para>
     /// </remarks>
     private readonly DispatcherTimer _reassert;
 
@@ -167,17 +175,18 @@ internal partial class OverlayWindow : Window, IAlbumArtSource
             HideNow();
         };
 
-        // Short enough that Show Desktop reads as the widget staying put rather than
-        // blinking away and back.
+        // A second: long enough not to collide with the taskbar's own reordering, short
+        // enough that Show Desktop takes the widget away only briefly. It does still go
+        // for up to a second, which is the cost of picking the safe end of that trade.
         //
-        // This is polling, so the cost was measured rather than assumed. One call is
-        // around 0.9ms — not free, since a layered window goes through composition
-        // every time — which at this interval is about 0.2% of one core, against the
-        // 20-odd percent the visualizer is already using whenever the widget is up.
-        // Nothing playing means nothing drawn and no call at all.
+        // This is polling, so the price was measured rather than assumed. One call is
+        // around 0.9ms — not free, because a layered window goes through composition
+        // every time — so once a second is about 0.09% of one core, against the 20-odd
+        // percent the visualizer is already using whenever the widget is up. Nothing
+        // playing means nothing drawn and no call at all.
         _reassert = new DispatcherTimer(DispatcherPriority.Background)
         {
-            Interval = TimeSpan.FromMilliseconds(400),
+            Interval = TimeSpan.FromSeconds(1),
         };
         _reassert.Tick += (_, _) => Reassert();
         _reassert.Start();
@@ -711,6 +720,24 @@ internal partial class OverlayWindow : Window, IAlbumArtSource
     /// Deliberately only the showing case. The hide path is debounced precisely so a
     /// transient state cannot blink the widget, and a timer that could reach it would
     /// re-arm that debounce once a second forever.
+    /// </remarks>
+    /// <remarks>
+    /// <para>
+    /// This goes through <see cref="Apply"/>, which moves, resizes and re-inserts the
+    /// window at the top of the topmost band every time. Recovering from Show Desktop
+    /// needs none of that: a <c>SetWindowPos</c> with <c>SWP_NOMOVE | SWP_NOSIZE</c>
+    /// was measured bringing the widget straight back while the desktop was still
+    /// showing. So every tick is doing considerably more work than the job requires,
+    /// on a layered window, where that work means a full composition pass.
+    /// </para>
+    /// <para>
+    /// That is the suspected cause of the flicker described on <see cref="_reassert"/>,
+    /// and issuing the minimal call here instead is the obvious thing to try. It has
+    /// not been, because the flicker only shows up to a person clicking around a real
+    /// taskbar, and a fix nobody has watched fail is not a fix. Reusing
+    /// <see cref="Apply"/> does at least mean one placement path rather than two that
+    /// can disagree.
+    /// </para>
     /// </remarks>
     private void Reassert()
     {
