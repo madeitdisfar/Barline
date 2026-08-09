@@ -1,0 +1,272 @@
+<Window x:Class="Barline.Shell.WelcomeWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:ui="clr-namespace:Barline.Ui"
+        x:ClassModifier="internal"
+        Title="Barline"
+        SizeToContent="Height"
+        Width="520"
+        ResizeMode="NoResize"
+        WindowStartupLocation="CenterScreen"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True"
+        FontFamily="Segoe UI Variable Text, Segoe UI"
+        TextOptions.TextFormattingMode="Ideal"
+        TextOptions.TextRenderingMode="Grayscale"
+        Background="{DynamicResource WindowBackgroundBrush}">
+
+    <!--
+        Shown once, on the first launch on a machine, and never again.
+
+        It exists because of a specific failure: the widget hides itself when nothing
+        is playing, so somebody who installs this and runs it with no music open sees
+        no change to their taskbar at all, and concludes it did not work. Text alone
+        would answer that badly, so the sample below is the real control, drawn by the
+        real code, animating.
+    -->
+
+    <Window.Resources>
+        <!-- Dark defaults, replaced wholesale by ApplyTheme. -->
+        <SolidColorBrush x:Key="WindowBackgroundBrush" Color="#FF202020" />
+        <SolidColorBrush x:Key="TextPrimaryBrush" Color="#FFFFFFFF" />
+        <SolidColorBrush x:Key="TextSecondaryBrush" Color="#C5FFFFFF" />
+        <SolidColorBrush x:Key="TextTertiaryBrush" Color="#87FFFFFF" />
+        <SolidColorBrush x:Key="CardBackgroundBrush" Color="#0DFFFFFF" />
+        <SolidColorBrush x:Key="CardStrokeBrush" Color="#1A000000" />
+        <SolidColorBrush x:Key="ControlAltFillBrush" Color="#1A000000" />
+        <SolidColorBrush x:Key="AccentFillBrush" Color="#FF0078D4" />
+        <SolidColorBrush x:Key="TextOnAccentBrush" Color="#FFFFFFFF" />
+        <SolidColorBrush x:Key="SubtleHoverBrush" Color="#0FFFFFFF" />
+        <SolidColorBrush x:Key="SubtlePressedBrush" Color="#0AFFFFFF" />
+
+        <Style x:Key="Glyph" TargetType="TextBlock">
+            <!-- Windows 11's own icon font. Drawing these as paths instead is the
+                 usual tell that a window was not made by the system. -->
+            <Setter Property="FontFamily" Value="Segoe Fluent Icons, Segoe MDL2 Assets" />
+            <Setter Property="FontSize" Value="16" />
+            <Setter Property="Width" Value="24" />
+            <Setter Property="VerticalAlignment" Value="Top" />
+            <Setter Property="Margin" Value="0,1,12,0" />
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+        </Style>
+
+        <Style x:Key="StepTitle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+        </Style>
+
+        <Style x:Key="StepBody" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+            <Setter Property="Margin" Value="0,2,0,0" />
+        </Style>
+
+        <Style x:Key="FlatButton" TargetType="Button">
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Padding" Value="14,7" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Fill"
+                                CornerRadius="4"
+                                Background="{DynamicResource ControlAltFillBrush}"
+                                BorderBrush="{DynamicResource CardStrokeBrush}"
+                                BorderThickness="1"
+                                Padding="{TemplateBinding Padding}"
+                                SnapsToDevicePixels="True">
+                            <TextBlock Text="{TemplateBinding Content}"
+                                       FontFamily="Segoe UI Variable Text, Segoe UI"
+                                       FontSize="12"
+                                       Foreground="{DynamicResource TextPrimaryBrush}" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Fill" Property="Background"
+                                        Value="{DynamicResource SubtleHoverBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Fill" Property="Background"
+                                        Value="{DynamicResource SubtlePressedBrush}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="AccentButton" TargetType="Button" BasedOn="{StaticResource FlatButton}">
+            <Setter Property="Padding" Value="20,7" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Fill"
+                                CornerRadius="4"
+                                Background="{DynamicResource AccentFillBrush}"
+                                Padding="{TemplateBinding Padding}"
+                                SnapsToDevicePixels="True">
+                            <TextBlock Text="{TemplateBinding Content}"
+                                       FontFamily="Segoe UI Variable Text, Segoe UI"
+                                       FontSize="12"
+                                       Foreground="{DynamicResource TextOnAccentBrush}" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Fill" Property="Opacity" Value="0.9" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Fill" Property="Opacity" Value="0.8" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
+    <StackPanel Margin="28,24,28,24">
+
+        <TextBlock FontSize="24"
+                   FontWeight="SemiBold"
+                   TextWrapping="Wrap"
+                   Foreground="{DynamicResource TextPrimaryBrush}"
+                   Text="Barline is running" />
+
+        <TextBlock FontSize="14"
+                   Margin="0,6,0,0"
+                   TextWrapping="Wrap"
+                   Foreground="{DynamicResource TextSecondaryBrush}"
+                   Text="It lives at the left end of your taskbar and looks like this." />
+
+        <!--
+            A live sample, not a screenshot: the same Visualizer control the widget
+            draws, over the shade the taskbar actually is on this machine. A picture
+            would be wrong on a light theme, wrong at a different accent, and stale the
+            first time the design moved.
+        -->
+        <Border x:Name="SampleStrip"
+                CornerRadius="6"
+                Height="48"
+                Margin="0,20,0,0"
+                SnapsToDevicePixels="True">
+            <Grid Margin="10,0,14,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <Border Grid.Column="0"
+                        Width="32" Height="32"
+                        CornerRadius="4"
+                        VerticalAlignment="Center"
+                        ClipToBounds="True">
+                    <Image x:Name="SampleArt" Stretch="UniformToFill" />
+                </Border>
+
+                <StackPanel Grid.Column="1"
+                            Margin="10,0,10,0"
+                            VerticalAlignment="Center">
+                    <TextBlock x:Name="SampleTitle"
+                               FontSize="12"
+                               FontWeight="SemiBold"
+                               TextTrimming="CharacterEllipsis" />
+                    <TextBlock x:Name="SampleArtist"
+                               FontSize="11"
+                               TextTrimming="CharacterEllipsis" />
+                </StackPanel>
+
+                <ui:Visualizer x:Name="SampleBars"
+                               Grid.Column="2"
+                               VerticalAlignment="Center" />
+            </Grid>
+        </Border>
+
+        <TextBlock x:Name="SampleCaption"
+                   FontSize="11"
+                   Margin="2,8,0,0"
+                   TextWrapping="Wrap"
+                   Foreground="{DynamicResource TextTertiaryBrush}"
+                   Text="A sample. The bars follow whatever your computer is playing." />
+
+        <Border Height="1"
+                Margin="0,20"
+                Background="{DynamicResource CardStrokeBrush}" />
+
+        <!-- The thing that actually confuses people, so it goes first. -->
+        <Grid Margin="0,0,0,18">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Grid.Column="0" Style="{StaticResource Glyph}" Text="&#xE8D6;" />
+            <StackPanel Grid.Column="1">
+                <TextBlock Style="{StaticResource StepTitle}" Text="Play something to see it" />
+                <TextBlock Style="{StaticResource StepBody}"
+                           Text="With nothing playing the widget stays hidden, so your taskbar looks untouched. Start a track in any app and it appears." />
+            </StackPanel>
+        </Grid>
+
+        <Grid Margin="0,0,0,18">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Grid.Column="0" Style="{StaticResource Glyph}" Text="&#xE713;" />
+            <StackPanel Grid.Column="1">
+                <TextBlock Style="{StaticResource StepTitle}" Text="Right-click it for settings" />
+                <TextBlock Style="{StaticResource StepBody}"
+                           Text="Colors, lyrics, fonts and more. The same menu is on the Barline icon in the notification area, which is where to find it while the widget is hidden." />
+            </StackPanel>
+        </Grid>
+
+        <!-- Only when Windows is actually showing its own button. Collapsed otherwise,
+             so nobody is told to undo something they never did. -->
+        <Border x:Name="WidgetsNotice"
+                Visibility="Collapsed"
+                CornerRadius="4"
+                Padding="14,12"
+                Margin="0,0,0,18"
+                Background="{DynamicResource CardBackgroundBrush}"
+                BorderBrush="{DynamicResource CardStrokeBrush}"
+                BorderThickness="1">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" Style="{StaticResource Glyph}" Text="&#xE7BA;" />
+                <StackPanel Grid.Column="1">
+                    <TextBlock Style="{StaticResource StepTitle}" Text="Turn off the Widgets button" />
+                    <TextBlock Style="{StaticResource StepBody}"
+                               Text="Windows is showing its weather button in the same corner, so the two will overlap. Switch off Widgets under Taskbar items." />
+                    <Button x:Name="TaskbarSettingsButton"
+                            Style="{StaticResource FlatButton}"
+                            HorizontalAlignment="Left"
+                            Margin="0,12,0,0"
+                            Content="Open taskbar settings" />
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <TextBlock Grid.Column="0"
+                       FontSize="11"
+                       VerticalAlignment="Center"
+                       Foreground="{DynamicResource TextTertiaryBrush}"
+                       Text="This only shows once." />
+
+            <Button x:Name="CloseButton"
+                    Grid.Column="1"
+                    Style="{StaticResource AccentButton}"
+                    IsDefault="True"
+                    Content="Get started" />
+        </Grid>
+    </StackPanel>
+</Window>

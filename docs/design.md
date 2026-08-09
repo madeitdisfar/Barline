@@ -295,6 +295,32 @@ working with nothing to do. Entries still in the old folder are moved on the nex
 launch; one already at the destination is dropped rather than overwritten, since both
 copies are fetched results and neither is worth more than the other.
 
+## The first launch
+
+The widget hides itself when nothing is playing, which is right for every launch
+except the first. Someone who has just installed this and has no music open sees no
+change to their taskbar at all, and the only available conclusion is that it did not
+work. That is the failure the welcome window exists to prevent, and it is worth more
+than the setup instructions it also carries.
+
+It is shown when there was **no settings file** at startup, rather than from a flag
+inside the settings. A flag cannot tell a fresh install from an upgrade: a file
+written by an older build has no such flag either way, so every existing user would
+be greeted as though they were new. The file is written out immediately on a first
+run for the same reason from the other direction, so somebody who changes no settings
+is not greeted twice.
+
+The sample in it is the real `Visualizer` control over the real backdrop estimate,
+animating, rather than a screenshot. A picture would be wrong on a light theme, wrong
+at a different accent, and stale the first time the design moved.
+
+The advice about the Widgets button is shown only when `TaskbarDa` says the button is
+actually there. Most of the setup advice an app can give is advice the reader has
+already followed, and being told to undo something you never did is how a first run
+starts to feel like a lecture. An unreadable or absent value counts as *visible*: the
+cost is asymmetric, since an unneeded hint is read once and ignored, where a silent
+overlap looks like the app is broken.
+
 ## About, and why it is not decoration
 
 The `LICENSE` and `THIRD-PARTY-NOTICES.md` files are copied beside the executable by

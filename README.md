@@ -79,12 +79,17 @@ install.
 
 **[➡️ Download the latest release](https://github.com/madeitdisfar/Barline/releases/latest)**
 
-First, free up the space it lives in:
+The first launch explains the rest, including this, which only matters if Windows is
+still showing its own button in the same corner:
 
 > **Settings → Personalization → Taskbar → Taskbar items → Widgets: Off**
 
+Note that the widget hides itself while nothing is playing, so a quiet machine looks
+exactly as it did before. Start a track and it appears.
+
 Right-click the widget for **Settings**, **Show visualizer**, **Restart visualizer**
-and **Exit**. The same menu is on the notification-area icon.
+and **Exit**. The same menu is on the notification-area icon, which is where to reach
+it while the widget is hidden.
 
 To build it yourself instead, see [CONTRIBUTING.md](CONTRIBUTING.md).
 

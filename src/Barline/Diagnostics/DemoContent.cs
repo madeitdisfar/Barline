@@ -34,7 +34,11 @@ internal static class DemoContent
     };
 
     /// <summary>Stand-in cover art: a diagonal gradient with a soft highlight.</summary>
-    private static ImageSource CreateArt()
+    /// <remarks>
+    /// Also used by the welcome window, which has to show what the widget looks like
+    /// on a machine where nothing is playing and no artwork exists to borrow.
+    /// </remarks>
+    public static ImageSource CreateArt()
     {
         const int size = 160;
 

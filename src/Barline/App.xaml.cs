@@ -112,6 +112,12 @@ public partial class App : Application
             _ = media.StartAsync();
         }
 
+        // Nothing is playing on a machine this has just been installed on, so the
+        // widget is hidden and the taskbar looks untouched. Without this the app is
+        // indistinguishable from one that failed to start.
+        if (settings.IsFirstRun || Environment.GetEnvironmentVariable("BARLINE_WELCOME") is not null)
+            new WelcomeWindow(theme, settings).Show();
+
         // Opened last, after a track exists: iterating on this window otherwise means
         // a tray right-click on every rebuild, and the tray menu is awkward to script.
         if (Environment.GetEnvironmentVariable("BARLINE_SETTINGS") == "1")

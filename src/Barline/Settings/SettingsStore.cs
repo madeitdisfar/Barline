@@ -46,6 +46,17 @@ internal sealed class SettingsStore
     /// <summary>Where the file lives, so the settings window can point users at it.</summary>
     public string FilePath => _path;
 
+    /// <summary>
+    /// Whether there was no settings file at all when this started, which is as close
+    /// to "the app has never run here" as anything on disk gets.
+    /// </summary>
+    /// <remarks>
+    /// Preferred over a flag inside the settings, which cannot tell a fresh install
+    /// from an upgrade: a file written by an older build has no such flag either way,
+    /// so every existing user would be greeted as though they were new.
+    /// </remarks>
+    public bool IsFirstRun { get; private set; }
+
     public event EventHandler? Changed;
 
     public SettingsStore()
@@ -58,7 +69,11 @@ internal sealed class SettingsStore
         // Rewritten at once rather than at the next change, so a file folded forward on
         // load stops describing itself as something it no longer is — and so the fold
         // happens once instead of on every launch until a setting happens to change.
-        if (_migrated) Save();
+        //
+        // A first run is written out for the same reason from the other direction: the
+        // file is what says this install has been seen before, so waiting for a setting
+        // to change would greet somebody who changed nothing all over again.
+        if (_migrated || IsFirstRun) Save();
     }
 
     /// <summary>Whether the file that was loaded had to be folded forward.</summary>
@@ -98,6 +113,7 @@ internal sealed class SettingsStore
             if (!File.Exists(_path))
             {
                 DebugLog.Write("settings: no file yet; using defaults");
+                IsFirstRun = true;
                 return new WidgetSettings();
             }
 
