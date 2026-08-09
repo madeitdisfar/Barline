@@ -7,7 +7,7 @@ using Barline.Platform;
 
 namespace Barline.Lyrics;
 
-/// <summary>One cached lookup, stored as JSON beside the settings file.</summary>
+/// <summary>One cached lookup, stored as JSON in the cache folder.</summary>
 internal sealed class CachedLyrics
 {
     public string? SyncedLyrics { get; set; }
@@ -103,9 +103,68 @@ internal sealed class LyricsCache
     public LyricsCache()
     {
         _directory = AppPaths.LyricsCache;
+
+        MigrateLegacyEntries(AppPaths.Lyrics, _directory);
     }
 
-    public string DirectoryPath => _directory;
+    /// <summary>
+    /// Moves entries written when the cache shared a folder with imported files.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Only the cache moved: imported <c>.lrc</c> files stay exactly where they were,
+    /// so anyone who had put one there by hand keeps it working without being told
+    /// anything.
+    /// </para>
+    /// <para>
+    /// An entry that already exists at the destination is dropped rather than
+    /// overwritten. Both copies are fetched results, so neither is worth more than the
+    /// other, and leaving the old one behind is how a folder stays half-migrated
+    /// forever.
+    /// </para>
+    /// </remarks>
+    internal static int MigrateLegacyEntries(string legacyDirectory, string cacheDirectory)
+    {
+        int moved = 0;
+
+        try
+        {
+            if (!Directory.Exists(legacyDirectory)) return 0;
+
+            var entries = Directory.EnumerateFiles(legacyDirectory, "*.json").ToList();
+            if (entries.Count == 0) return 0;
+
+            Directory.CreateDirectory(cacheDirectory);
+
+            foreach (string entry in entries)
+            {
+                try
+                {
+                    string destination = Path.Combine(cacheDirectory, Path.GetFileName(entry));
+
+                    if (File.Exists(destination)) File.Delete(entry);
+                    else File.Move(entry, destination);
+
+                    moved++;
+                }
+                catch (Exception ex)
+                {
+                    DebugLog.Write(
+                        $"lyrics cache: could not move {Path.GetFileName(entry)}: {ex.Message}");
+                }
+            }
+
+            DebugLog.Write($"lyrics cache: moved {moved} entries out of the lyrics folder");
+        }
+        catch (Exception ex)
+        {
+            // A cache that stays where it was is still a working cache. The old
+            // entries are read by nothing now, which costs one lookup per track.
+            DebugLog.Write($"lyrics cache: migration failed: {ex.Message}");
+        }
+
+        return moved;
+    }
 
     /// <summary>
     /// Identifies a track independently of how its name was punctuated, so the same
@@ -216,9 +275,11 @@ internal sealed class LyricsCache
     /// Deletes every fetched entry.
     /// </summary>
     /// <remarks>
-    /// Only the <c>.json</c> entries. Hand-supplied <c>.lrc</c> files live in the same
-    /// folder and are not cache — they cannot be re-fetched, so clearing the cache
-    /// must never take them with it.
+    /// Named entries rather than the folder, so a half-written <c>.tmp</c> is left for
+    /// the next write to replace and nothing outside the cache can be caught up in a
+    /// clear. Imported <c>.lrc</c> files are not in here at all — they cannot be
+    /// re-fetched, and a button that empties a folder should not be the only thing
+    /// standing between them and deletion.
     /// </remarks>
     public int Clear()
     {

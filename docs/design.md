@@ -280,6 +280,21 @@ The two builds therefore do not share state: installing the packaged build along
 the portable one starts from defaults, the same way any two separate installations
 would.
 
+### Fetched lyrics are kept apart from imported ones
+
+Under either root, `lyrics\` holds the `.lrc` files the user put there and `cache\`
+holds what LRCLIB returned. They shared a folder at first, which was wrong in both
+directions: the folder people are sent to when adding a file by hand was mostly
+machine-named JSON, and the only thing keeping **Clear cache** from deleting
+somebody's hand-corrected timings was a filename filter. A cache is disposable by
+definition and an imported file cannot be re-fetched, so the difference belongs in
+the layout rather than in a condition every future caller has to remember.
+
+Splitting them moved the cache and left imports alone, so an existing `.lrc` keeps
+working with nothing to do. Entries still in the old folder are moved on the next
+launch; one already at the destination is dropped rather than overwritten, since both
+copies are fetched results and neither is worth more than the other.
+
 ## Starting with Windows
 
 Two mechanisms, because the same binary can run either way. Unpackaged, it writes the

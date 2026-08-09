@@ -40,7 +40,8 @@ In Barline's own data folder:
 
 - `settings.json` — your preferences.
 - `presets\` — saved appearance presets.
-- `lyrics\` — cached lyrics, and any `.lrc` files you import yourself.
+- `lyrics\` — any `.lrc` files you import yourself.
+- `cache\` — lyrics fetched from LRCLIB, including the misses.
 
 Where that folder is depends on how you installed Barline. The portable build
 keeps it at `%LocalAppData%\Barline`. The Microsoft Store build keeps it inside its

@@ -4,7 +4,7 @@ using Barline.Diagnostics;
 namespace Barline.Platform;
 
 /// <summary>
-/// Where settings, presets and cached lyrics are kept.
+/// Where settings, presets, imported lyrics and fetched lyrics are kept.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -35,7 +35,24 @@ internal static class AppPaths
 
     public static string Presets => Path.Combine(Root, "presets");
 
-    public static string LyricsCache => Path.Combine(Root, "lyrics");
+    /// <summary>
+    /// Lyrics files the user put there. Written only on import, and never cleared by
+    /// the app: nothing here can be fetched again.
+    /// </summary>
+    public static string Lyrics => Path.Combine(Root, "lyrics");
+
+    /// <summary>
+    /// Lyrics fetched from LRCLIB. Everything under <c>cache</c> is disposable — it
+    /// exists to save a request, and deleting it costs a lookup and nothing else.
+    /// </summary>
+    /// <remarks>
+    /// Kept apart from <see cref="Lyrics"/> because the two differ in exactly the way
+    /// that matters when deleting: one folder is the app's to manage and the other is
+    /// the user's work. Sharing a folder meant the clear-cache button had to know
+    /// which files it was allowed to touch, and the folder the user opens to add a
+    /// file was full of machine-named JSON.
+    /// </remarks>
+    public static string LyricsCache => Path.Combine(Root, "cache", "lyrics");
 
     private static string ResolveRoot()
     {

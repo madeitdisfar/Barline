@@ -223,7 +223,7 @@ internal partial class SettingsWindow : Window
         });
 
         ImportButton.Click += (_, _) => ImportLyricsFile();
-        OpenFolderButton.Click += (_, _) => OpenFolder(_lyrics.CacheDirectory, ImportStatus);
+        OpenFolderButton.Click += (_, _) => OpenFolder(_lyrics.ImportsDirectory, ImportStatus);
         ClearCacheButton.Click += (_, _) => ClearLyricsCache();
 
         AutoStartToggle.Checked += (_, _) => OnAutoStartToggled(true);
@@ -1144,7 +1144,7 @@ internal partial class SettingsWindow : Window
 
         if (count == 0)
         {
-            CacheSizeText.Text = "Nothing cached yet. Lyrics are kept here so a track is only fetched once.";
+            CacheSizeText.Text = "Nothing cached yet. Fetched lyrics are kept so a track is only looked up once.";
             ClearCacheButton.IsEnabled = false;
             SettingCard.SetSummary(LyricsFilesExpander, "Nothing cached yet");
             return;

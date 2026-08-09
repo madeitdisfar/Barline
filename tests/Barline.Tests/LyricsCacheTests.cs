@@ -1,3 +1,4 @@
+using System.IO;
 using Barline.Lyrics;
 using Xunit;
 
@@ -106,5 +107,91 @@ public class LyricsCacheTests
         };
 
         Assert.False(LyricsCache.IsUsable(stale, Now));
+    }
+}
+
+/// <summary>
+/// Splitting the cache out of the folder people put their own lyrics in.
+/// </summary>
+/// <remarks>
+/// The whole point of the split is that one folder is disposable and the other is not,
+/// so the move is only correct if it takes every fetched entry and leaves every
+/// imported file exactly where it was.
+/// </remarks>
+public class LyricsCacheMigrationTests : IDisposable
+{
+    private readonly string _root = Path.Combine(
+        Path.GetTempPath(), $"barline-migrate-{Guid.NewGuid():N}");
+
+    private string Legacy => Path.Combine(_root, "lyrics");
+    private string Cache => Path.Combine(_root, "cache", "lyrics");
+
+    private void Write(string directory, string name, string content)
+    {
+        Directory.CreateDirectory(directory);
+        File.WriteAllText(Path.Combine(directory, name), content);
+    }
+
+    [Fact]
+    public void Fetched_entries_move_and_imported_files_stay()
+    {
+        Write(Legacy, "a1b2c3.json", "{}");
+        Write(Legacy, "d4e5f6.json", "{}");
+        Write(Legacy, "Radiohead - Nude.lrc", "[00:12.00]line");
+
+        Assert.Equal(2, LyricsCache.MigrateLegacyEntries(Legacy, Cache));
+
+        Assert.True(File.Exists(Path.Combine(Cache, "a1b2c3.json")));
+        Assert.True(File.Exists(Path.Combine(Cache, "d4e5f6.json")));
+
+        Assert.Equal(
+            ["Radiohead - Nude.lrc"],
+            Directory.EnumerateFiles(Legacy).Select(Path.GetFileName));
+    }
+
+    /// <summary>
+    /// Both copies are fetched results, so the stray one goes rather than being kept
+    /// or overwriting what is already in place.
+    /// </summary>
+    [Fact]
+    public void An_entry_already_in_the_cache_is_not_overwritten()
+    {
+        Write(Legacy, "a1b2c3.json", "old");
+        Write(Cache, "a1b2c3.json", "current");
+
+        _ = LyricsCache.MigrateLegacyEntries(Legacy, Cache);
+
+        Assert.Equal("current", File.ReadAllText(Path.Combine(Cache, "a1b2c3.json")));
+        Assert.Empty(Directory.EnumerateFiles(Legacy));
+    }
+
+    /// <summary>
+    /// Runs on every launch, so the ordinary case is a fresh install or a folder that
+    /// has already been dealt with. Neither may create anything.
+    /// </summary>
+    [Fact]
+    public void Nothing_to_move_leaves_no_folder_behind()
+    {
+        Assert.Equal(0, LyricsCache.MigrateLegacyEntries(Legacy, Cache));
+        Assert.False(Directory.Exists(Cache));
+
+        Write(Legacy, "Radiohead - Nude.lrc", "[00:12.00]line");
+
+        Assert.Equal(0, LyricsCache.MigrateLegacyEntries(Legacy, Cache));
+        Assert.False(Directory.Exists(Cache));
+    }
+
+    public void Dispose()
+    {
+        GC.SuppressFinalize(this);
+
+        try
+        {
+            if (Directory.Exists(_root)) Directory.Delete(_root, recursive: true);
+        }
+        catch (IOException)
+        {
+            // A temp folder that outlives the run is not a failed test.
+        }
     }
 }

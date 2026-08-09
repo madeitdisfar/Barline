@@ -2,6 +2,7 @@ using System.IO;
 using System.Windows.Threading;
 using Barline.Diagnostics;
 using Barline.Media;
+using Barline.Platform;
 using Barline.Settings;
 
 namespace Barline.Lyrics;
@@ -28,6 +29,9 @@ internal sealed class LyricsService : IDisposable
     private readonly LyricsCache _cache = new();
     private readonly LrcLibClient _client = new();
     private readonly Dispatcher _dispatcher;
+
+    /// <summary>Where hand-supplied files are looked for and imports are written.</summary>
+    private readonly string _imports = AppPaths.Lyrics;
 
     /// <summary>Cancels the in-flight lookup when the track changes under it.</summary>
     private CancellationTokenSource? _inFlight;
@@ -60,7 +64,8 @@ internal sealed class LyricsService : IDisposable
         new LyricsPresetStore().EnsureBuiltIns();
     }
 
-    public string CacheDirectory => _cache.DirectoryPath;
+    /// <summary>The folder to open for someone adding a file by hand.</summary>
+    public string ImportsDirectory => _imports;
 
     /// <summary>How many tracks are cached, and how much room they take.</summary>
     public (int Count, long Bytes) MeasureCache() => _cache.Measure();
@@ -211,10 +216,10 @@ internal sealed class LyricsService : IDisposable
     }
 
     /// <summary>
-    /// Looks for a hand-supplied file, named for the track, in the cache folder.
+    /// Looks for a hand-supplied file, named for the track, in the lyrics folder.
     /// </summary>
     /// <remarks>
-    /// The cache folder rather than beside the audio, because SMTC identifies a
+    /// A folder of Barline's rather than beside the audio, because SMTC identifies a
     /// session by app id and never reveals a file path — for Spotify or a browser
     /// there is no local file to sit beside.
     /// </remarks>
@@ -223,7 +228,7 @@ internal sealed class LyricsService : IDisposable
         try
         {
             string name = Sanitize($"{track.Artist} - {track.Title}");
-            string path = Path.Combine(_cache.DirectoryPath, $"{name}.lrc");
+            string path = Path.Combine(_imports, $"{name}.lrc");
 
             if (!File.Exists(path)) return null;
 
@@ -270,7 +275,7 @@ internal sealed class LyricsService : IDisposable
 
     /// <summary>Full path an import for this track would occupy.</summary>
     public string ImportPathFor(TrackInfo track) =>
-        Path.Combine(_cache.DirectoryPath, FileNameFor(track));
+        Path.Combine(_imports, FileNameFor(track));
 
     /// <summary>Whether a hand-supplied file is already in place for a track.</summary>
     public bool HasImport(TrackInfo track) => File.Exists(ImportPathFor(track));
@@ -296,7 +301,7 @@ internal sealed class LyricsService : IDisposable
                 return false;
             }
 
-            Directory.CreateDirectory(_cache.DirectoryPath);
+            Directory.CreateDirectory(_imports);
             File.WriteAllText(ImportPathFor(track), text);
 
             // Drop the loaded document so the next request picks the file up rather

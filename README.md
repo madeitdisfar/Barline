@@ -114,8 +114,9 @@ with auto-hide.
 Word-level timing is estimated from syllable count, including for Hangul, kana and CJK,
 which are counted per character rather than by vowel groups.
 
-Got better timings? Drop an `.lrc` file in, or use **Import for this track…** in
-settings. A file always takes priority over the network.
+Got better timings? Use **Import for this track…** in settings, or drop an `.lrc` file
+into the lyrics folder yourself — **Open folder** beside the button gets you there. A
+file always takes priority over the network, and clearing the cache never touches it.
 
 ## Settings
 
