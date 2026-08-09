@@ -1,6 +1,6 @@
 # Privacy policy
 
-**Barline** — last updated 6 August 2026.
+**Barline** — last updated 9 August 2026.
 
 Barline collects nothing. There is no analytics, no telemetry, no crash reporting, no
 account, and no advertising. Nothing you do in the app is reported to its author, and
