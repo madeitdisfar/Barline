@@ -1,9 +1,12 @@
+using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Interop;
 using Microsoft.Win32;
 using Barline.Audio;
 using Barline.Diagnostics;
 using Barline.Lyrics;
 using Barline.Media;
+using Barline.Platform;
 using Barline.Settings;
 using Barline.Shell;
 using Barline.Startup;
@@ -41,11 +44,18 @@ public partial class App : Application
         }
 
         var settings = new SettingsStore();
+
+        // Answered from disk alone, so startup never waits on the Store. The Store
+        // itself is asked once a window exists to own the call, below.
+        var license = new LicenseService();
+
+        ApplyLicense(settings, license);
+
         var tracker = new TaskbarTracker();
         var media = new MediaSessionService(Dispatcher);
         var theme = new Theme();
         var analyzer = new LoopbackAnalyzer();
-        var lyrics = new LyricsService(settings, Dispatcher);
+        var lyrics = new LyricsService(settings, Dispatcher, license.Premium);
         var window = new OverlayWindow(tracker, media, theme, analyzer, settings, lyrics);
 
         window.VisualizerEnabled = settings.Current.VisualizerEnabled;
@@ -55,7 +65,7 @@ public partial class App : Application
 
         tray.ExitRequested += (_, _) => Shutdown();
         tray.RestartVisualizerRequested += (_, _) => analyzer.Restart();
-        tray.SettingsRequested += (_, _) => ShowSettings(theme, settings, autoStart, window, media, lyrics);
+        tray.SettingsRequested += (_, _) => ShowSettings(theme, settings, autoStart, window, media, lyrics, license);
         window.ContextMenuRequested += (_, _) => tray.ShowContextMenu();
 
         tray.VisualizerToggled += (_, enabled) =>
@@ -85,6 +95,10 @@ public partial class App : Application
         // Show first so the HWND exists and OnSourceInitialized can apply the
         // extended styles, then start tracking — the first Changed event places it.
         window.Show();
+
+        // Now that there is a handle to own it. Deliberately not awaited: the widget
+        // must be on the taskbar whether or not the Store ever answers.
+        _ = AskTheStore(window, settings, license);
 
         // Same pattern: shown so the handle exists, then it hides itself until there
         // is a lyric to put in it.
@@ -118,10 +132,52 @@ public partial class App : Application
         if (settings.IsFirstRun || Environment.GetEnvironmentVariable("BARLINE_WELCOME") is not null)
             new WelcomeWindow(theme, settings).Show();
 
+        // Only reachable by buying the add-on, which cannot be done on demand, so it
+        // gets the same escape hatch the welcome window has.
+        if (Environment.GetEnvironmentVariable("BARLINE_THANKS") is not null)
+            new ThankYouWindow(theme).Show();
+
         // Opened last, after a track exists: iterating on this window otherwise means
         // a tray right-click on every rebuild, and the tray menu is awkward to script.
         if (Environment.GetEnvironmentVariable("BARLINE_SETTINGS") == "1")
-            ShowSettings(theme, settings, autoStart, window, media, lyrics);
+            ShowSettings(theme, settings, autoStart, window, media, lyrics, license);
+    }
+
+    /// <summary>
+    /// Brings the settings into line with what the license currently says.
+    /// </summary>
+    /// <remarks>
+    /// Runs at startup and again if the Store later contradicts it, because both
+    /// directions have to be handled: a first launch that turns out not to own the
+    /// add-on strips, and one that turns out to own it puts back whatever an earlier
+    /// run took away.
+    /// </remarks>
+    private static void ApplyLicense(SettingsStore settings, LicenseService license)
+    {
+        if (license.MayStrip) settings.UpdateIf(PremiumSettings.Strip);
+        else if (license.Premium) settings.UpdateIf(PremiumSettings.Restore);
+    }
+
+    /// <summary>
+    /// Asks the Store about the add-on, and acts on it only if the answer moved.
+    /// </summary>
+    /// <remarks>
+    /// The presets are re-seeded as well as the settings, since the paid built-ins are
+    /// skipped entirely by a free run and a launch that has just discovered it owns
+    /// them is the moment they should appear.
+    /// </remarks>
+    private static async Task AskTheStore(
+        Window window, SettingsStore settings, LicenseService license)
+    {
+        var handle = new WindowInteropHelper(window).Handle;
+
+        if (handle == IntPtr.Zero) return;
+
+        if (!await license.RefreshAsync(handle)) return;
+
+        ApplyLicense(settings, license);
+
+        new LyricsPresetStore().EnsureBuiltIns(license.Premium);
     }
 
     /// <summary>
@@ -139,12 +195,13 @@ public partial class App : Application
         AutoStartService autoStart,
         OverlayWindow window,
         MediaSessionService media,
-        LyricsService lyrics)
+        LyricsService lyrics,
+        LicenseService license)
     {
         if (_settingsWindow is null)
         {
             _settingsWindow = new SettingsWindow(
-                theme, settings, autoStart, window, media, lyrics);
+                theme, settings, autoStart, window, media, lyrics, license);
 
             _settingsWindow.Closed += (_, _) => _settingsWindow = null;
             _settingsWindow.Show();

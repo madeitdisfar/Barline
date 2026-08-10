@@ -32,4 +32,27 @@ internal static class SettingCard
 
     public static void SetSummary(DependencyObject element, string value) =>
         element.SetValue(SummaryProperty, value);
+
+    /// <summary>
+    /// Whether this control is one the free build cannot use, which puts a lock beside
+    /// its label.
+    /// </summary>
+    /// <remarks>
+    /// Separate from <see cref="UIElement.IsEnabled"/>, which a locked control is also
+    /// set to but which is not the same claim. Controls go disabled for ordinary
+    /// reasons — importing a lyric file needs something playing, the effect radius
+    /// needs an effect — and none of those should grow a padlock. This says why.
+    /// </remarks>
+    public static readonly DependencyProperty LockedProperty =
+        DependencyProperty.RegisterAttached(
+            "Locked",
+            typeof(bool),
+            typeof(SettingCard),
+            new PropertyMetadata(false));
+
+    public static bool GetLocked(DependencyObject element) =>
+        (bool)element.GetValue(LockedProperty);
+
+    public static void SetLocked(DependencyObject element, bool value) =>
+        element.SetValue(LockedProperty, value);
 }

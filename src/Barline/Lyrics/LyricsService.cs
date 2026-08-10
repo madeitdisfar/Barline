@@ -54,14 +54,16 @@ internal sealed class LyricsService : IDisposable
     /// <summary>Raised on the UI thread when <see cref="Current"/> changes.</summary>
     public event EventHandler? Changed;
 
-    public LyricsService(SettingsStore settings, Dispatcher dispatcher)
+    public LyricsService(SettingsStore settings, Dispatcher dispatcher, bool premium)
     {
         _settings = settings;
         _dispatcher = dispatcher;
 
         // Written on first run so the built-in looks are ordinary, readable files
-        // rather than something compiled in and hidden.
-        new LyricsPresetStore().EnsureBuiltIns();
+        // rather than something compiled in and hidden. The paid ones are skipped
+        // entirely without a license, so the folder never holds a look that the build
+        // reading it cannot draw.
+        new LyricsPresetStore().EnsureBuiltIns(premium);
     }
 
     /// <summary>The folder to open for someone adding a file by hand.</summary>

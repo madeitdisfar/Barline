@@ -106,6 +106,24 @@ internal sealed class SettingsStore
         Changed?.Invoke(this, EventArgs.Empty);
     }
 
+    /// <summary>
+    /// Applies a change that may turn out to be no change, and saves only if it was one.
+    /// </summary>
+    /// <remarks>
+    /// For passes that run on every launch and usually do nothing, such as taking paid
+    /// values back out of the file. Routing those through <see cref="Update"/> would
+    /// rewrite the file and announce a change on every start, which is both a pointless
+    /// write and a lie to anything listening.
+    /// </remarks>
+    public bool UpdateIf(Func<WidgetSettings, bool> mutate)
+    {
+        if (!mutate(Current)) return false;
+
+        Update(_ => { });
+
+        return true;
+    }
+
     private WidgetSettings Load()
     {
         try

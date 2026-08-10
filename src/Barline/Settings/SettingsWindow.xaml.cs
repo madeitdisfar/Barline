@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.IO;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -78,6 +79,8 @@ internal partial class SettingsWindow : Window
 
     private readonly LyricsPresetStore _presets = new();
 
+    private readonly LicenseService _license;
+
     /// <summary>
     /// The style the card is editing — which is the only one there is. Two of them, one
     /// per display mode, meant the same preset described two different things depending
@@ -109,7 +112,8 @@ internal partial class SettingsWindow : Window
         AutoStartService autoStart,
         IAlbumArtSource albumArt,
         MediaSessionService media,
-        LyricsService lyrics)
+        LyricsService lyrics,
+        LicenseService license)
     {
         _theme = theme;
         _settings = settings;
@@ -117,6 +121,7 @@ internal partial class SettingsWindow : Window
         _albumArt = albumArt;
         _media = media;
         _lyrics = lyrics;
+        _license = license;
         _preview = new BarColorResolver(theme, settings);
 
         InitializeComponent();
@@ -241,6 +246,7 @@ internal partial class SettingsWindow : Window
         PreviewBars.IsActive = true;
 
         SetUpAbout();
+        SetUpLicense();
 
         _theme.Changed += OnThemeChanged;
         _settings.Changed += OnSettingsChanged;
@@ -1002,7 +1008,7 @@ internal partial class SettingsWindow : Window
     {
         PresetPicker.Items.Clear();
 
-        foreach (string name in _presets.Names())
+        foreach (string name in _presets.Names(_license.Premium))
             PresetPicker.Items.Add(name);
 
         // "Custom" is not a file — it is what the appearance becomes once edited, and
@@ -1023,6 +1029,18 @@ internal partial class SettingsWindow : Window
         if (preset is null)
         {
             Say(PresetStatus, $"Could not read the preset “{name}”.");
+            return;
+        }
+
+        // The listing is by name, so a free build offers whatever is sitting under a
+        // free built-in's file name — and the contents of that file are not ours to
+        // trust. Asked here as well because this is the only place a style actually
+        // becomes the live one.
+        if (preset.UsesPremium && !_license.Premium)
+        {
+            Say(PresetStatus,
+                $"“{name}” uses something from {LicenseService.ProductName}.");
+            WithoutFeedback(() => SyncPresetList(Editing.Name));
             return;
         }
 
@@ -1184,6 +1202,194 @@ internal partial class SettingsWindow : Window
     /// whether the paid extras are even available. It is also the first thing worth
     /// knowing about a bug report.
     /// </remarks>
+    // ---- The paid features -------------------------------------------------
+
+    private const string LockedHint = "Included in " + LicenseService.ProductName + ".";
+
+    /// <summary>
+    /// Said instead when the Store could not be asked.
+    /// </summary>
+    /// <remarks>
+    /// The two states lock the same controls and mean opposite things, and the second
+    /// one is genuinely confusing without being told: someone who paid can be looking
+    /// at their own glow still on screen while the control that sets it refuses to
+    /// move. "You have not bought this" would be a lie to exactly the person least
+    /// deserving of one.
+    /// </remarks>
+    private const string UncheckedHint =
+        "Barline could not reach the Store to check for " + LicenseService.ProductName
+        + ", so this is unavailable for now. Anything already set keeps working.";
+
+    private string Hint =>
+        _license.State == LicenseState.Unknown ? UncheckedHint : LockedHint;
+
+    /// <summary>
+    /// Locks the controls this build has not been licensed for.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Locked rather than hidden. Someone deciding whether to buy should be able to see
+    /// what they would be buying, and a settings page that grows extra rows after a
+    /// purchase reads as a different app rather than as the same one unlocked.
+    /// </para>
+    /// <para>
+    /// Only ever runs in one direction, so a licensed window is built exactly as it
+    /// always was and there is no unlock path to get wrong. A purchase applies at the
+    /// next start, which is also when the paid presets are written.
+    /// </para>
+    /// </remarks>
+    private void SetUpLicense()
+    {
+        if (_license.Premium)
+        {
+            PremiumOwnedCard.Visibility = Visibility.Visible;
+            return;
+        }
+
+        Lock(BalancedOption);
+        Lock(DetailedOption);
+        Lock(AlbumArtOption);
+        Lock(CustomPositionOption);
+        Lock(EffectGlowOption);
+        Lock(SavePresetButton);
+
+        // The color options are a different template with nowhere for the trigger to
+        // put a glyph, so this one is placed by hand.
+        AlbumArtLock.Visibility = Visibility.Visible;
+
+        Say(PresetStatus, _license.State == LicenseState.Unknown
+            ? "Barline could not reach the Store to check your license, so saving is "
+              + "unavailable for now."
+            : $"Saving your own presets is part of {LicenseService.ProductName}.");
+
+        SetUpPurchase();
+    }
+
+    /// <summary>
+    /// The one place the add-on can actually be bought.
+    /// </summary>
+    /// <remarks>
+    /// Two buttons rather than one, because there are two ways to be locked out and
+    /// only one of them is fixed by paying. Somebody who already owns it and whose
+    /// Store was unreachable needs to ask again, not to buy it twice.
+    /// </remarks>
+    private void SetUpPurchase()
+    {
+        bool unchecked_ = _license.State == LicenseState.Unknown;
+
+        PremiumOfferCard.Visibility = Visibility.Visible;
+
+        PremiumHeading.Text = unchecked_
+            ? "Your license could not be checked"
+            : $"Unlock {LicenseService.ProductName}";
+
+        if (unchecked_)
+        {
+            Say(PremiumStatus,
+                "Barline could not reach the Store. If you already own this, use Check "
+                + "again once you are back online.");
+        }
+
+        BuyButton.Click += async (_, _) => await BuyAsync();
+        RecheckButton.Click += async (_, _) => await RecheckAsync();
+    }
+
+    private async Task BuyAsync()
+    {
+        BuyButton.IsEnabled = false;
+        Say(PremiumStatus, "Opening the Store…");
+
+        var outcome = await _license.PurchaseAsync(new WindowInteropHelper(this).Handle);
+
+        BuyButton.IsEnabled = true;
+
+        if (outcome is PurchaseOutcome.Bought or PurchaseOutcome.AlreadyOwned)
+        {
+            Unlocked(restored: outcome == PurchaseOutcome.AlreadyOwned);
+            return;
+        }
+
+        // Anything that went wrong inside the transaction — a declined card, no payment
+        // method on the account — was already shown by the Store's own dialog. What is
+        // left to say here is why the attempt never got that far, and those want
+        // different things from the user, so they are not one message.
+        Say(PremiumStatus, outcome switch
+        {
+            PurchaseOutcome.Canceled => "No purchase was made.",
+            PurchaseOutcome.NoNetwork =>
+                "Barline could not reach the Store. Check your connection and try again.",
+            PurchaseOutcome.StoreBusy =>
+                "The Store could not complete the purchase just now. Try again in a few "
+                + "minutes; you have not been charged.",
+            PurchaseOutcome.Unavailable => "This build already has everything.",
+            _ => "The purchase could not be started. Check that the Microsoft Store app "
+                 + "opens, then try again.",
+        });
+    }
+
+    private async Task RecheckAsync()
+    {
+        RecheckButton.IsEnabled = false;
+        Say(PremiumStatus, "Checking…");
+
+        await _license.RefreshAsync(new WindowInteropHelper(this).Handle);
+
+        RecheckButton.IsEnabled = true;
+
+        if (_license.Premium)
+        {
+            // Checking again never buys anything, so whatever it found was already
+            // theirs.
+            Unlocked(restored: true);
+            return;
+        }
+
+        Say(PremiumStatus, _license.State == LicenseState.NotLicensed
+            ? "This account does not own the add-on yet."
+            : "Still could not reach the Store. Check your connection and try again.");
+    }
+
+    /// <summary>
+    /// Takes the window as far as it can go without being rebuilt, and hands the rest
+    /// to a restart.
+    /// </summary>
+    /// <remarks>
+    /// The gating is applied once at construction and only ever locks, so the controls
+    /// cannot light back up in place. That is deliberate: an unlock path would put a
+    /// second, almost never exercised branch behind every gated control. What can be
+    /// done now is done now — the paid values come back out of the backup and the paid
+    /// presets are written — and the card flips to owned so the purchase is visibly
+    /// acknowledged rather than only described.
+    /// </remarks>
+    private void Unlocked(bool restored)
+    {
+        _settings.UpdateIf(PremiumSettings.Restore);
+        _presets.EnsureBuiltIns(premium: true);
+
+        Say(PremiumStatus, string.Empty);
+        PremiumOfferCard.Visibility = Visibility.Collapsed;
+        PremiumOwnedCard.Visibility = Visibility.Visible;
+
+        new ThankYouWindow(_theme, restored) { Owner = this }.ShowDialog();
+    }
+
+    /// <summary>
+    /// Disables a control and says why, in a way that survives being disabled.
+    /// </summary>
+    /// <remarks>
+    /// WPF suppresses tooltips on disabled controls, which is exactly backwards here:
+    /// the tooltip is the only thing that explains the state. <c>ShowOnDisabled</c> is
+    /// what makes a locked control able to answer for itself.
+    /// </remarks>
+    private void Lock(Control control)
+    {
+        control.IsEnabled = false;
+        control.ToolTip = Hint;
+
+        ToolTipService.SetShowOnDisabled(control, true);
+        SettingCard.SetLocked(control, true);
+    }
+
     private void SetUpAbout()
     {
         AboutVersionText.Text =

@@ -19,9 +19,10 @@ namespace Barline.Lyrics;
 /// UI could only pick between whole files.
 /// </para>
 /// <para>
-/// The three built-in looks are written here on first run rather than being compiled
-/// in and hidden. That makes them readable, copyable and editable, and means "make one
-/// of your own" starts from a working example instead of an empty file.
+/// The built-in looks are written here on first run rather than being compiled in and
+/// hidden. That makes them readable, copyable and editable, and means "make one of your
+/// own" starts from a working example instead of an empty file. Which of them get
+/// written depends on the license, since four of the seven glow.
 /// </para>
 /// </remarks>
 internal sealed class LyricsPresetStore
@@ -61,14 +62,21 @@ internal sealed class LyricsPresetStore
     /// they are replaced; a preset the user saved is theirs, and is left alone.
     /// </para>
     /// </remarks>
-    public void EnsureBuiltIns()
+    public void EnsureBuiltIns(bool premium)
     {
         try
         {
             Directory.CreateDirectory(_directory);
 
+            RemoveRetired();
+
             foreach (var preset in LyricsAppearance.BuiltIn)
             {
+                // A paid look is never written by a free build, so it cannot appear in
+                // the picker only to refuse to load. Buying writes the missing files on
+                // the next start, which is this same pass.
+                if (preset.UsesPremium && !premium) continue;
+
                 var stored = Load(preset.Name);
 
                 if (stored is null || stored.Schema < LyricsAppearance.CurrentSchema)
@@ -81,18 +89,83 @@ internal sealed class LyricsPresetStore
         }
     }
 
-    /// <summary>Every preset on disk, by name.</summary>
-    public IReadOnlyList<string> Names()
+    /// <summary>
+    /// Deletes built-ins we no longer ship, as long as they are still what we wrote.
+    /// </summary>
+    /// <remarks>
+    /// Withdrawing one has to reach into the user's folder, so it is deliberately the
+    /// narrowest deletion that works: same name, and every visual field still matching
+    /// the copy in <see cref="LyricsAppearance.Retired"/>. Anything edited is theirs and
+    /// stays, under its old name, doing what it always did.
+    /// </remarks>
+    private void RemoveRetired()
+    {
+        foreach (var retired in LyricsAppearance.Retired)
+        {
+            var stored = Load(retired.Name);
+
+            if (stored is null || !stored.LooksLike(retired)) continue;
+
+            if (Delete(retired.Name))
+                DebugLog.Write($"presets: removed the retired {retired.Name}");
+        }
+    }
+
+    /// <summary>Deletes a preset by name. False when it was not there, or would not go.</summary>
+    public bool Delete(string name)
+    {
+        try
+        {
+            string path = PathFor(name);
+
+            if (!File.Exists(path)) return false;
+
+            File.Delete(path);
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            DebugLog.Write($"presets: could not delete {name}: {ex.Message}");
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Every preset on disk, by name. Without <paramref name="premium"/>, only the free
+    /// built-ins.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The free list is by allowlist rather than by filtering out paid looks, because
+    /// keeping your own presets is itself what is being sold. Filtering only on content
+    /// would still hand a free build any preset dropped into the folder by hand, which
+    /// is the whole feature by another route.
+    /// </para>
+    /// <para>
+    /// It also cannot be left to <see cref="EnsureBuiltIns"/> alone. That stops paid
+    /// looks being written; this stops ones already on disk being offered — from a run
+    /// made while licensed, or from a file copied in. Both have to hold, or the picker
+    /// ends up listing a preset that will not load.
+    /// </para>
+    /// </remarks>
+    public IReadOnlyList<string> Names(bool premium = true)
     {
         try
         {
             if (!Directory.Exists(_directory)) return [];
+
+            var free = LyricsAppearance.BuiltIn
+                .Where(preset => !preset.UsesPremium)
+                .Select(preset => preset.Name)
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
             return Directory
                 .EnumerateFiles(_directory, "*.json")
                 .Select(Path.GetFileNameWithoutExtension)
                 .Where(name => !string.IsNullOrWhiteSpace(name))
                 .Select(name => name!)
+                .Where(name => premium || free.Contains(name))
                 .OrderBy(name => name, StringComparer.CurrentCultureIgnoreCase)
                 .ToList();
         }

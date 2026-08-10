@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace Barline.Lyrics;
 
 /// <summary>
@@ -258,13 +260,43 @@ internal sealed class LyricsAppearance
     // ---- The looks that ship ----------------------------------------------
 
     /// <summary>
+    /// Whether this look uses anything the free build cannot draw.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Decided by what the style contains rather than by what it is called, which is the
+    /// only workable test: built-ins and saved presets are the same kind of file in the
+    /// same folder, and a file written while licensed outlives the license. Asking the
+    /// content means a preset is judged the same way whoever wrote it and whenever.
+    /// </para>
+    /// <para>
+    /// Only two of the paid features can appear in a style at all. Bar count and bar
+    /// color live in <see cref="Settings.WidgetSettings"/>, and saving or importing is
+    /// an action rather than a value, so neither can be carried by a preset.
+    /// </para>
+    /// </remarks>
+    [JsonIgnore]
+    public bool UsesPremium =>
+        Effect != LyricsEffect.None || Position == LyricsPanelPosition.Custom;
+
+    // ---- The looks that ship ----------------------------------------------
+
+    /// <summary>
     /// The built-in looks. Written to disk as ordinary preset files on first run, so
     /// they can be read, copied and edited like any other.
     /// </summary>
     /// <remarks>
-    /// One for the widget and three for the panel. The widget one exists so that every
-    /// built-in is not a one-way trip into panel mode now that a preset carries where
-    /// it belongs.
+    /// <para>
+    /// Three for the widget and four for the panel, so neither display mode is a
+    /// one-way trip now that a preset carries where it belongs.
+    /// </para>
+    /// <para>
+    /// Four of them glow, which makes them paid, and the free build never writes those
+    /// files at all. What is left is Widget, Widget_Movie and Clean: one plain line, one
+    /// styled line, and one panel. That is the floor the free build has to look finished
+    /// at, and it is the reason the glow is what got gated rather than the background or
+    /// the color, either of which would have taken the remaining three down with it.
+    /// </para>
     /// </remarks>
     public static IReadOnlyList<LyricsAppearance> BuiltIn { get; } =
     [
@@ -272,17 +304,41 @@ internal sealed class LyricsAppearance
         // the taskbar's own material is what should show through.
         new LyricsAppearance { Name = "Widget" },
 
-        Panel("Clean"),
-
-        Panel("Glow", p =>
+        Inline("Widget_Glow", p =>
         {
             p.Effect = LyricsEffect.Glow;
             p.EffectRadius = 16d;
         }),
 
-        Panel("Lime", p =>
+        Inline("Widget_Movie", p =>
+        {
+            p.Lowercase = true;
+            p.Italic = true;
+            p.TextColor = "#B8B81E";
+        }),
+
+        Panel("Clean", p => p.FontSize = 18d),
+
+        Panel("Glow", p =>
+        {
+            p.FontSize = 18d;
+            p.Effect = LyricsEffect.Glow;
+            p.EffectRadius = 18d;
+        }),
+
+        Panel("Movie", p =>
+        {
+            p.FontSize = 16d;
+            p.Italic = true;
+            p.TextColor = "#B8B81E";
+            p.Effect = LyricsEffect.Glow;
+            p.EffectRadius = 16d;
+        }),
+
+        Panel("Raw", p =>
         {
             p.FontFamily = "Arial Narrow";
+            p.FontSize = 20d;
             p.FontWeight = "Bold";
             p.Lowercase = true;
             p.TextColor = "#101208";
@@ -290,22 +346,106 @@ internal sealed class LyricsAppearance
             p.Effect = LyricsEffect.Glow;
             p.EffectRadius = 4d;
             p.Background = LyricsBackground.Solid;
-            p.BackgroundColor = "#8ACE00";
+            p.BackgroundColor = "#D9D9D9";
             p.BackgroundOpacity = 1d;
         }),
     ];
 
+    /// <summary>
+    /// Built-ins that shipped once and no longer do.
+    /// </summary>
+    /// <remarks>
+    /// Kept in full rather than as bare names because withdrawing one means deleting a
+    /// file out of the user's folder, and the only safe warrant for that is that the
+    /// file is still ours. Lime was replaced by Raw, which is the same design on a
+    /// neutral surface.
+    /// </remarks>
+    public static IReadOnlyList<LyricsAppearance> Retired { get; } =
+    [
+        new LyricsAppearance
+        {
+            Name = "Lime",
+            Display = LyricsDisplayMode.Panel,
+            FontFamily = "Arial Narrow",
+            FontSize = 20d,
+            FontWeight = "Bold",
+            Lowercase = true,
+            TextColor = "#101208",
+            UnsungOpacity = 0.45d,
+            Effect = LyricsEffect.Glow,
+            EffectRadius = 4d,
+            Background = LyricsBackground.Solid,
+            BackgroundColor = "#8ACE00",
+            BackgroundOpacity = 1d,
+        },
+    ];
+
+    /// <summary>
+    /// Whether two styles describe the same look, ignoring the name and the schema.
+    /// </summary>
+    /// <remarks>
+    /// The test for "still ours". A retired built-in is removed only when it matches
+    /// what we wrote, so a user who edited one and kept the name keeps their work.
+    /// </remarks>
+    public bool LooksLike(LyricsAppearance other) =>
+        Display == other.Display
+        && Position == other.Position
+        && CustomX.Equals(other.CustomX)
+        && CustomY.Equals(other.CustomY)
+        && PanelWidth == other.PanelWidth
+        && PanelHeight == other.PanelHeight
+        && FontFamily == other.FontFamily
+        && FontSize.Equals(other.FontSize)
+        && FontWeight == other.FontWeight
+        && Lowercase == other.Lowercase
+        && Italic == other.Italic
+        && TextColor == other.TextColor
+        && UnsungOpacity.Equals(other.UnsungOpacity)
+        && Effect == other.Effect
+        && EffectRadius.Equals(other.EffectRadius)
+        && EffectColor == other.EffectColor
+        && Background == other.Background
+        && BackgroundColor == other.BackgroundColor
+        && BackgroundOpacity.Equals(other.BackgroundOpacity)
+        && CornerRadius.Equals(other.CornerRadius);
+
     /// <summary>The panel's shared starting point: larger type, and a surface to sit on.</summary>
-    private static LyricsAppearance Panel(string name, Action<LyricsAppearance>? adjust = null)
+    private static LyricsAppearance Panel(string name, Action<LyricsAppearance>? adjust = null) =>
+        Shared(name, LyricsDisplayMode.Panel, "Segoe UI Variable Display", 20d,
+            LyricsBackground.Tinted, adjust);
+
+    /// <summary>
+    /// A widget line that is not the plain one.
+    /// </summary>
+    /// <remarks>
+    /// Never carries a background, whatever the file it came from said. The widget
+    /// paints none by design, so the value is inert there and only becomes visible if
+    /// the look is later switched to the panel — where it would apply a surface nobody
+    /// asked for. The panel size is kept, because that is placement rather than paint
+    /// and is what the panel should open at.
+    /// </remarks>
+    private static LyricsAppearance Inline(string name, Action<LyricsAppearance>? adjust = null) =>
+        Shared(name, LyricsDisplayMode.Inline, "Segoe UI Variable Text", 12d,
+            LyricsBackground.None, adjust);
+
+    private static LyricsAppearance Shared(
+        string name,
+        LyricsDisplayMode display,
+        string family,
+        double size,
+        LyricsBackground background,
+        Action<LyricsAppearance>? adjust)
     {
         var preset = new LyricsAppearance
         {
             Name = name,
-            Display = LyricsDisplayMode.Panel,
-            FontFamily = "Segoe UI Variable Display",
-            FontSize = 20d,
+            Display = display,
+            FontFamily = family,
+            FontSize = size,
+            PanelWidth = 260,
+            PanelHeight = 100,
             UnsungOpacity = 0.38d,
-            Background = LyricsBackground.Tinted,
+            Background = background,
         };
 
         adjust?.Invoke(preset);

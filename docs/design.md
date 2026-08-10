@@ -412,6 +412,84 @@ stated in more than one place — the LRCLIB user agent carries the version and 
 to the project, and the About card shows both. Both of those had already gone wrong
 once while they were written out separately.
 
+## The paid features
+
+Five of them: the Balanced and Detailed bar counts, the album art bar color, the
+freely placed lyrics panel, the glow effect, and saving or importing your own preset.
+Everything else stays free, and the portable build hands all five over for nothing —
+it is built from GPL-3.0 source, and gating it would only inconvenience the people the
+license is written for. What the Store sells is the packaged app: updates, a sandboxed
+install, and not compiling anything.
+
+That shapes the gate. It is one plain bool behind one plain check, with no
+obfuscation, because anyone who wants it gone can legally compile it out. Effort spent
+hiding it would only make the code worse for the people who paid.
+
+### Three states, not a bool
+
+`LicenseService` answers with `Licensed`, `NotLicensed` or `Unknown`, and the third is
+the whole point. "No" and "could not ask" disable the same controls but mean opposite
+things about the user's file: a real no is grounds for taking paid values out of it,
+and a failed question never is. Two booleans come off the state — `Premium` asks
+whether a feature is available, `MayStrip` whether the file may be edited — and only a
+positive no sets the second.
+
+`Unknown` is not mainly a licensed user's state. It is reached by anyone we have never
+confirmed while the Store cannot be asked, which includes every free user during a
+fault and, more importantly, an owner on a fresh install or a new machine. The
+remembered yes lives in the app data root, which Windows deletes on uninstall and
+wipes on Reset, so a genuine owner does arrive with no memory. Collapsing `Unknown`
+into `NotLicensed` would strip that person's settings on first launch.
+
+A yes is remembered with a timestamp and honored for a year if the Store later goes
+quiet. Expiring it sooner cannot guard against refunds — a refund comes back as a
+positive no the moment the Store *can* be asked, and that deletes the memory outright
+— so a short window would only ever cost a paying customer.
+
+Nothing checks the license at render time. The visualizer draws whatever bar count it
+is handed and the panel draws whatever effect it is handed. Enforcement is at two
+doors only: the control that would choose it, and the load that would apply it. That
+is why `Unknown` leaves an existing glow working while locking the control that sets
+it, and why the locked control says which of the two states it is in — telling someone
+who paid that they have not bought this would be a lie to exactly the wrong person.
+
+### Stripping, and why it is safe to be wrong
+
+Paid values are removed from `settings.json` rather than ignored in it. The file is
+documented as hand-editable and the About card has a button that opens the folder it
+sits in, so leaving the values live would put the gate one text edit away by a route
+the app itself points at. "Live but pretend you cannot see it" is a worse contract
+than "removed".
+
+Everything removed is written to `premium-backup.json` first, and only a successful
+restore deletes it. So the worst a mistaken strip can do is move values into a sidecar
+for one run. A restore puts a value back only if the setting is still sitting on the
+fallback that replaced it, so a choice made while unlicensed is newer than the backup
+and wins.
+
+### Presets
+
+Two paid features can appear inside a style — the glow and the free position — so
+`UsesPremium` asks the content rather than the name. Built-ins and saved presets are
+the same kind of file in the same folder, and a file written while licensed outlives
+the license, so anything keyed off the name would let a rename carry a paid look into
+a free build.
+
+Three places act on that, and all three are needed. Seeding skips paid built-ins
+entirely, so a free install's folder never holds a look the build cannot draw. Listing
+is an allowlist of the free built-in names, not a content filter, because filtering on
+content alone would still hand a free build any preset copied into the folder — and
+keeping your own presets is itself what is being sold. Loading asks again, because the
+listing goes by name and the contents of a file under a free name are not ours to
+trust; that is the only place a style actually becomes the live one.
+
+Four of the seven built-ins glow, which leaves Widget, Widget_Movie and Clean free.
+That floor is why the glow was gated rather than the background or the text color:
+either of those would have taken the remaining three down with it.
+
+Retiring a built-in deletes a file out of the user's folder, so it happens only when
+every visual field still matches the copy we shipped. An edited one is theirs.
+
 ## Starting with Windows
 
 Two mechanisms, because the same binary can run either way. Unpackaged, it writes the

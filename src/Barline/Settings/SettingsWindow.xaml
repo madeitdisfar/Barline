@@ -60,6 +60,18 @@
             <Setter Property="Margin" Value="0,2,0,0" />
         </Style>
 
+        <!-- Marks a control the free build cannot use. Collapsed by default, so a
+             licensed window never has to undo anything. -->
+        <Style x:Key="LockGlyph" TargetType="TextBlock">
+            <Setter Property="FontFamily" Value="Segoe Fluent Icons" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Text" Value="&#xE72E;" />
+            <Setter Property="Margin" Value="6,0,0,0" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Foreground" Value="{DynamicResource TextTertiaryBrush}" />
+            <Setter Property="Visibility" Value="Collapsed" />
+        </Style>
+
         <!-- The settings card: the single most recognizable piece of Windows 11
              Settings. 4px radius, faint fill, hairline border. -->
         <Style x:Key="Card" TargetType="Border">
@@ -191,6 +203,12 @@
                                 <Setter TargetName="Hover" Property="Background"
                                         Value="{DynamicResource SubtleHoverBrush}" />
                             </Trigger>
+                            <!-- A locked option that still looks live reads as a bug
+                                 rather than as a lock, and the padlock alone is too
+                                 quiet to carry it. -->
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="Hover" Property="Opacity" Value="0.4" />
+                            </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
@@ -211,14 +229,22 @@
                                 Background="Transparent"
                                 Padding="14,5"
                                 SnapsToDevicePixels="True">
-                            <TextBlock x:Name="Label"
-                                       Text="{TemplateBinding Content}"
-                                       HorizontalAlignment="Center"
-                                       FontFamily="Segoe UI Variable Text, Segoe UI"
-                                       FontSize="12"
-                                       Foreground="{DynamicResource TextPrimaryBrush}" />
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                <TextBlock x:Name="Label"
+                                           Text="{TemplateBinding Content}"
+                                           HorizontalAlignment="Center"
+                                           FontFamily="Segoe UI Variable Text, Segoe UI"
+                                           FontSize="12"
+                                           Foreground="{DynamicResource TextPrimaryBrush}" />
+                                <TextBlock x:Name="Lock"
+                                           Style="{StaticResource LockGlyph}"
+                                           FontSize="10" Margin="5,0,0,0" />
+                            </StackPanel>
                         </Border>
                         <ControlTemplate.Triggers>
+                            <Trigger Property="ui:SettingCard.Locked" Value="True">
+                                <Setter TargetName="Lock" Property="Visibility" Value="Visible" />
+                            </Trigger>
                             <Trigger Property="IsChecked" Value="True">
                                 <Setter TargetName="Fill" Property="Background"
                                         Value="{DynamicResource AccentFillBrush}" />
@@ -235,6 +261,9 @@
                                 <Setter TargetName="Fill" Property="Background"
                                         Value="{DynamicResource SubtleHoverBrush}" />
                             </MultiTrigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="Fill" Property="Opacity" Value="0.4" />
+                            </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
@@ -269,12 +298,20 @@
                                 BorderThickness="1"
                                 Padding="{TemplateBinding Padding}"
                                 SnapsToDevicePixels="True">
-                            <TextBlock Text="{TemplateBinding Content}"
-                                       FontFamily="Segoe UI Variable Text, Segoe UI"
-                                       FontSize="12"
-                                       Foreground="{DynamicResource TextPrimaryBrush}" />
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="{TemplateBinding Content}"
+                                           FontFamily="Segoe UI Variable Text, Segoe UI"
+                                           FontSize="12"
+                                           Foreground="{DynamicResource TextPrimaryBrush}" />
+                                <TextBlock x:Name="Lock"
+                                           Style="{StaticResource LockGlyph}"
+                                           FontSize="10" Margin="5,0,0,0" />
+                            </StackPanel>
                         </Border>
                         <ControlTemplate.Triggers>
+                            <Trigger Property="ui:SettingCard.Locked" Value="True">
+                                <Setter TargetName="Lock" Property="Visibility" Value="Visible" />
+                            </Trigger>
                             <Trigger Property="IsMouseOver" Value="True">
                                 <Setter TargetName="Fill" Property="Background"
                                         Value="{DynamicResource SubtleHoverBrush}" />
@@ -956,14 +993,17 @@
                                 <ColumnDefinition Width="*" />
                                 <ColumnDefinition Width="Auto" />
                                 <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
                             <TextBlock x:Name="AlbumArtLabel" Grid.Column="0"
                                        Style="{StaticResource CardLabel}"
                                        Text="From album art" VerticalAlignment="Center" />
-                            <Border x:Name="AlbumArtSwatch" Grid.Column="1"
+                            <TextBlock x:Name="AlbumArtLock" Grid.Column="1"
+                                       Style="{StaticResource LockGlyph}" />
+                            <Border x:Name="AlbumArtSwatch" Grid.Column="2"
                                     Width="36" Height="16" CornerRadius="3"
                                     VerticalAlignment="Center" />
-                            <TextBlock x:Name="AlbumArtHex" Grid.Column="2"
+                            <TextBlock x:Name="AlbumArtHex" Grid.Column="3"
                                        Width="72" Margin="10,0,0,0"
                                        FontSize="11" FontFamily="Cascadia Mono, Consolas, monospace"
                                        Foreground="{DynamicResource TextTertiaryBrush}"
@@ -1738,6 +1778,61 @@
                 say where its source can be had, which is what the GitHub button is
                 for rather than politeness.
             -->
+
+            <!--
+                Its own short section rather than another row in About, which is already
+                the longest card on the page.
+
+                Two cards, one of which is always collapsed. Owned, it is a single line
+                that says so: buying something and then seeing no trace of it is a poor
+                trade, and this is the only place in the app that acknowledges the
+                purchase at all.
+            -->
+
+            <StackPanel x:Name="PremiumSection">
+                <TextBlock Style="{StaticResource SectionHeader}" Text="Barline Premium" />
+
+                <Border x:Name="PremiumOwnedCard"
+                        Style="{StaticResource Card}"
+                        Visibility="Collapsed">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
+                                   FontSize="16"
+                                   VerticalAlignment="Center"
+                                   Margin="0,0,12,0"
+                                   Foreground="{DynamicResource AccentFillBrush}"
+                                   Text="&#xE8FB;" />
+                        <TextBlock Style="{StaticResource CardLabel}"
+                                   VerticalAlignment="Center"
+                                   Text="Unlocked. You are using every feature." />
+                    </StackPanel>
+                </Border>
+
+                <Border x:Name="PremiumOfferCard"
+                        Style="{StaticResource Card}"
+                        Visibility="Collapsed">
+                    <StackPanel>
+                        <TextBlock x:Name="PremiumHeading" Style="{StaticResource CardLabel}" />
+                        <TextBlock Style="{StaticResource CardDescription}"
+                                   Text="Five and six bars, bar color from the album art, the lyrics panel anywhere on screen, the glow effect, and saving your own presets. A one time purchase, with no subscription." />
+
+                        <WrapPanel Margin="0,12,0,0">
+                            <Button x:Name="BuyButton"
+                                    Style="{StaticResource CardButton}"
+                                    Content="Unlock premium" />
+                            <Button x:Name="RecheckButton"
+                                    Style="{StaticResource CardButton}"
+                                    Margin="8,0,0,0"
+                                    Content="Check again" />
+                        </WrapPanel>
+
+                        <TextBlock x:Name="PremiumStatus"
+                                   Style="{StaticResource CardDescription}"
+                                   Margin="0,10,0,0"
+                                   Visibility="Collapsed" />
+                    </StackPanel>
+                </Border>
+            </StackPanel>
 
             <TextBlock Style="{StaticResource SectionHeader}" Text="About" />
 
