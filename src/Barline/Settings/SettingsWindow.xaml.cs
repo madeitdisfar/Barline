@@ -1240,6 +1240,12 @@ internal partial class SettingsWindow : Window
     /// </remarks>
     private void SetUpLicense()
     {
+        // Nothing to sell and nothing to own, so the section stays hidden rather than
+        // congratulating somebody on a purchase that does not exist here.
+        if (!LicenseService.Sellable) return;
+
+        PremiumSection.Visibility = Visibility.Visible;
+
         if (_license.Premium)
         {
             PremiumOwnedCard.Visibility = Visibility.Visible;

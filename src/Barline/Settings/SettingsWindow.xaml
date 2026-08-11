@@ -1787,9 +1787,12 @@
                 that says so: buying something and then seeing no trace of it is a poor
                 trade, and this is the only place in the app that acknowledges the
                 purchase at all.
+
+                The whole section starts hidden, because the portable build has no
+                add-on to own and nothing to buy.
             -->
 
-            <StackPanel x:Name="PremiumSection">
+            <StackPanel x:Name="PremiumSection" Visibility="Collapsed">
                 <TextBlock Style="{StaticResource SectionHeader}" Text="Barline Premium" />
 
                 <Border x:Name="PremiumOwnedCard"

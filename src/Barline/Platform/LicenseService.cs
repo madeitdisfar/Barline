@@ -135,6 +135,17 @@ internal sealed class LicenseService
     public bool Premium => State == LicenseState.Licensed;
 
     /// <summary>
+    /// Whether there is an add-on to talk about at all.
+    /// </summary>
+    /// <remarks>
+    /// False for the portable build, which owns nothing and can buy nothing, so the
+    /// settings window hides the whole section rather than telling somebody they have
+    /// unlocked a purchase they never made. A forced state counts as having one, or the
+    /// only way to look at that half of the window would be to package a build.
+    /// </remarks>
+    public static bool Sellable => PackageContext.IsPackaged || Override() is not null;
+
+    /// <summary>
     /// Whether paid values may be taken out of the user's settings.
     /// </summary>
     /// <remarks>
