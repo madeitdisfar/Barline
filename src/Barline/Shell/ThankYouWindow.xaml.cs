@@ -38,7 +38,7 @@ internal partial class ThankYouWindow : Window
         if (restored)
         {
             Heading.Text = "Welcome back";
-            Body.Text = "Barline Premium is already unlocked on this account. Every "
+            Body.Text = "Barline Plus is already unlocked on this account. Every "
                 + "paid feature is yours, and the paid presets have been added to your "
                 + "folder.";
         }

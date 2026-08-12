@@ -17,7 +17,7 @@ namespace Barline.Tests;
 public class PremiumSettingsTests
 {
     private static string TempFile() =>
-        Path.Combine(Path.GetTempPath(), $"barline-premium-{Guid.NewGuid():N}.json");
+        Path.Combine(Path.GetTempPath(), $"barline-backup-{Guid.NewGuid():N}.json");
 
     /// <summary>Everything paid, set at once.</summary>
     private static WidgetSettings Loaded() => new()

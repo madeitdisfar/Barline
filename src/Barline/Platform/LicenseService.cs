@@ -84,13 +84,17 @@ internal sealed class LicenseService
     /// Matched against <c>InAppOfferToken</c> rather than the Store ID, because that is
     /// the field a durable add-on's license carries.
     /// </remarks>
-    private const string ProductId = "barline-premium";
+    private const string ProductId = "barline-plus";
 
     /// <summary>The add-on's Store ID, which is what a purchase is requested by.</summary>
-    private const string StoreId = "9PCCHL5QSTHZ";
+    private const string StoreId = "9NBHM90NFZQR";
 
     /// <summary>What the add-on is called to the user.</summary>
-    public const string ProductName = "Barline Premium";
+    /// <remarks>
+    /// Referenced by every string that names it rather than being spelled out in each,
+    /// so the UI cannot end up half renamed.
+    /// </remarks>
+    public const string ProductName = "Barline Plus";
 
     /// <summary>
     /// How long a remembered "yes" keeps working when the Store cannot be reached.

@@ -50,12 +50,37 @@ arbitrary there is load-bearing.
 | `BARLINE_DEMO=1` | Shows a synthetic track with generated cover art instead of reading SMTC. |
 | `BARLINE_DEMO_TITLE` / `BARLINE_DEMO_ARTIST` | Override the demo track's title/artist (needs `BARLINE_DEMO=1`) — handy for checking the overflow fade at different text lengths. |
 | `BARLINE_SETTINGS=1` | Opens the settings window at startup, instead of right-clicking the tray on every rebuild. |
+| `BARLINE_WELCOME=1` | Shows the first-run window, which otherwise appears once per machine and never again. |
+| `BARLINE_THANKS=1` | Shows the post-purchase window, which is otherwise only reachable by buying the add-on. |
+| `BARLINE_LICENSE` | Forces the license state: `owned`, `free` or `none`. See below. |
 
 `BARLINE_DEMO` exists because the widget hides itself when nothing is playing, which
 otherwise makes the design impossible to inspect on a quiet machine.
 
 Debugging the window layer interactively is awkward — attaching a debugger changes
 foreground-window behavior, which is often the thing being observed. Prefer the log.
+
+## The paid features
+
+A build from source has every feature. The gating only applies to the packaged Store
+build, and an unpackaged build resolves to licensed without asking anything — the
+source is GPL-3.0, so gating it would only inconvenience the people the license is
+written for.
+
+That means the locked half of the settings window is invisible while you work, so
+`BARLINE_LICENSE` forces it:
+
+| Value | State | Features | Touches `settings.json`? |
+|---|---|---|---|
+| `owned` | Licensed | unlocked | restores from the backup |
+| `free` | Unknown | locked | **no** |
+| `none` | NotLicensed | locked | **yes, strips** |
+
+Use `free` for ordinary UI work. It gives the locked window without touching your
+configuration, so you can switch back and forth without losing anything. `none` is the
+real unlicensed path, stripping included, and exists to test that deliberately —
+everything it removes goes to `premium-backup.json` first and comes back on the next
+licensed run.
 
 ## Tests
 

@@ -2,8 +2,13 @@ name: Release
 
 # Tag a commit and push the tag; everything below follows from that. Nothing is
 # published without a further click: the GitHub release is created as a draft,
-# and the Store package is left as a workflow artifact to be uploaded to Partner
-# Center by hand.
+# and both builds are left as workflow artifacts.
+#
+# Neither build is attached to the release. The Store is the consumer channel, and
+# the release page is the source drop that GitHub generates from the tag on its
+# own. The portable zip is still built on every tag — it is how the publish path
+# stays tested, and how a binary can be produced when one is wanted — but getting
+# it means opening the workflow run rather than the release page.
 on:
   push:
     tags: ['v*']
@@ -53,7 +58,7 @@ jobs:
       - name: Test
         run: dotnet test --no-build --configuration Release --verbosity normal
 
-      # ---- The portable build, for the GitHub release ----
+      # ---- The portable build ----
 
       - name: Publish
         run: dotnet publish src/Barline/Barline.csproj -c Release -o artifacts/publish --nologo
@@ -63,6 +68,13 @@ jobs:
         run: |
           Compress-Archive -Path artifacts/publish/* `
                            -DestinationPath "artifacts/Barline-v$env:VERSION-win-x64.zip"
+
+      - name: Upload the portable build
+        uses: actions/upload-artifact@v4
+        with:
+          name: portable-win-x64
+          path: artifacts/Barline-v${{ env.VERSION }}-win-x64.zip
+          retention-days: 30
 
       # ---- The Store package ----
 
@@ -84,6 +96,8 @@ jobs:
 
       # ---- The draft release ----
 
+      # No assets. GitHub attaches the source archives to every release itself, and
+      # those are the whole of what this page is now for.
       - name: Draft the release
         if: startsWith(github.ref, 'refs/tags/')
         shell: pwsh
@@ -91,7 +105,6 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release create "${{ github.ref_name }}" `
-            "artifacts/Barline-v$env:VERSION-win-x64.zip" `
             --draft `
             --title "Barline ${{ github.ref_name }}" `
             --generate-notes

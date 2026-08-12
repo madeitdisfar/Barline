@@ -120,7 +120,7 @@
                    Margin="0,6,0,0"
                    TextWrapping="Wrap"
                    Foreground="{DynamicResource TextSecondaryBrush}"
-                   Text="Barline Premium is unlocked on this account. Every paid feature is yours, and the paid presets have been added to your folder." />
+                   Text="Barline Plus is unlocked on this account. Every paid feature is yours, and the paid presets have been added to your folder." />
 
         <Border Height="1"
                 Margin="0,20"

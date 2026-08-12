@@ -14,6 +14,13 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-GPLv3-blue.svg" alt="License: GPL v3"></a>
 </p>
 
+<!-- TODO: the Store listing URL goes in the href below, once the listing is live. -->
+<p align="center">
+  <a href="">
+    <img src="https://get.microsoft.com/images/en-us%20dark.svg" alt="Download from the Microsoft Store" height="52">
+  </a>
+</p>
+
 <p align="center">
   <img src="docs/main-screenshot.png" width="840" alt="Barline on the Windows 11 taskbar">
 </p>
@@ -73,11 +80,15 @@ Supports any player that integrates with Windows Media Controls, including:
 
 ## Install
 
-Requires **Windows 11**. Download the latest release, unzip it anywhere, and run
-`Barline.exe`. The release build carries its own runtime, so there is nothing else to
-install.
+Requires **Windows 11**.
 
-**[➡️ Download the latest release](https://github.com/madeitdisfar/Barline/releases/latest)**
+**Microsoft Store** is the recommended way to install Barline. It installs in one
+click, updates itself, and removes cleanly. The app is free, and a single optional
+purchase unlocks some extra customization.
+
+**Building it yourself** gives you the same application with every feature enabled.
+It needs the .NET SDK and a few minutes; [CONTRIBUTING.md](CONTRIBUTING.md) has the
+steps.
 
 The first launch explains the rest, including this, which only matters if Windows is
 still showing its own button in the same corner:
@@ -90,8 +101,6 @@ exactly as it did before. Start a track and it appears.
 Right-click the widget for **Settings**, **Show visualizer**, **Restart visualizer**
 and **Exit**. The same menu is on the notification-area icon, which is where to reach
 it while the widget is hidden.
-
-To build it yourself instead, see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Lyrics
 
@@ -151,7 +160,8 @@ of them in the Store build, whose install folder Windows will not let you browse
   system audio moves the bars.
 - **Click-to-focus is best-effort.** Windows identifies media sessions in a way that
   does not always map back to a window it will agree to activate.
-- **Not signed.** SmartScreen will warn on first run.
+- **A build of your own is unsigned**, so SmartScreen will warn the first time you run
+  it. The Store build is signed by Microsoft and does not.
 
 ## Documentation
 
