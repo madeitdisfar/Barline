@@ -1413,6 +1413,7 @@ internal partial class SettingsWindow : Window
             "Components built into Barline, and the terms each of them is under.");
 
         SourceButton.Click += (_, _) => OpenLink(AppInfo.RepositoryUrl);
+        SponsorButton.Click += (_, _) => OpenLink(AppInfo.SponsorUrl);
         PrivacyButton.Click += (_, _) => OpenLink(AppInfo.PrivacyUrl);
 
         // Just the folder: the full path wraps to three lines at this width and pushes

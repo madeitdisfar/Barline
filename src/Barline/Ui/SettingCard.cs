@@ -55,4 +55,25 @@ internal static class SettingCard
 
     public static void SetLocked(DependencyObject element, bool value) =>
         element.SetValue(LockedProperty, value);
+
+    /// <summary>
+    /// A Segoe Fluent Icons glyph to draw before a button's label.
+    /// </summary>
+    /// <remarks>
+    /// Attached rather than folded into the button's content, because the card button
+    /// template puts its content straight into a <c>TextBlock.Text</c>. Anything richer
+    /// assigned to <c>Content</c> renders as its type name instead.
+    /// </remarks>
+    public static readonly DependencyProperty GlyphProperty =
+        DependencyProperty.RegisterAttached(
+            "Glyph",
+            typeof(string),
+            typeof(SettingCard),
+            new PropertyMetadata(string.Empty));
+
+    public static string GetGlyph(DependencyObject element) =>
+        (string)element.GetValue(GlyphProperty);
+
+    public static void SetGlyph(DependencyObject element, string value) =>
+        element.SetValue(GlyphProperty, value);
 }

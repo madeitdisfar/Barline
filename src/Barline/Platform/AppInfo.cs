@@ -40,6 +40,12 @@ internal static class AppInfo
     /// </summary>
     public const string PrivacyUrl = "https://madeitdisfar.github.io/Barline/privacy.html";
 
+    /// <summary>
+    /// Where to support the project directly, for people who cannot or would rather
+    /// not buy the add-on. The same address the repository's Sponsor button uses.
+    /// </summary>
+    public const string SponsorUrl = "https://github.com/sponsors/madeitdisfar";
+
     /// <summary>Three parts. The revision is always zero and saying so helps nobody.</summary>
     public static string Version { get; } =
         typeof(AppInfo).Assembly.GetName().Version is { } version

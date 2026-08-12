@@ -299,6 +299,14 @@
                                 Padding="{TemplateBinding Padding}"
                                 SnapsToDevicePixels="True">
                             <StackPanel Orientation="Horizontal">
+                                <TextBlock x:Name="Glyph"
+                                           FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
+                                           FontSize="12"
+                                           Margin="0,0,7,0"
+                                           VerticalAlignment="Center"
+                                           Foreground="{DynamicResource TextPrimaryBrush}"
+                                           Text="{Binding Path=(ui:SettingCard.Glyph),
+                                                          RelativeSource={RelativeSource TemplatedParent}}" />
                                 <TextBlock Text="{TemplateBinding Content}"
                                            FontFamily="Segoe UI Variable Text, Segoe UI"
                                            FontSize="12"
@@ -309,6 +317,11 @@
                             </StackPanel>
                         </Border>
                         <ControlTemplate.Triggers>
+                            <!-- Collapsed rather than merely empty, so a button without a
+                                 glyph does not carry its right margin as dead space. -->
+                            <Trigger Property="ui:SettingCard.Glyph" Value="">
+                                <Setter TargetName="Glyph" Property="Visibility" Value="Collapsed" />
+                            </Trigger>
                             <Trigger Property="ui:SettingCard.Locked" Value="True">
                                 <Setter TargetName="Lock" Property="Visibility" Value="Visible" />
                             </Trigger>
@@ -1894,7 +1907,15 @@
                                 Content="Third-party notices" />
                         <Button x:Name="SourceButton"
                                 Style="{StaticResource CardButton}"
+                                Margin="0,0,8,0"
                                 Content="Source on GitHub" />
+                        <!-- In this row rather than a row of its own. Sponsoring is the
+                             companion to "this is free software, here is the source",
+                             and the WrapPanel is already here, so it costs no height. -->
+                        <Button x:Name="SponsorButton"
+                                Style="{StaticResource CardButton}"
+                                ui:SettingCard.Glyph="&#xEB52;"
+                                Content="Sponsor" />
                     </WrapPanel>
 
                     <Border Style="{StaticResource RowDivider}" />
