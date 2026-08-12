@@ -105,9 +105,10 @@ internal sealed class WidgetSettings
     /// <remarks>
     /// Named for the built-in it is a copy of, rather than left as "Custom", so a fresh
     /// install starts on a design that has a counterpart in the other display mode.
+    /// The panel is the default because it fits a whole line: the widget's own slot
+    /// holds about 25 characters, which truncates most lyrics on a first look.
     /// </remarks>
-    public LyricsAppearance LyricsStyle { get; set; } =
-        new() { Name = "Widget", Schema = LyricsAppearance.CurrentSchema };
+    public LyricsAppearance LyricsStyle { get; set; } = LyricsAppearance.Default();
 
     /// <summary>What the panel does when the pointer is over it.</summary>
     /// <remarks>
@@ -124,8 +125,10 @@ internal sealed class WidgetSettings
     /// no source carries it. The estimate is good but it is an estimate, and on a
     /// track it fits badly the whole line at once is the calmer choice. Like the hover
     /// behavior, it is a preference rather than a look, so presets leave it alone.
+    /// Off by default for that reason: a first impression should be the reliable
+    /// behavior, not the clever one that occasionally drifts.
     /// </remarks>
-    public bool LyricsWordByWord { get; set; } = true;
+    public bool LyricsWordByWord { get; set; }
 
     /// <summary>The bar count when nothing says otherwise, and the shipped design.</summary>
     public const int DefaultBarCount = 4;

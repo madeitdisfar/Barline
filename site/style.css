@@ -531,6 +531,16 @@ td.yes {
     max-width: 64ch;
 }
 
+/* The asterisk in the comparison table. A link rather than bare text, so the marker
+   and the note it points at are connected for a screen reader too. */
+.fn {
+    font-size: 12px;
+    vertical-align: super;
+    line-height: 0;
+    margin-left: 2px;
+    text-decoration: none;
+}
+
 /* ---------- sustainability ---------- */
 
 /* The measure lives on the box rather than on the paragraphs inside it. Capping

@@ -1110,7 +1110,7 @@ internal partial class SettingsWindow : Window
         if (track is null || !track.HasContent)
         {
             ImportDescription.Text =
-                "An imported .lrc always wins over the network — the way to fix bad " +
+                "An imported .lrc always wins over the network. It is the way to fix bad " +
                 "timings, or to add a track the database has never heard of. Play " +
                 "something to import for it.";
             ImportButton.IsEnabled = false;
@@ -1123,7 +1123,7 @@ internal partial class SettingsWindow : Window
         bool existing = _lyrics.HasImport(track);
 
         ImportDescription.Text =
-            "An imported .lrc always wins over the network — the way to fix bad " +
+            "An imported .lrc always wins over the network. It is the way to fix bad " +
             $"timings, or to add a track the database has never heard of. This track " +
             $"is filed as “{name}”{(existing ? ", which you already have." : ".")}";
     }

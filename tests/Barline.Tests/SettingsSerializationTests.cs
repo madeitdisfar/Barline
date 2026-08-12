@@ -27,6 +27,45 @@ public class SettingsSerializationTests
     }
 
     /// <summary>
+    /// What a fresh install looks like before anything has been chosen.
+    /// </summary>
+    /// <remarks>
+    /// Pinned because both of these are first-impression decisions rather than
+    /// arbitrary values. The widget's own slot holds about 25 characters, so the panel
+    /// is what shows a whole line, and word timing is estimated for nearly every track,
+    /// so the line at a time is the reading that never drifts.
+    /// </remarks>
+    [Fact]
+    public void A_fresh_install_shows_lyrics_in_the_panel_a_line_at_a_time()
+    {
+        var settings = new WidgetSettings();
+
+        Assert.Equal(LyricsDisplayMode.Panel, settings.LyricsStyle.Display);
+        Assert.False(settings.LyricsWordByWord);
+    }
+
+    /// <summary>
+    /// The default is a copy, not the built-in itself. The settings window edits this
+    /// object in place, so sharing the instance would let a first run rewrite the
+    /// template every other preset is measured against.
+    /// </summary>
+    [Fact]
+    public void The_default_style_is_not_the_shared_built_in()
+    {
+        var first = new WidgetSettings().LyricsStyle;
+        var second = new WidgetSettings().LyricsStyle;
+
+        Assert.NotSame(first, second);
+
+        first.FontSize = 99d;
+
+        Assert.NotEqual(99d, second.FontSize);
+        Assert.NotEqual(
+            99d,
+            LyricsAppearance.BuiltIn.First(p => p.Name == LyricsAppearance.DefaultName).FontSize);
+    }
+
+    /// <summary>
     /// The case that prompted this: the acrylic background was removed, and every file
     /// naming it would otherwise have failed to parse — taking every unrelated setting
     /// down with it, because one bad value fails the whole document.

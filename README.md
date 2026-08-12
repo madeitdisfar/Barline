@@ -10,6 +10,7 @@
 </p>
 
 <p align="center">
+  <a href="https://github.com/madeitdisfar/Barline/releases/latest"><img src="https://img.shields.io/github/v/release/madeitdisfar/Barline?label=release" alt="Latest release"></a>
   <a href="https://github.com/madeitdisfar/Barline/actions/workflows/ci.yml"><img src="https://github.com/madeitdisfar/Barline/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-GPLv3-blue.svg" alt="License: GPL v3"></a>
 </p>
@@ -74,9 +75,13 @@ Supports any player that integrates with Windows Media Controls, including:
 
 ### Privacy first 🔒
 
-- No telemetry.
+- No telemetry in the app.
 - No accounts.
 - No network access unless lyrics are enabled.
+
+The Store build is distributed by Microsoft, which reports aggregate install and crash
+counts to the developer. Barline neither performs nor controls that; see
+[PRIVACY.md](PRIVACY.md).
 
 ## Install
 
@@ -86,9 +91,18 @@ Requires **Windows 11**.
 click, updates itself, and removes cleanly. The app is free, and a single optional
 purchase unlocks some extra customization.
 
-**Building it yourself** gives you the same application with every feature enabled.
-It needs the .NET SDK and a few minutes; [CONTRIBUTING.md](CONTRIBUTING.md) has the
-steps.
+<p>
+  <a href="">
+    <img src="https://get.microsoft.com/images/en-us%20dark.svg" alt="Download from the Microsoft Store" height="52">
+  </a>
+</p>
+
+Developers, contributors, and anyone who would rather compile it can **build it
+yourself** from the source. It gives you the same application with every feature
+enabled. It needs the .NET SDK installed; read [CONTRIBUTING.md](CONTRIBUTING.md) for
+the steps.
+
+See [Keeping Barline Going](#keeping-barline-going) for more information.
 
 The first launch explains the rest, including this, which only matters if Windows is
 still showing its own button in the same corner:
@@ -129,7 +143,7 @@ Word-level timing is estimated from syllable count, including for Hangul, kana a
 which are counted per character rather than by vowel groups.
 
 Got better timings? Use **Import for this track…** in settings, or drop an `.lrc` file
-into the lyrics folder yourself — **Open folder** beside the button gets you there. A
+into the lyrics folder yourself. **Open folder** beside the button gets you there. A
 file always takes priority over the network, and clearing the cache never touches it.
 
 ## Settings
@@ -152,6 +166,18 @@ between the portable and Microsoft Store builds.
 **About** at the bottom of the page shows the version and which build it is, and opens
 the license, the third-party notices and the data folder. That is the only route to any
 of them in the Store build, whose install folder Windows will not let you browse.
+
+## Keeping Barline Going
+
+Barline is free and open source. The Microsoft Store is the easiest way to install it
+and keep it updated automatically. A one-time Barline Plus purchase unlocks additional
+customization and helps fund continued development.
+
+The complete source code is on GitHub for anyone who wants to build, modify, study, or
+contribute to Barline.
+
+Buying it is never required, but it is a great support for the development of the
+project. Thank you for your support!
 
 ## Known limitations
 

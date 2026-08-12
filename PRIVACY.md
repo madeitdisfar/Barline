@@ -1,13 +1,17 @@
 # Privacy policy
 
-**Barline** — last updated 9 August 2026.
+**Barline**. Last updated 12 August 2026.
 
-Barline collects nothing. There is no analytics, no telemetry, no crash reporting, no
-account, and no advertising. Nothing you do in the app is reported to its author, and
-the app never sees your identity.
+Barline collects nothing. The app contains no analytics, no telemetry, no crash
+reporting, no account, and no advertising. Nothing you do in the app is reported to its
+author, and the app never sees your identity.
 
 The app makes exactly one kind of network request, described below. Everything else
 it needs stays on your machine.
+
+Installing from the Microsoft Store adds reporting that Barline does not perform and
+cannot switch off. It is described under [The Microsoft Store
+build](#the-microsoft-store-build).
 
 ## What leaves your computer
 
@@ -38,10 +42,10 @@ own handling of requests is governed by its operators, not by this policy.
 
 In Barline's own data folder:
 
-- `settings.json` — your preferences.
-- `presets\` — saved appearance presets.
-- `lyrics\` — any `.lrc` files you import yourself.
-- `cache\` — lyrics fetched from LRCLIB, including the misses.
+- `settings.json`: your preferences.
+- `presets\`: saved appearance presets.
+- `lyrics\`: any `.lrc` files you import yourself.
+- `cache\`: lyrics fetched from LRCLIB, including the misses.
 
 Where that folder is depends on how you installed Barline. The portable build
 keeps it at `%LocalAppData%\Barline`. The Microsoft Store build keeps it inside its
@@ -50,7 +54,7 @@ own package folder, which Windows deletes when you uninstall the app. Either way
 
 Under `%TEMP%`, only if you set `BARLINE_DEBUG=1` yourself:
 
-- `barline.log` — a diagnostic log recording taskbar state, media sessions and
+- `barline.log`: a diagnostic log recording taskbar state, media sessions and
   playback timing. It is off unless you deliberately enable it.
 
 All of this stays on your machine. You can delete any of it at any time; the app
@@ -59,10 +63,35 @@ falls back to defaults. Cached lyrics can be cleared from **Settings → Lyrics*
 ## What the app reads locally
 
 Barline reads what is currently playing through the Windows System Media Transport
-Controls — the same source as the volume flyout — which gives it the title, artist,
+Controls, the same source as the volume flyout, which gives it the title, artist,
 album art and playback position. It also captures system audio output to drive the
 visualizer. **Audio is analyzed for loudness in the moment and never recorded,
 stored, or transmitted.** None of this leaves your computer except as described above.
+
+## The Microsoft Store build
+
+Everything above describes what Barline does, and it is the same in every build. The
+Store adds something on top that the app neither performs nor controls.
+
+Windows and the Microsoft Store report figures about Store apps back to their
+developer, through the Partner Center dashboard. For Barline that means install and
+acquisition counts, active device counts, session counts and engagement time, crash
+and hang reports, and any rating or review you choose to leave.
+
+Three things are worth being precise about:
+
+- **Barline does not do this.** No code in the app gathers or sends any of it. It is
+  collected by Windows and the Store as part of distributing an app through them.
+- **It is aggregate.** The developer sees counts, and can break them down by things
+  like app version, region and Windows build. It does not name you, and there is no way
+  to look up an individual person or their listening.
+- **It is not governed by this policy.** That collection is Microsoft's, under the
+  [Microsoft Privacy Statement](https://privacy.microsoft.com/privacystatement). What
+  your device sends to Microsoft is controlled by your Windows diagnostic data
+  settings, under **Settings → Privacy & security → Diagnostics & feedback**, not by
+  anything in Barline.
+
+**A build from source is not distributed through the Store and reports none of this.**
 
 ## Children
 

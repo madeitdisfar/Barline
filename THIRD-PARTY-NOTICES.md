@@ -51,9 +51,9 @@ Copyright © .NET Foundation and Contributors
 Licensed under [MIT](https://github.com/dotnet/runtime/blob/main/LICENSE.TXT)
 <https://github.com/dotnet/runtime> · <https://github.com/dotnet/wpf>
 
-The redistributed files include the WPF native libraries seen beside the executable —
-`PresentationNative_cor3.dll`, `wpfgfx_cor3.dll`, `PenImc_cor3.dll`,
-`D3DCompiler_47_cor3.dll` — and the Visual C++ runtime `vcruntime140_cor3.dll`,
+The redistributed files include the WPF native libraries seen beside the executable
+(`PresentationNative_cor3.dll`, `wpfgfx_cor3.dll`, `PenImc_cor3.dll`,
+`D3DCompiler_47_cor3.dll`) and the Visual C++ runtime `vcruntime140_cor3.dll`,
 which the .NET Foundation redistributes as part of a self-contained deployment.
 
 The .NET runtime itself incorporates further third-party components, each under its

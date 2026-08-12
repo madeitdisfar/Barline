@@ -332,6 +332,39 @@
             </Setter>
         </Style>
 
+        <!-- The accent-filled variant, for the one button on the page that is the point
+             of its card. Windows 11 uses at most one of these per view, so it is
+             deliberately not offered to anything else. -->
+        <Style x:Key="AccentCardButton" TargetType="Button" BasedOn="{StaticResource CardButton}">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Fill"
+                                CornerRadius="4"
+                                Background="{DynamicResource AccentFillBrush}"
+                                Padding="{TemplateBinding Padding}"
+                                SnapsToDevicePixels="True">
+                            <TextBlock Text="{TemplateBinding Content}"
+                                       FontFamily="Segoe UI Variable Text, Segoe UI"
+                                       FontSize="12"
+                                       Foreground="{DynamicResource TextOnAccentBrush}" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Fill" Property="Opacity" Value="0.9" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Fill" Property="Opacity" Value="0.8" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="Fill" Property="Opacity" Value="0.4" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <!-- A color well that opens the palette. Its own fill is set from code, so the
              template only supplies the frame and the hover state. -->
         <Style x:Key="SwatchButton" TargetType="Button">
@@ -1034,7 +1067,7 @@
 
                     <TextBlock Style="{StaticResource CardDescription}"
                                Margin="8,10,0,0"
-                               Text="Each hex is what will actually be drawn — colors are adjusted to stay visible against the taskbar." />
+                               Text="Each hex is what will actually be drawn. Colors are adjusted to stay visible against the taskbar." />
 
                     <!-- === Custom color === -->
 
@@ -1043,7 +1076,7 @@
 
                         <TextBlock Style="{StaticResource CardLabel}" Text="Choose a color" />
                         <TextBlock Style="{StaticResource CardDescription}"
-                                   Text="Only the hue matters — lightness is set for you." />
+                                   Text="Only the hue matters. Lightness is set for you." />
 
                         <WrapPanel x:Name="SwatchPanel" Margin="0,12,0,0" />
 
@@ -1700,7 +1733,7 @@
                     <TextBlock Style="{StaticResource CardLabel}" Text="Use your own file" />
                     <TextBlock x:Name="ImportDescription"
                                Style="{StaticResource CardDescription}"
-                               Text="An imported .lrc always wins over the network — the way to fix bad timings, or to add a track the database has never heard of." />
+                               Text="An imported .lrc always wins over the network. It is the way to fix bad timings, or to add a track the database has never heard of." />
 
                     <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
                         <Button x:Name="ImportButton"
@@ -1817,11 +1850,11 @@
                     <StackPanel>
                         <TextBlock x:Name="PremiumHeading" Style="{StaticResource CardLabel}" />
                         <TextBlock Style="{StaticResource CardDescription}"
-                                   Text="Five and six bars, bar color from the album art, the lyrics panel anywhere on screen, the glow effect, and saving your own presets. A one time purchase, with no subscription." />
+                                   Text="More visualizer configurations, advanced lyric effects and positioning, preset creation and importing, and future appearance features. A one time purchase, with no subscription." />
 
                         <WrapPanel Margin="0,12,0,0">
                             <Button x:Name="BuyButton"
-                                    Style="{StaticResource CardButton}"
+                                    Style="{StaticResource AccentCardButton}"
                                     Content="Unlock Barline Plus" />
                             <Button x:Name="RecheckButton"
                                     Style="{StaticResource CardButton}"
@@ -1848,7 +1881,7 @@
 
                     <TextBlock Style="{StaticResource CardLabel}" Text="License and source" />
                     <TextBlock Style="{StaticResource CardDescription}"
-                               Text="Barline is free software under GPL-3.0-or-later: you can use it, study how it works, change it and pass it on. The complete source is on GitHub." />
+                               Text="Barline is licensed under GPL-3.0-or-later. The complete source is on GitHub." />
 
                     <WrapPanel Margin="0,12,0,0">
                         <Button x:Name="LicenseButton"
@@ -1868,7 +1901,7 @@
 
                     <TextBlock Style="{StaticResource CardLabel}" Text="Privacy" />
                     <TextBlock Style="{StaticResource CardDescription}"
-                               Text="Nothing is collected, and nothing leaves this computer except a lyrics lookup, which only happens while lyrics are switched on." />
+                               Text="Barline collects nothing. Nothing leaves this computer except a lyrics lookup, and only while lyrics are switched on." />
 
                     <Button x:Name="PrivacyButton"
                             Style="{StaticResource CardButton}"

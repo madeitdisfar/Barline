@@ -1,6 +1,6 @@
 # Design notes
 
-Why Barline works the way it does. This is the reasoning behind the decisions — the
+Why Barline works the way it does. This is the reasoning behind the decisions: the
 constraints that were hit, the approaches that were rejected, and the two occasions
 Windows silently ignored a perfectly valid API call.
 
@@ -23,17 +23,17 @@ shadows the taskbar:
   slides off-screen and the widget slides with it.
 
 Hovering crossfades the visualizer into previous / play-pause / next inside a
-fixed-width zone, so nothing reflows — layout shift on hover is the fastest way to
+fixed-width zone, so nothing reflows. Layout shift on hover is the fastest way to
 look third-party.
 
 ## Media
 
 **Metadata comes from SMTC** (`GlobalSystemMediaTransportControlsSessionManager`), the
-same source the Windows volume flyout reads — so Spotify, Apple Music, browsers and
+same source the Windows volume flyout reads, so Spotify, Apple Music, browsers and
 podcast apps work without per-app integration.
 
 **Playback position is extrapolated, not read.** SMTC does not tick: a source app
-publishes a position when it feels like it — measured against Spotify, roughly every
+publishes a position when it feels like it: measured against Spotify, roughly every
 4.3 seconds. Anything that needs to know where playback is *right now* has to carry
 the last report forward using the app's own timestamp, and re-anchor when the next one
 lands. Corrections are eased in rather than applied outright, so ordinary drift does
@@ -51,12 +51,12 @@ Each band has its own dB window, because measured against real music the bands s
 zero. Those windows started as four hand-measured values, which described one bar
 count and no other; they are now a least-squares fit through those measurements (about
 −4.4 dB per octave), which is what lets the count vary. The fit generalizes because a
-band's level is the RMS *per bin* — a spectral density rather than a total — so
+band's level is the RMS *per bin*, a spectral density rather than a total, so
 slicing the span more finely does not systematically lower it.
 
 **The capture self-heals.** A loopback capture stays bound to one device and doesn't
 follow the default as it moves, and after idle or sleep it can silently stall without
-notifying the app — both used to need a restart. A watchdog re-arms it when it has
+notifying the app. Both used to need a restart. A watchdog re-arms it when it has
 died, when the default output moves elsewhere (e.g. headphones reconnect after sleep),
 or when it goes quiet while a track is still playing. Capture is also re-armed on
 resume from sleep, and **Restart visualizer** in the menu forces it by hand.
@@ -68,7 +68,7 @@ thinner bars rather than a wider or heavier visualizer: the widget never reflows
 taskbar layout, and the row keeps the visual weight its color was corrected for.
 
 Six is the ceiling for two independent reasons. Seven bars would be 1.7px wide, and
-neighboring tall bars visibly merge at 100% display scaling — worse on the light
+neighboring tall bars visibly merge at 100% display scaling, worse on the light
 taskbar, where the bar color is translucent as well as thin. Seven bands would also
 outrun the transform: a 1024-point FFT at 48 kHz resolves 46.9 Hz per bin, and the
 lowest band's 40–89.8 Hz span falls inside the single bin its neighbor starts from,
@@ -80,14 +80,14 @@ Every bar color mode except `Default` is **corrected for legibility** before it 
 drawn. The hue is the artwork's (or yours) to choose; the lightness is not. A dark
 navy cover on the dark taskbar or a pale yellow one on the light taskbar would
 otherwise paint bars that are technically colored and practically invisible, so the
-hue is kept and the lightness is pushed until the bars clear a 3:1 contrast ratio —
-WCAG's threshold for non-text graphics — against the taskbar. Saturation is held
+hue is kept and the lightness is pushed until the bars clear a 3:1 contrast ratio,
+WCAG's threshold for non-text graphics, against the taskbar. Saturation is held
 inside a band for the same reason, so a correction can neither bleach the hue to gray
 nor push it into neon. A cover with no usable hue at all, like a black-and-white
 sleeve, falls back to `Default` rather than inventing a tint.
 
-Because of that, the settings window shows each mode's **resolved** color and hex —
-what will actually be drawn, not what was picked — over a strip painted the same shade
+Because of that, the settings window shows each mode's **resolved** color and hex,
+what will actually be drawn rather than what was picked, over a strip painted the same shade
 the correction measures against. Showing the picked color instead would misrepresent
 the whole feature.
 
@@ -102,7 +102,7 @@ cached to disk, misses included**, so a track is fetched once rather than once p
 play.
 
 Misses are never cached permanently, though. LRCLIB is contributed, so a track with
-nothing filed today is one nobody has got to yet — and a newly released song is
+nothing filed today is one nobody has got to yet, and a newly released song is
 exactly the one most likely to be filled in shortly after you first ask for it. So a
 miss is retried on a **widening delay**: the next day, then after three, seven and
 thirty. That catches the common case quickly while stopping a library of instrumentals
@@ -112,7 +112,7 @@ from asking again on every play, and it means no track is ever written off for g
 
 Matching is the hard part. Spotify reports `Creep - Remastered 2011` and a browser
 reports `Creep (Official Video)`; neither string is filed under that name anywhere.
-Lookups therefore widen in stages — the name exactly as reported first, since
+Lookups therefore widen in stages: the name exactly as reported first, since
 stripping is a guess and a track really can be called `Live`, then with packaging
 removed, then with only the first credited artist, and finally a duration-matched
 search that tolerates a source reporting the length a second or two out.
@@ -120,7 +120,7 @@ search that tolerates a source reporting the length a second or two out.
 ### Where a line ends
 
 Where a record has one, LRCLIB's own **lyricsfile** form is preferred over the LRC. It
-is the same lyrics as YAML, and it states each line's *end* — which LRC cannot
+is the same lyrics as YAML, and it states each line's *end*, which LRC cannot
 express, leaving a line to implicitly run until the next one starts. That is wrong
 across every instrumental gap, and it is precisely the span the word timing divides
 up. The format is documented as supporting word-level timing as well, but no
@@ -130,19 +130,19 @@ only line-level fields, so nothing here guesses at a schema that isn't in the da
 ### Word by word
 
 The panel highlights either **each word as it is sung** or the whole line at once,
-whichever you prefer — word timing is estimated for almost every track, and on one it
+whichever you prefer. Word timing is estimated for almost every track, and on one it
 fits badly a line at a time is calmer.
 
 No free source carries word-level timing, so it is inferred: the line's span is
 divided by **syllable count**, which tracks singing time far better than character
-count — *strength* and *a potato* are the same length and nothing alike to sing.
+count: *strength* and *a potato* are the same length and nothing alike to sing.
 Vowel-group counting is an English heuristic, so scripts that write a syllable per
 character (Hangul, kana, CJK) are counted that way instead; otherwise a Korean line
 would come back as one syllable per word and the sweep would be worthless. A file that
 carries real word timings always overrides the estimate.
 
-Aligning the words to the audio properly was considered and rejected — not because it
-is slow, but because it is **causal**. A forced aligner cannot know where a word lands
+Aligning the words to the audio properly was considered and rejected, not because it
+is slow but because it is **causal**. A forced aligner cannot know where a word lands
 until after it has been sung, so using one would mean running the lyrics behind the
 music, which defeats the point at any speed.
 
@@ -154,11 +154,11 @@ the background is painted over whatever is behind it at the opacity you choose.
 It never takes input: clicks pass straight through to whatever is behind, and it is
 owned by the taskbar, so it hides for fullscreen apps and slides away with auto-hide
 by the same mechanism the widget does. Because it cannot be clicked away, it can
-instead **fade or hide while the pointer is over it** — the pointer is polled rather
+instead **fade or hide while the pointer is over it**. The pointer is polled rather
 than handled as an event, since a click-through window never receives one.
 
 It also **waits a few seconds before disappearing**. Between tracks there is a moment
-with no lyrics — the old ones dropped, the new ones not yet fetched — and hiding
+with no lyrics (the old ones dropped, the new ones not yet fetched), and hiding
 immediately made the panel blink out and back on every song change. Showing is never
 delayed; only hiding. A source app closing is a different thing from a gap between
 songs, so the panel goes when the widget does rather than waiting out that grace.
@@ -166,20 +166,20 @@ songs, so the panel goes when the widget does rather than waiting out that grace
 Position anchors are measured from the taskbar's own monitor, so the panel follows the
 taskbar rather than assuming the primary screen. **Free** stores its position as a
 share of the screen rather than in pixels, so it stays put when the resolution
-changes, and is adjustable a tenth of a percent at a time — one percent is 26 physical
+changes, and is adjustable a tenth of a percent at a time, because one percent is 26 physical
 pixels on a wide screen, which is too coarse to line the panel up with anything.
 
 In the widget, instrumental gaps are timed too, and during one the title returns
 rather than the previous line hanging around. So does pausing: a lyric sitting there
 over music nobody is playing reads as stuck, and what you want to know about a paused
 track is what it is. Turning the visualizer off gives that reserved width back to the
-text — 150px becomes 238px, over half as much again — since the zone beside it is then
+text: 150px becomes 238px, over half as much again, since the zone beside it is then
 drawing nothing.
 
 ## The style is the setting
 
 Font family, size, weight and italic, text color, unsung-word opacity, casing,
-effect, background and corner radius are all settings — **and so are where the lyrics
+effect, background and corner radius are all settings, **and so are where the lyrics
 go, which anchor the panel uses, and how big it is.** A 20px line over a tinted panel
 and a 12px line in the widget are different designs, and a look that does not say
 which of the two it is describes nothing; keeping placement outside the style was what
@@ -192,10 +192,10 @@ behavior rather than descriptions of a look, and a preset someone shares with yo
 no business changing them.
 
 The settings window groups by **what a setting applies to**, not by what a preset
-happens to save — those are different questions, and answering the second with the
+happens to save. Those are different questions, and answering the second with the
 first is what once put the display mode inside the style card while the settings that
 react to it sat outside. Controls that a choice makes meaningless are hidden rather
-than left to do nothing — an effect radius with no effect, an opacity for an opaque
+than left to do nothing: an effect radius with no effect, an opacity for an opaque
 fill, a panel size for lyrics that are not in a panel.
 
 In the widget there is no background at all: it deliberately paints none so the
@@ -222,7 +222,7 @@ A compositor-blurred acrylic option existed briefly and was removed: Windows
 composites that blur across the whole window rectangle, and a transparent window takes
 its shape from per-pixel alpha rather than from a region, so acrylic could never
 honor a corner radius. One background behaving differently from the rest was not
-worth what it bought — every background is now painted by the app, and the corner
+worth what it bought. Every background is now painted by the app, and the corner
 radius applies to all of them alike.
 
 ### Presets are files
@@ -230,8 +230,8 @@ radius applies to all of them alike.
 Presets live in the `presets` folder under Barline's data directory (see
 [Where data lives](#where-data-lives)). They are saved copies of the style,
 not a separate source of truth: the settings window edits it directly and you see it
-immediately, and a preset is that snapshot under a name. The alternative — the file
-being the only home for these values — would mean every tweak was a file edit and the
+immediately, and a preset is that snapshot under a name. The alternative, the file
+being the only home for these values, would mean every tweak was a file edit and the
 UI could only pick between whole files.
 
 Four looks ship as ordinary preset files: `Widget` for the inline display, and
@@ -245,7 +245,7 @@ than asserting a default it never chose.
 
 ## Settings storage
 
-Changes apply and persist immediately — there is no OK or Apply button, matching
+Changes apply and persist immediately. There is no OK or Apply button, matching
 Windows 11 Settings, and the widget is on the taskbar the whole time so every change is
 already previewed where it counts.
 
@@ -298,7 +298,7 @@ copies are fetched results and neither is worth more than the other.
 ## Show Desktop
 
 Show Desktop used to take the widget away and keep it away, until something unrelated
-moved the taskbar and brought it back — which is why clicking the taskbar looked like
+moved the taskbar and brought it back, which is why clicking the taskbar looked like
 the cure.
 
 It is worth writing down what it is *not*, because every plausible explanation turns
@@ -310,7 +310,7 @@ all. Windows simply stops compositing it, because the shell's own windows are th
 ones exempt from that state.
 
 Since nothing changes, nothing is a state change, so the tracker has nothing to report
-and the widget stays gone. The fix is not to detect it — there is no signal to detect —
+and the widget stays gone. The fix is not to detect it, since there is no signal to detect,
 but to stop relying on being told. A bare `SetWindowPos` restores the widget
 immediately, even while the desktop is still showing, so the overlay re-asserts its
 z-order every 400ms whenever it should be visible.
@@ -319,8 +319,8 @@ Only the showing path re-asserts. The hide path is debounced precisely so a tran
 state cannot blink the widget, and a timer that could reach it would re-arm that
 debounce forever.
 
-It is polling, so the price was measured rather than waved at. A *full* placement — the
-shape this used at first — costs about **0.9ms**, because a layered window with
+It is polling, so the price was measured rather than waved at. A *full* placement, the
+shape this used at first, costs about **0.9ms**, because a layered window with
 per-pixel alpha goes through composition on every call; driving it at 61 calls a second
 cost 5.1 to 5.6 percentage points of one core across two runs. At 2.5 calls a second
 that puts a ceiling of roughly **0.2% of one core** on the re-assert, and the call it
@@ -336,14 +336,14 @@ hidden, the guard skips the call entirely, and the process sits at 0.7% of one c
 
 The re-assert first went through the normal placement, which moves, resizes and
 re-inserts the window into the topmost band. At 400ms that flickered whenever a taskbar
-item was clicked — clicking one raises `Shell_TrayWnd` and hands focus elsewhere, and
+item was clicked. Clicking one raises `Shell_TrayWnd` and hands focus elsewhere, and
 the widget rides up with the taskbar as its owned window, so a full reposition landing
 inside that reorder showed.
 
 Slowing the timer to a second hid it, and that was the wrong fix: the interval decides
 how often the collision is possible, not whether it is. The cause was the tick doing
 far more work than the job asks for. Recovering from Show Desktop was measured to need
-only a `SetWindowPos` carrying `SWP_NOMOVE | SWP_NOSIZE` — put the window back in the
+only a `SetWindowPos` carrying `SWP_NOMOVE | SWP_NOSIZE`: put the window back in the
 composition, change nothing else. On a layered window the difference is a whole
 composition pass against an empty one.
 
@@ -397,7 +397,7 @@ it is carried deliberately.
 
 Shipping them is necessary but not sufficient for the Store build. A packaged app
 installs under `WindowsApps`, and while a file in there reads perfectly well by full
-path, the folder's root refuses to be listed — so Explorer cannot reach it and no
+path, the folder's root refuses to be listed, so Explorer cannot reach it and no
 user will ever find a file inside it. The About card is the route: it opens both
 documents, links to the repository, and states the version and which build is
 running.
@@ -408,7 +408,7 @@ handler on a stock Windows install, so both would raise "How do you want to open
 file?", which reads as a fault rather than a document.
 
 Version, repository and privacy URLs live together in `AppInfo` because they are
-stated in more than one place — the LRCLIB user agent carries the version and a link
+stated in more than one place: the LRCLIB user agent carries the version and a link
 to the project, and the About card shows both. Both of those had already gone wrong
 once while they were written out separately.
 
@@ -416,8 +416,8 @@ once while they were written out separately.
 
 Five of them: the Balanced and Detailed bar counts, the album art bar color, the
 freely placed lyrics panel, the glow effect, and saving or importing your own preset.
-Everything else stays free, and the portable build hands all five over for nothing —
-it is built from GPL-3.0 source, and gating it would only inconvenience the people the
+Everything else stays free, and the portable build hands all five over for nothing.
+It is built from GPL-3.0 source, and gating it would only inconvenience the people the
 license is written for. What the Store sells is the packaged app: updates, a sandboxed
 install, and not compiling anything.
 
@@ -430,8 +430,8 @@ hiding it would only make the code worse for the people who paid.
 `LicenseService` answers with `Licensed`, `NotLicensed` or `Unknown`, and the third is
 the whole point. "No" and "could not ask" disable the same controls but mean opposite
 things about the user's file: a real no is grounds for taking paid values out of it,
-and a failed question never is. Two booleans come off the state — `Premium` asks
-whether a feature is available, `MayStrip` whether the file may be edited — and only a
+and a failed question never is. Two booleans come off the state. `Premium` asks
+whether a feature is available and `MayStrip` whether the file may be edited, and only a
 positive no sets the second.
 
 `Unknown` is not mainly a licensed user's state. It is reached by anyone we have never
@@ -442,15 +442,15 @@ wipes on Reset, so a genuine owner does arrive with no memory. Collapsing `Unkno
 into `NotLicensed` would strip that person's settings on first launch.
 
 A yes is remembered with a timestamp and honored for a year if the Store later goes
-quiet. Expiring it sooner cannot guard against refunds — a refund comes back as a
-positive no the moment the Store *can* be asked, and that deletes the memory outright
-— so a short window would only ever cost a paying customer.
+quiet. Expiring it sooner cannot guard against refunds. A refund comes back as a
+positive no the moment the Store *can* be asked, and that deletes the memory outright,
+so a short window would only ever cost a paying customer.
 
 Nothing checks the license at render time. The visualizer draws whatever bar count it
 is handed and the panel draws whatever effect it is handed. Enforcement is at two
 doors only: the control that would choose it, and the load that would apply it. That
 is why `Unknown` leaves an existing glow working while locking the control that sets
-it, and why the locked control says which of the two states it is in — telling someone
+it, and why the locked control says which of the two states it is in. Telling someone
 who paid that they have not bought this would be a lie to exactly the wrong person.
 
 ### Stripping, and why it is safe to be wrong
@@ -469,7 +469,7 @@ and wins.
 
 ### Presets
 
-Two paid features can appear inside a style — the glow and the free position — so
+Two paid features can appear inside a style, the glow and the free position, so
 `UsesPremium` asks the content rather than the name. Built-ins and saved presets are
 the same kind of file in the same folder, and a file written while licensed outlives
 the license, so anything keyed off the name would let a rename carry a paid look into
@@ -478,7 +478,7 @@ a free build.
 Three places act on that, and all three are needed. Seeding skips paid built-ins
 entirely, so a free install's folder never holds a look the build cannot draw. Listing
 is an allowlist of the free built-in names, not a content filter, because filtering on
-content alone would still hand a free build any preset copied into the folder — and
+content alone would still hand a free build any preset copied into the folder, and
 keeping your own presets is itself what is being sold. Loading asks again, because the
 listing goes by name and the contents of a file under a free name are not ours to
 trust; that is the only place a style actually becomes the live one.
@@ -493,7 +493,7 @@ every visual field still matches the copy we shipped. An edited one is theirs.
 ## Starting with Windows
 
 Two mechanisms, because the same binary can run either way. Unpackaged, it writes the
-per-user `Run` key — no elevation, and the app owns the setting outright.
+per-user `Run` key: no elevation, and the app owns the setting outright.
 
 Packaged, that key is not available: Windows ignores `Run` entries written by a
 packaged app, so the same code would appear to succeed and silently do nothing. The

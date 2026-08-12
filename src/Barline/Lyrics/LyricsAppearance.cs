@@ -351,6 +351,26 @@ internal sealed class LyricsAppearance
         }),
     ];
 
+    /// <summary>The built-in a fresh install starts on.</summary>
+    public const string DefaultName = "Clean";
+
+    /// <summary>
+    /// The look a fresh install starts on: the panel, not the widget line.
+    /// </summary>
+    /// <remarks>
+    /// A copy rather than the built-in itself, since the settings window edits this
+    /// object in place and handing out the shared instance would let a first run
+    /// rewrite the template every other preset is measured against.
+    /// </remarks>
+    public static LyricsAppearance Default()
+    {
+        var style = BuiltIn.First(preset => preset.Name == DefaultName).Clone();
+
+        style.Schema = CurrentSchema;
+
+        return style;
+    }
+
     /// <summary>
     /// Built-ins that shipped once and no longer do.
     /// </summary>
