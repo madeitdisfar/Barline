@@ -43,7 +43,7 @@ internal partial class WelcomeWindow : Window
         // be looked at by changing a Windows setting to inspect a window.
         bool widgetsShowing =
             WidgetsButton.IsVisible() ||
-            Environment.GetEnvironmentVariable("BARLINE_WELCOME") == "widgets";
+            DevOverride.Read("BARLINE_WELCOME") == "widgets";
 
         if (widgetsShowing)
         {

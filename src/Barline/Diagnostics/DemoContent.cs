@@ -2,6 +2,7 @@ using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using Barline.Media;
+using Barline.Platform;
 
 namespace Barline.Diagnostics;
 
@@ -16,15 +17,14 @@ namespace Barline.Diagnostics;
 /// </remarks>
 internal static class DemoContent
 {
-    public static bool Enabled =>
-        Environment.GetEnvironmentVariable("BARLINE_DEMO") == "1";
+    public static bool Enabled => DevOverride.IsOn("BARLINE_DEMO");
 
     public static TrackInfo CreateTrack() => new()
     {
         // Title/artist can be overridden to sweep text lengths while checking the
         // overflow fade, without rebuilding.
-        Title = Environment.GetEnvironmentVariable("BARLINE_DEMO_TITLE") ?? "Everything In Its Right Place",
-        Artist = Environment.GetEnvironmentVariable("BARLINE_DEMO_ARTIST") ?? "Radiohead",
+        Title = DevOverride.Read("BARLINE_DEMO_TITLE") ?? "Everything In Its Right Place",
+        Artist = DevOverride.Read("BARLINE_DEMO_ARTIST") ?? "Radiohead",
         AlbumTitle = "Kid A",
         IsPlaying = true,
         CanGoNext = true,

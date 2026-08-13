@@ -129,17 +129,17 @@ public partial class App : Application
         // Nothing is playing on a machine this has just been installed on, so the
         // widget is hidden and the taskbar looks untouched. Without this the app is
         // indistinguishable from one that failed to start.
-        if (settings.IsFirstRun || Environment.GetEnvironmentVariable("BARLINE_WELCOME") is not null)
+        if (settings.IsFirstRun || DevOverride.IsSet("BARLINE_WELCOME"))
             new WelcomeWindow(theme, settings).Show();
 
         // Only reachable by buying the add-on, which cannot be done on demand, so it
         // gets the same escape hatch the welcome window has.
-        if (Environment.GetEnvironmentVariable("BARLINE_THANKS") is not null)
+        if (DevOverride.IsSet("BARLINE_THANKS"))
             new ThankYouWindow(theme).Show();
 
         // Opened last, after a track exists: iterating on this window otherwise means
         // a tray right-click on every rebuild, and the tray menu is awkward to script.
-        if (Environment.GetEnvironmentVariable("BARLINE_SETTINGS") == "1")
+        if (DevOverride.IsOn("BARLINE_SETTINGS"))
             ShowSettings(theme, settings, autoStart, window, media, lyrics, license);
     }
 

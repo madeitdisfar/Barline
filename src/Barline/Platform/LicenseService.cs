@@ -319,8 +319,12 @@ internal sealed class LicenseService
     /// test that path on purpose. Any of them also stops the Store being asked, so a
     /// forced state stays forced.
     /// </remarks>
+    /// <remarks>
+    /// Read through <see cref="DevOverride"/>, so a packaged build ignores it outright.
+    /// Honoring it there would put "unlock everything" one <c>setx</c> away.
+    /// </remarks>
     private static LicenseState? Override() =>
-        Environment.GetEnvironmentVariable("BARLINE_LICENSE") switch
+        DevOverride.Read("BARLINE_LICENSE") switch
         {
             "owned" => LicenseState.Licensed,
             "free" => LicenseState.Unknown,
