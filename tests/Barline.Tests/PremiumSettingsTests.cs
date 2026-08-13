@@ -165,4 +165,97 @@ public class PremiumSettingsTests
 
         Assert.False(PremiumSettings.Restore(settings, TempFile()));
     }
+
+    /// <summary>
+    /// A fresh install asks for nothing paid, which is what lets the guard in
+    /// <see cref="SettingsStore.Update"/> treat "something is paid now" as "this change
+    /// introduced it".
+    /// </summary>
+    [Fact]
+    public void Nothing_is_paid_by_default()
+    {
+        Assert.False(new WidgetSettings().UsesPremium);
+    }
+
+    [Fact]
+    public void Each_paid_value_is_seen_on_its_own()
+    {
+        Assert.True(new WidgetSettings
+        {
+            VisualizerBarCount = WidgetSettings.MaxBarCount,
+        }.UsesPremium);
+
+        Assert.True(new WidgetSettings
+        {
+            VisualizerColor = VisualizerColorMode.AlbumArt,
+        }.UsesPremium);
+
+        Assert.True(new WidgetSettings
+        {
+            LyricsStyle = new LyricsAppearance { Effect = LyricsEffect.Glow },
+        }.UsesPremium);
+
+        Assert.True(new WidgetSettings
+        {
+            LyricsStyle = new LyricsAppearance { Position = LyricsPanelPosition.Custom },
+        }.UsesPremium);
+    }
+
+    /// <summary>
+    /// The property the guard rests on. It fires only when nothing was paid a moment
+    /// ago, so whatever Strip then removes can only be what the change just added, and
+    /// the settings come back to a state that asks for nothing paid.
+    /// </summary>
+    [Fact]
+    public void Stripping_what_a_change_introduced_restores_the_floor()
+    {
+        string backup = TempFile();
+        var settings = new WidgetSettings();
+
+        try
+        {
+            Assert.False(settings.UsesPremium);
+
+            // Stand in for a path that was never gated.
+            settings.LyricsStyle.Effect = LyricsEffect.Glow;
+            settings.VisualizerBarCount = WidgetSettings.MaxBarCount;
+
+            Assert.True(settings.UsesPremium);
+
+            Assert.True(PremiumSettings.Strip(settings, backup));
+            Assert.False(settings.UsesPremium);
+
+            // And nothing was destroyed on the way: buying puts it back.
+            Assert.True(PremiumSettings.Restore(settings, backup));
+            Assert.Equal(LyricsEffect.Glow, settings.LyricsStyle.Effect);
+            Assert.Equal(WidgetSettings.MaxBarCount, settings.VisualizerBarCount);
+        }
+        finally { if (File.Exists(backup)) File.Delete(backup); }
+    }
+
+    /// <summary>
+    /// Free settings must not look paid, or the guard would strip a legitimate change.
+    /// </summary>
+    [Fact]
+    public void The_free_settings_are_not_mistaken_for_paid()
+    {
+        Assert.False(new WidgetSettings
+        {
+            VisualizerBarCount = WidgetSettings.MinBarCount,
+            VisualizerColor = VisualizerColorMode.Custom,
+            VisualizerEnabled = false,
+            LyricsEnabled = true,
+            LyricsHover = LyricsHoverBehavior.Hide,
+            LyricsWordByWord = true,
+            LyricsStyle = new LyricsAppearance
+            {
+                Display = LyricsDisplayMode.Panel,
+                Position = LyricsPanelPosition.TopCenter,
+                Italic = true,
+                Lowercase = true,
+                FontSize = 24d,
+                Background = LyricsBackground.Solid,
+            },
+        }.UsesPremium);
+    }
 }

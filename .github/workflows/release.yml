@@ -34,11 +34,14 @@ jobs:
       # it is far cheaper to fail here than to ship a binary that reports a
       # version nobody can find a tag for.
       #
-      # app.manifest carries a fourth copy that Windows never binds against, so
-      # nothing breaks when it drifts and nothing notices. It sat at 1.2.1.0
-      # through the whole 2.0.0 cycle. Asserted here because a number no failure
-      # can reach is a number only a check will keep honest.
-      - name: Check the tag and manifest match the project version
+      # Two other files carry the number and neither can fail on its own when it
+      # drifts. app.manifest is never bound against by Windows, and it sat at
+      # 1.2.1.0 through the whole 2.0.0 cycle without anything noticing.
+      # AppxManifest is worse: nothing here reads it, but it is the version the
+      # Store shows and the one an update compares against, so a stale copy is a
+      # submission that silently is not an upgrade. A number no failure can reach
+      # is a number only a check will keep honest.
+      - name: Check the tag and both manifests match the project version
         shell: pwsh
         run: |
           [xml]$csproj = Get-Content src/Barline/Barline.csproj
@@ -48,7 +51,10 @@ jobs:
           [xml]$appManifest = Get-Content src/Barline/app.manifest
           $manifestVersion = $appManifest.assembly.assemblyIdentity.version
 
-          Write-Host "project=$version tag=$tag manifest=$manifestVersion"
+          [xml]$appx = Get-Content packaging/AppxManifest.xml
+          $appxVersion = $appx.Package.Identity.Version
+
+          Write-Host "project=$version tag=$tag manifest=$manifestVersion appx=$appxVersion"
 
           if ($tag -like 'v*' -and $tag -ne "v$version") {
             throw "Tag $tag does not match the project version $version. Bump <Version> in Barline.csproj, or retag."
@@ -56,6 +62,10 @@ jobs:
 
           if ($manifestVersion -ne "$version.0") {
             throw "app.manifest is $manifestVersion, expected $version.0. Update <assemblyIdentity> in src/Barline/app.manifest."
+          }
+
+          if ($appxVersion -ne "$version.0") {
+            throw "AppxManifest.xml is $appxVersion, expected $version.0. Update <Identity> in packaging/AppxManifest.xml."
           }
 
           "VERSION=$version" | Out-File $env:GITHUB_ENV -Append

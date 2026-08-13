@@ -162,6 +162,28 @@ internal sealed class WidgetSettings
     public int VisualizerBarCount { get; set; } = DefaultBarCount;
 
     /// <summary>
+    /// Whether anything here is a paid feature.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The single answer to "is this settings object asking for something the build may
+    /// not be licensed for". A new paid feature adds one clause here, and everything
+    /// that has to notice one, including <see cref="SettingsStore.Update"/>, notices it
+    /// through this rather than through a list of its own.
+    /// </para>
+    /// <para>
+    /// Deliberately a bool rather than a set of flags. Nothing needs to know *which*
+    /// paid value is present, because the only two operations are "remove them all",
+    /// which <see cref="PremiumSettings.Strip"/> already does, and "is there one".
+    /// </para>
+    /// </remarks>
+    [JsonIgnore]
+    public bool UsesPremium =>
+        VisualizerBarCount > MinBarCount
+        || VisualizerColor == VisualizerColorMode.AlbumArt
+        || LyricsStyle.UsesPremium;
+
+    /// <summary>
     /// Forces hand-edited values back into range, and folds an older file forward.
     /// </summary>
     /// <remarks>

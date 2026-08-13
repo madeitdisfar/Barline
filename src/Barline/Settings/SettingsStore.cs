@@ -79,6 +79,55 @@ internal sealed class SettingsStore
     /// <summary>Whether the file that was loaded had to be folded forward.</summary>
     private bool _migrated;
 
+    /// <summary>Whether the paid features are currently available.</summary>
+    /// <remarks>
+    /// A delegate rather than the license service itself, because the store is built
+    /// before the license is resolved and because a test wants to say "not licensed"
+    /// without a Store.
+    /// </remarks>
+    private Func<bool>? _premium;
+
+    /// <summary>
+    /// Starts refusing paid values that a build is not licensed for.
+    /// </summary>
+    /// <remarks>
+    /// Until this is called nothing is refused, which is what the portable build and
+    /// the tests want.
+    /// </remarks>
+    public void Guard(Func<bool> premium) => _premium = premium;
+
+    /// <summary>
+    /// Takes back a paid value that this change introduced.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The gates on the controls and on the two preset loaders are what normally stop
+    /// one arriving. This is the backstop under them: it does not care how the value
+    /// got here, so a path nobody thought to gate cannot quietly grant a feature. The
+    /// display mode swap was exactly that kind of path.
+    /// </para>
+    /// <para>
+    /// It only acts when nothing was paid a moment ago, and that is what lets it reuse
+    /// <see cref="PremiumSettings.Strip"/> whole. Strip removes every paid value, which
+    /// would be wrong while the user legitimately has some, and is exactly right when
+    /// they had none: what it removes can only be what this change just added. So
+    /// there is no second list of which settings are paid to keep in step.
+    /// </para>
+    /// <para>
+    /// Stripping rather than reverting also means nothing is lost. The values go to the
+    /// backup file, and a later purchase puts them back.
+    /// </para>
+    /// </remarks>
+    private void RefusePaidValues(bool hadPaid)
+    {
+        if (hadPaid || _premium is null || _premium()) return;
+        if (!Current.UsesPremium) return;
+
+        DebugLog.Write("settings: refused a paid value this build is not licensed for");
+
+        PremiumSettings.Strip(Current);
+    }
+
     /// <summary>
     /// Applies a change, persists it, and notifies listeners.
     /// </summary>
@@ -89,11 +138,15 @@ internal sealed class SettingsStore
     /// </remarks>
     public void Update(Action<WidgetSettings> mutate)
     {
+        bool hadPaid = Current.UsesPremium;
+
         mutate(Current);
 
         // Before saving, so an out-of-range value can never reach the file even if a
         // caller writes one.
         Current.Normalize();
+
+        RefusePaidValues(hadPaid);
 
         Save();
 

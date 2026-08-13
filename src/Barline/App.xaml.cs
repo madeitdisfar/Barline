@@ -51,6 +51,10 @@ public partial class App : Application
 
         ApplyLicense(settings, license);
 
+        // Armed after the startup strip, so the guard never mistakes the values that
+        // pass is about to remove for ones this session introduced.
+        settings.Guard(() => license.Premium);
+
         var tracker = new TaskbarTracker();
         var media = new MediaSessionService(Dispatcher);
         var theme = new Theme();
