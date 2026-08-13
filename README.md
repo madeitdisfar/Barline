@@ -120,8 +120,8 @@ it while the widget is hidden.
 
 Lyrics are disabled by default because looking up a track sends its title and artist to [LRCLIB](https://lrclib.net). Turn it on under **Lyrics → Show lyrics**.
 
-They go either in a **floating panel** above the taskbar, with room for a full line and
-a look you choose:
+They go either in a **floating panel** above the taskbar, which you can move, resize
+and give a look of your own:
 
 <table>
 <tr>
@@ -158,8 +158,9 @@ whole time, so every change is previewed where it counts.
 Bar color follows your **accent**, the **album art** (crossfading as tracks change),
 or a color you choose. Bar colors automatically adjust to maintain a minimum 3:1 contrast ratio against the taskbar, ensuring the visualizer remains visible regardless of album artwork. The settings window shows the color that will actually be drawn.
 
-Lyric styles are saved as **preset files**. Four built-in presets ship with the app;
-drop one someone sends you into the presets folder and it appears in the list. Use
+Lyric styles are saved as **preset files**. Seven built-in presets ship with the app,
+four of which need Barline Plus because they glow; the other three are always there.
+Drop one someone sends you into the presets folder and it appears in the list. Use
 **Open folder** next to the preset picker to get there, since the location differs
 between the portable and Microsoft Store builds.
 

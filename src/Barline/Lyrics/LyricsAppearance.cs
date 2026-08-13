@@ -54,8 +54,8 @@ internal enum LyricsDisplayMode
     Inline,
 
     /// <summary>
-    /// A panel floating just above the taskbar, with room for a full line. Reads far
-    /// better; costs a second window.
+    /// A panel floating just above the taskbar. Its own window, so it can be placed
+    /// and sized freely and can carry a surface; costs a second window.
     /// </summary>
     Panel,
 }

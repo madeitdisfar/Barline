@@ -1188,7 +1188,7 @@
                     <StackPanel Grid.Column="0" VerticalAlignment="Center">
                         <TextBlock Style="{StaticResource CardLabel}" Text="Where to show them" />
                         <TextBlock Style="{StaticResource CardDescription}"
-                                   Text="The widget fits about 25 characters; the panel fits a full line." />
+                                   Text="The panel is its own window, so it can be moved, resized and given a surface." />
                     </StackPanel>
 
                     <Border Grid.Column="1" Style="{StaticResource SegmentGroup}">

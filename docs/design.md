@@ -234,12 +234,18 @@ immediately, and a preset is that snapshot under a name. The alternative, the fi
 being the only home for these values, would mean every tweak was a file edit and the
 UI could only pick between whole files.
 
-Four looks ship as ordinary preset files: `Widget` for the inline display, and
-`Clean`, `Glow` and `Lime` for the panel. They are written on first run and never
+Seven looks ship as ordinary preset files: `Widget`, `Widget_Glow` and `Widget_Movie`
+for the inline display, and `Clean`, `Glow`, `Movie` and `Raw` for the panel. Which of
+them are written depends on the license, since four of the seven glow: see
+[The paid features](#the-paid-features). They are written on first run and never
 overwritten afterwards, so an edited built-in survives an update. That makes them
 readable, copyable and editable, and means writing your own starts from a working
 example rather than an empty file. Drop a preset someone sends you into that folder
-and it appears in the list. One that predates placement being part of a style says
+and it appears in the list.
+
+Withdrawing a built-in has to reach into the user's folder, so it happens only while
+the file still matches the copy we shipped, field for field. An edited one is theirs
+and stays under its old name. `Lime` was retired that way when `Raw` replaced it. One that predates placement being part of a style says
 nothing about where the lyrics go, so loading it leaves them where they are rather
 than asserting a default it never chose.
 

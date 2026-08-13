@@ -31,9 +31,9 @@ public class SettingsSerializationTests
     /// </summary>
     /// <remarks>
     /// Pinned because both of these are first-impression decisions rather than
-    /// arbitrary values. The widget's own slot holds about 25 characters, so the panel
-    /// is what shows a whole line, and word timing is estimated for nearly every track,
-    /// so the line at a time is the reading that never drifts.
+    /// arbitrary values. The panel is a window of its own, so it is what shows the
+    /// styling off, and word timing is estimated for nearly every track, so the line
+    /// at a time is the reading that never drifts.
     /// </remarks>
     [Fact]
     public void A_fresh_install_shows_lyrics_in_the_panel_a_line_at_a_time()

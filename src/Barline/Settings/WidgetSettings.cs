@@ -105,8 +105,9 @@ internal sealed class WidgetSettings
     /// <remarks>
     /// Named for the built-in it is a copy of, rather than left as "Custom", so a fresh
     /// install starts on a design that has a counterpart in the other display mode.
-    /// The panel is the default because it fits a whole line: the widget's own slot
-    /// holds about 25 characters, which truncates most lyrics on a first look.
+    /// The panel is the default because it is a window of its own: it can be placed
+    /// and sized, and it carries a surface, so a first look shows what the styling
+    /// actually does rather than one line squeezed into the widget's slot.
     /// </remarks>
     public LyricsAppearance LyricsStyle { get; set; } = LyricsAppearance.Default();
 
