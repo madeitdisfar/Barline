@@ -573,13 +573,26 @@ internal partial class SettingsWindow : Window
         string? forMode = LyricsAppearance.BuiltIn.FirstOrDefault(p => p.Display == mode)?.Name;
 
         // Read from disk rather than from the compiled copy, so an edited built-in is
-        // still the user's version of it.
+        // still the user's version of it. Which also means what comes back is not
+        // necessarily what we wrote, so the paid check runs here as well: this is the
+        // second path that makes a style live, and the picker's check does not cover it.
         if (onABuiltIn && forMode is not null && _presets.Load(forMode) is { } design)
         {
-            Mutate(s => s.LyricsStyle = design);
-            Say(PresetStatus, $"Loaded “{design.Name}”.");
-            SyncAppearance();
-            return;
+            if (design.UsesPremium && !_license.Premium)
+            {
+                // The move still happens, carrying the current design with it. Refusing
+                // the click outright would be a worse answer than declining to adopt a
+                // look this build cannot draw.
+                Say(PresetStatus,
+                    $"“{design.Name}” uses something from {LicenseService.ProductName}.");
+            }
+            else
+            {
+                Mutate(s => s.LyricsStyle = design);
+                Say(PresetStatus, $"Loaded “{design.Name}”.");
+                SyncAppearance();
+                return;
+            }
         }
 
         MutateAppearance(a => a.Display = mode);
