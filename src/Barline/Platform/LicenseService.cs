@@ -213,7 +213,7 @@ internal sealed class LicenseService
     /// Puts the Store's purchase dialog up, and takes the result as an answer.
     /// </summary>
     /// <remarks>
-    /// A cancelled purchase is deliberately not treated as a positive no. The user
+    /// A canceled purchase is deliberately not treated as a positive no. The user
     /// declining a dialog says nothing about what they own, and letting it set
     /// <see cref="LicenseState.NotLicensed"/> would make closing a window strip the
     /// settings of somebody who owns the add-on on another machine.
@@ -338,8 +338,9 @@ internal sealed class LicenseService
 
             if (record?.LastSeen is not { } seen) return false;
 
-            // A clock that has gone backwards must not extend the grace indefinitely,
-            // so anything in the future is treated as now.
+            // A clock that has gone backwards leaves a timestamp in the future, which
+            // gives a negative age and still reads as within the grace. That is the
+            // same answer clamping it to now would give, so it is not clamped.
             var age = DateTimeOffset.UtcNow - seen;
 
             return age <= Grace;
