@@ -37,13 +37,20 @@
 
   <Dependencies>
     <!--
-      19041 matches SupportedOSPlatformVersion in the project, which is held there
-      so the binary still runs on older Windows 11 installs. Raising it here would
-      hide the app from machines the executable is perfectly happy on.
+      Windows 11 only. 22000 is the first Windows 11 build, and the taskbar this
+      widget attaches to is the Windows 11 one, so there is nothing for it to sit
+      on below that. Setting it here is the only way to say so: Partner Center's
+      device family checkbox covers Windows 10 and 11 as a single family and
+      cannot express a version, so unchecking it would exclude everybody.
+
+      Deliberately higher than SupportedOSPlatformVersion in the project, which
+      stays at 19041 because that is the API surface the code compiles against.
+      That one is a compile-time floor and this one is a distribution floor, and
+      a package may require more than its binary strictly needs.
     -->
     <TargetDeviceFamily
         Name="Windows.Desktop"
-        MinVersion="10.0.19041.0"
+        MinVersion="10.0.22000.0"
         MaxVersionTested="10.0.26100.0" />
   </Dependencies>
 

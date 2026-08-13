@@ -3,8 +3,10 @@
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <!-- The 10.0.19041.0 platform suffix is what pulls in the WinRT projections
-         for Windows.Media.Control (SMTC). Held at 19041 rather than 26100 so the
-         binary stays runnable on older Windows 11 installs. -->
+         for Windows.Media.Control (SMTC). This is the API surface the code
+         compiles against, not the floor the app ships to: the package manifest
+         requires Windows 11 (22000). Held at 19041 rather than 26100 so the build
+         takes on no more API surface than it actually calls. -->
     <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
     <SupportedOSPlatformVersion>10.0.19041.0</SupportedOSPlatformVersion>
     <UseWPF>true</UseWPF>
