@@ -59,7 +59,7 @@
 
       <uap:VisualElements
           DisplayName="Barline"
-          Description="A now-playing widget for the Windows 11 taskbar, with an audio-reactive visualiser and synced lyrics."
+          Description="A now-playing widget for the Windows 11 taskbar, with an audio-reactive visualizer and synced lyrics."
           Square150x150Logo="assets\Square150x150Logo.png"
           Square44x44Logo="assets\Square44x44Logo.png"
           BackgroundColor="transparent">
@@ -102,7 +102,7 @@
       Declared because looking up lyrics reaches lrclib.net. Nothing else leaves
       the machine, and the lookup is off until the user turns it on.
 
-      Deliberately no microphone capability: the visualiser reads the render
+      Deliberately no microphone capability: the visualizer reads the render
       endpoint through WASAPI loopback, which is not capture and is not the
       microphone. Declaring it would be untrue and would show this app asking for
       the microphone in the Store listing.

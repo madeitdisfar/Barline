@@ -16,7 +16,7 @@ namespace Barline.Tests;
 public class BandPlanTests
 {
     /// <summary>
-    /// The four windows the fit was derived from, measured against real programme
+    /// The four windows the fit was derived from, measured against real program
     /// material. Ground truth: the fit serves these, not the other way round.
     /// </summary>
     private static readonly (double LowHz, double HighHz, double FloorDb, double CeilingDb)[] Measured =
