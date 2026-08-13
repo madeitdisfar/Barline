@@ -33,17 +33,29 @@ jobs:
       # tag disagrees with it, the mistake is almost always a forgotten bump, and
       # it is far cheaper to fail here than to ship a binary that reports a
       # version nobody can find a tag for.
-      - name: Check the tag matches the project version
+      #
+      # app.manifest carries a fourth copy that Windows never binds against, so
+      # nothing breaks when it drifts and nothing notices. It sat at 1.2.1.0
+      # through the whole 2.0.0 cycle. Asserted here because a number no failure
+      # can reach is a number only a check will keep honest.
+      - name: Check the tag and manifest match the project version
         shell: pwsh
         run: |
           [xml]$csproj = Get-Content src/Barline/Barline.csproj
           $version = $csproj.SelectSingleNode('/Project/PropertyGroup/Version').InnerText.Trim()
           $tag = "${{ github.ref_name }}"
 
-          Write-Host "project=$version tag=$tag"
+          [xml]$appManifest = Get-Content src/Barline/app.manifest
+          $manifestVersion = $appManifest.assembly.assemblyIdentity.version
+
+          Write-Host "project=$version tag=$tag manifest=$manifestVersion"
 
           if ($tag -like 'v*' -and $tag -ne "v$version") {
             throw "Tag $tag does not match the project version $version. Bump <Version> in Barline.csproj, or retag."
+          }
+
+          if ($manifestVersion -ne "$version.0") {
+            throw "app.manifest is $manifestVersion, expected $version.0. Update <assemblyIdentity> in src/Barline/app.manifest."
           }
 
           "VERSION=$version" | Out-File $env:GITHUB_ENV -Append
