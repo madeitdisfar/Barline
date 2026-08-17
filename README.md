@@ -15,9 +15,15 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-GPLv3-blue.svg" alt="License: GPL v3"></a>
 </p>
 
-<!-- TODO: the Store listing URL goes in the href below, once the listing is live. -->
+<!--
+  The cid is Microsoft's own campaign tag, and the only thing that tells the
+  acquisitions report which badge someone came from. The two badges in this file
+  carry different ones on purpose. Web link rather than ms-windows-store://,
+  because GitHub strips schemes it does not recognize and the badge would stop
+  being a link; on Windows the web link opens the Store app anyway.
+-->
 <p align="center">
-  <a href="">
+  <a href="https://apps.microsoft.com/detail/9MVWJBV9SBC4?cid=readme-hero">
     <img src="https://get.microsoft.com/images/en-us%20dark.svg" alt="Download from the Microsoft Store" height="52">
   </a>
 </p>
@@ -92,7 +98,7 @@ click, updates itself, and removes cleanly. The app is free, and a single option
 purchase unlocks some extra customization.
 
 <p>
-  <a href="">
+  <a href="https://apps.microsoft.com/detail/9MVWJBV9SBC4?cid=readme-install">
     <img src="https://get.microsoft.com/images/en-us%20dark.svg" alt="Download from the Microsoft Store" height="52">
   </a>
 </p>
