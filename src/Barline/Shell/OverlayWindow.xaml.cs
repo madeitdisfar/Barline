@@ -272,7 +272,13 @@ internal partial class OverlayWindow : Window, IAlbumArtSource
             // Theme and accent changes arrive here (as ImmersiveColorSet).
             _theme.Refresh();
         }
-        else if (msg is WM_DPICHANGED or WM_DISPLAYCHANGE)
+        else if (msg == WM_DISPLAYCHANGE)
+        {
+            // A monitor arrived or left, so which taskbar to ride is open again and
+            // not just where to sit on it.
+            Dispatcher.BeginInvoke(new Action(_tracker.HandleDisplayChange));
+        }
+        else if (msg == WM_DPICHANGED)
         {
             // Let WPF finish its own DPI bookkeeping first, then re-place.
             Dispatcher.BeginInvoke(new Action(() => Apply(_tracker.Current)));

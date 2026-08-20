@@ -83,7 +83,7 @@ public partial class App : Application
         // pass is about to remove for ones this session introduced.
         settings.Guard(() => license.Premium);
 
-        var tracker = new TaskbarTracker();
+        var tracker = new TaskbarTracker { TargetDisplayId = settings.Current.DisplayId };
         var media = new MediaSessionService(Dispatcher);
         var theme = new Theme();
         var analyzer = new LoopbackAnalyzer();
@@ -113,6 +113,10 @@ public partial class App : Application
         {
             window.VisualizerEnabled = settings.Current.VisualizerEnabled;
             tray.SetVisualizerChecked(settings.Current.VisualizerEnabled);
+
+            // Assigning the same id again does nothing, so this costs a comparison on
+            // every other setting rather than an acquisition.
+            tracker.TargetDisplayId = settings.Current.DisplayId;
         };
 
         // Resuming from sleep/hibernate is the classic case where the loopback

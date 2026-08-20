@@ -232,6 +232,8 @@ internal partial class SettingsWindow : Window
         OpenFolderButton.Click += (_, _) => OpenFolder(_lyrics.ImportsDirectory, ImportStatus);
         ClearCacheButton.Click += (_, _) => ClearLyricsCache();
 
+        SetUpDisplays();
+
         AutoStartToggle.Checked += (_, _) => OnAutoStartToggled(true);
         AutoStartToggle.Unchecked += (_, _) => OnAutoStartToggled(false);
 
@@ -363,6 +365,7 @@ internal partial class SettingsWindow : Window
             if (current.LyricsWordByWord) WordByWordOption.IsChecked = true;
             else LineAtATimeOption.IsChecked = true;
 
+            BuildDisplayPicker();
             UpdateLyricsCardVisibility();
             UpdateImportDescription();
             UpdateCacheSize();
@@ -1435,6 +1438,129 @@ internal partial class SettingsWindow : Window
 
         SettingsPathText.Text = $"Settings, presets and lyrics are stored in {root}";
         OpenDataFolderButton.Click += (_, _) => OpenFolder(root, AboutStatus);
+    }
+
+    // ---- Display -----------------------------------------------------------
+
+    /// <summary>
+    /// What each row of the picker stands for, by index. A null id is the automatic
+    /// row, which is also what an unknown selection falls back to.
+    /// </summary>
+    private readonly List<(string? Id, string? Name)> _displayRows = [];
+
+    private void SetUpDisplays()
+    {
+        DisplayPicker.SelectionChanged += (_, _) => OnDisplayPicked();
+
+        // Whether Windows draws a taskbar on every display is a Windows setting, and
+        // it is the answer to most of what this card raises.
+        TaskbarSettingsButton.Click += (_, _) => OpenLink("ms-settings:taskbar");
+
+        // A monitor can be plugged in while this window is open, which makes the list
+        // stale the moment it happens. Activation covers the rest: Explorer creates a
+        // secondary taskbar a little after the display event that announced it, and
+        // coming back to this window is the cue to look again.
+        SystemEvents.DisplaySettingsChanged += OnDisplaySettingsChanged;
+        Activated += (_, _) => BuildDisplayPicker();
+        Closed += (_, _) => SystemEvents.DisplaySettingsChanged -= OnDisplaySettingsChanged;
+    }
+
+    private void OnDisplaySettingsChanged(object? sender, EventArgs e) =>
+        Dispatcher.BeginInvoke(BuildDisplayPicker);
+
+    /// <summary>
+    /// Fills the picker with the displays that have a taskbar.
+    /// </summary>
+    /// <remarks>
+    /// A display the user chose that is no longer connected keeps its row, and its
+    /// selection. Dropping it would make the box read "follow the primary display"
+    /// while the setting says otherwise, and the next thing to touch the picker would
+    /// write that lie back and lose the choice for good.
+    /// </remarks>
+    private void BuildDisplayPicker()
+    {
+        var survey = Displays.Survey();
+        var current = _settings.Current;
+
+        WithoutFeedback(() =>
+        {
+            _displayRows.Clear();
+            DisplayPicker.Items.Clear();
+
+            Add("Follow the primary display", null, null);
+
+            foreach (var display in survey.WithTaskbars)
+                Add(display.IsPrimary ? $"{display.Name} (main)" : display.Name, display.Id, display.Name);
+
+            bool chosenIsHere =
+                current.DisplayId is null
+                || survey.WithTaskbars.Any(d =>
+                    string.Equals(d.Id, current.DisplayId, StringComparison.OrdinalIgnoreCase));
+
+            if (!chosenIsHere)
+            {
+                Add(
+                    $"{current.DisplayName ?? "Chosen display"} (not connected)",
+                    current.DisplayId,
+                    current.DisplayName);
+            }
+
+            int index = _displayRows.FindIndex(row =>
+                string.Equals(row.Id, current.DisplayId, StringComparison.OrdinalIgnoreCase));
+
+            DisplayPicker.SelectedIndex = index < 0 ? 0 : index;
+
+            Say(DisplayNote, DisplayNoteFor(survey, chosenIsHere, current));
+        });
+
+        void Add(string label, string? id, string? name)
+        {
+            _displayRows.Add((id, name));
+            DisplayPicker.Items.Add(label);
+        }
+    }
+
+    /// <summary>
+    /// The line under the picker, or nothing when there is nothing to explain.
+    /// </summary>
+    /// <remarks>
+    /// At most one thing at a time. Both notes can be true at once, and the missing
+    /// monitor is the one worth saying, being about the state the widget is in now
+    /// rather than about a setting that could be changed.
+    /// </remarks>
+    private static string DisplayNoteFor(
+        DisplaySurvey survey, bool chosenIsHere, WidgetSettings current)
+    {
+        if (!chosenIsHere)
+        {
+            return $"{current.DisplayName ?? "That display"} is not connected, so Barline is "
+                + "on the primary display until it comes back.";
+        }
+
+        if (survey.Attached > survey.WithTaskbars.Count)
+        {
+            return $"Windows is showing a taskbar on {survey.WithTaskbars.Count} of your "
+                + $"{survey.Attached} displays. Turn on \"Show my taskbar on all displays\" "
+                + "to put Barline on another one.";
+        }
+
+        return string.Empty;
+    }
+
+    private void OnDisplayPicked()
+    {
+        if (_syncing) return;
+
+        int index = DisplayPicker.SelectedIndex;
+        if (index < 0 || index >= _displayRows.Count) return;
+
+        var (id, name) = _displayRows[index];
+
+        Mutate(settings =>
+        {
+            settings.DisplayId = id;
+            settings.DisplayName = name;
+        });
     }
 
     /// <summary>Hands a URL to the default browser.</summary>

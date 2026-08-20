@@ -50,6 +50,7 @@ no background of its own, so the taskbar's real Mica material shows through auto
 - Displays album art, title, and artist directly on the taskbar.
 - Fixed layout that remains consistent as songs change.
 - Follows taskbar position, DPI, and auto-hide behavior.
+- Pick which display it sits on, on a desk with a taskbar on more than one.
 
 ### Live audio visualizer 📊
 
@@ -188,7 +189,8 @@ project. Thank you for your support!
 
 ## Known limitations
 
-- **Primary monitor only.** Secondary-monitor taskbars are not tracked yet.
+- **One taskbar at a time.** You choose which display Barline appears on, but it
+  appears on that one alone rather than on every taskbar at once.
 - **The visualizer hears everything**, not just the media session on display, so other
   system audio moves the bars.
 - **Click-to-focus is best-effort.** Windows identifies media sessions in a way that

@@ -131,6 +131,35 @@ internal sealed class WidgetSettings
     /// </remarks>
     public bool LyricsWordByWord { get; set; }
 
+    /// <summary>
+    /// The display whose taskbar the widget rides, or null to follow the primary.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Stored as the monitor's device path rather than as "display 2", because the
+    /// numbering is a slot: reconnect two screens the other way round and the numbers
+    /// swap under a setting that has not changed. The device path comes from the
+    /// monitor's EDID and stays put.
+    /// </para>
+    /// <para>
+    /// A value naming a display that is not connected is a normal condition rather
+    /// than a broken file, so it is never cleared. The widget falls back to the primary
+    /// taskbar and takes the choice up again when the monitor comes back, which is what
+    /// a docked laptop does twice a day.
+    /// </para>
+    /// </remarks>
+    public string? DisplayId { get; set; }
+
+    /// <summary>
+    /// What that display was called when it was chosen.
+    /// </summary>
+    /// <remarks>
+    /// Cosmetic, and deliberately not the identity. It exists so the settings window
+    /// can say which display is missing rather than showing a device path, and so the
+    /// file stays legible to somebody reading it. A live name always wins over it.
+    /// </remarks>
+    public string? DisplayName { get; set; }
+
     /// <summary>The bar count when nothing says otherwise, and the shipped design.</summary>
     public const int DefaultBarCount = 4;
 

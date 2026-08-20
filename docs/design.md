@@ -17,7 +17,7 @@ shadows the taskbar:
 - **It paints no background.** The taskbar's own Mica/acrylic material shows through,
   so the widget inherits the system backdrop exactly and stays correct across theme,
   accent and transparency changes without reproducing any of it.
-- **It is a satellite of `Shell_TrayWnd`**, mirroring that window's rect, DPI,
+- **It is a satellite of one taskbar window**, mirroring that window's rect, DPI,
   visibility and z-order. One mechanism covers auto-hide, fullscreen apps, DPI changes
   and Explorer restarts. Auto-hide needs no special handling at all: the taskbar
   slides off-screen and the widget slides with it.
@@ -25,6 +25,39 @@ shadows the taskbar:
 Hovering crossfades the visualizer into previous / play-pause / next inside a
 fixed-width zone, so nothing reflows. Layout shift on hover is the fastest way to
 look third-party.
+
+### Which taskbar
+
+Windows draws a taskbar on every display only if asked to, so on a default machine
+there is one, on the primary, and the widget is on it. Asked to, Explorer adds a
+`Shell_SecondaryTrayWnd` per display, and the widget has to be told which one it is a
+satellite of.
+
+That is a **choice of one taskbar**, not a widget on each. Being the satellite of a
+single window is what the whole placement rests on: one rect, one DPI, one owner for
+the z-order, one monitor for the lyrics panel to anchor to. A widget per taskbar
+would multiply all four and then raise a question with no good answer, since three
+floating lyric panels saying the same line is plainly not what anyone wants. Keeping
+the invariant costs a selection rule, and the enumeration it needs is most of what a
+widget-per-taskbar version would need later anyway.
+
+The stored choice is the monitor's **device path**, from the DisplayConfig API, not
+`\\.\DISPLAY2` and not "display 2". Those are slots: reconnect two screens the other
+way round and they swap under a setting nobody touched. The device path is built from
+the monitor's EDID and survives replugging, a different port, and renumbering.
+
+The rule that matters is the fallback. A display that is not connected is a normal
+condition, not a broken setting, so the choice is never rewritten. Acquisition drops
+to the primary taskbar and takes the choice up again when the monitor returns, which
+is what a docked laptop does twice a day. A widget that vanished instead would read
+as a crash, and the taskbar it was riding vanished with it, so there is nowhere else
+for it to have gone.
+
+`WM_DISPLAYCHANGE` re-acquires rather than only re-placing, since the taskbar handle
+survives a monitor arriving and nothing else would notice the chosen display coming
+back. It also retries for a few seconds afterwards: Explorer creates the new
+taskbar some time after the event that announced the monitor, so a single attempt
+looks at a desktop that does not have it yet.
 
 ## Media
 

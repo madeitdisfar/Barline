@@ -97,6 +97,15 @@ internal static class NativeMethods
     [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
     internal static extern IntPtr FindWindow(string? lpClassName, string? lpWindowName);
 
+    /// <summary>
+    /// Finds the next top-level window of a class, which is how every secondary
+    /// taskbar is walked without enumerating the whole desktop as <c>EnumWindows</c>
+    /// would.
+    /// </summary>
+    [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
+    internal static extern IntPtr FindWindowEx(
+        IntPtr hWndParent, IntPtr hWndChildAfter, string? lpszClass, string? lpszWindow);
+
     [DllImport("user32.dll", SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
     internal static extern bool GetWindowRect(IntPtr hWnd, out RECT lpRect);
@@ -176,6 +185,178 @@ internal static class NativeMethods
     [DllImport("user32.dll", CharSet = CharSet.Unicode)]
     [return: MarshalAs(UnmanagedType.Bool)]
     internal static extern bool GetMonitorInfo(IntPtr hMonitor, ref MONITORINFO lpmi);
+
+    // ---- Displays ---------------------------------------------------------
+
+    /*
+        Display identity comes from the DisplayConfig API rather than from the GDI
+        device name. "\\.\DISPLAY2" is a slot rather than a monitor: unplug two screens
+        and reconnect them the other way round and the two names swap, so a setting
+        saved against one would quietly start meaning the other. The DisplayConfig
+        target carries the monitor's own device path, which is built from its EDID and
+        survives being unplugged, moved to another port, or renumbered.
+    */
+
+    /// <summary>QDC_ONLY_ACTIVE_PATHS: the displays currently part of the desktop.</summary>
+    internal const uint QDC_ONLY_ACTIVE_PATHS = 0x00000002;
+
+    internal const int DISPLAYCONFIG_DEVICE_INFO_GET_SOURCE_NAME = 1;
+    internal const int DISPLAYCONFIG_DEVICE_INFO_GET_TARGET_NAME = 2;
+
+    /// <summary>The panel built into the machine, which usually carries no EDID name.</summary>
+    internal const uint DISPLAYCONFIG_OUTPUT_TECHNOLOGY_INTERNAL = 0x80000000;
+
+    internal const int ERROR_SUCCESS = 0;
+
+    internal const uint MONITORINFOF_PRIMARY = 0x00000001;
+
+    [StructLayout(LayoutKind.Sequential)]
+    internal struct LUID
+    {
+        public uint LowPart;
+        public int HighPart;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    internal struct DISPLAYCONFIG_RATIONAL
+    {
+        public uint Numerator;
+        public uint Denominator;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    internal struct DISPLAYCONFIG_PATH_SOURCE_INFO
+    {
+        public LUID adapterId;
+        public uint id;
+        public uint modeInfoIdx;
+        public uint statusFlags;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    internal struct DISPLAYCONFIG_PATH_TARGET_INFO
+    {
+        public LUID adapterId;
+        public uint id;
+        public uint modeInfoIdx;
+        public uint outputTechnology;
+        public uint rotation;
+        public uint scaling;
+        public DISPLAYCONFIG_RATIONAL refreshRate;
+        public uint scanLineOrdering;
+
+        // An int rather than a marshaled bool. A bool would make the struct
+        // non-blittable, which would copy every element of the path array on the way
+        // in and out for the sake of a field nothing here reads.
+        public int targetAvailable;
+
+        public uint statusFlags;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    internal struct DISPLAYCONFIG_PATH_INFO
+    {
+        public DISPLAYCONFIG_PATH_SOURCE_INFO sourceInfo;
+        public DISPLAYCONFIG_PATH_TARGET_INFO targetInfo;
+        public uint flags;
+    }
+
+    /// <summary>
+    /// A mode entry, declared as its size rather than as its shape.
+    /// </summary>
+    /// <remarks>
+    /// <c>QueryDisplayConfig</c> insists on somewhere to write the modes even when the
+    /// caller wants only the paths. It is a tagged union of three layouts and nothing
+    /// here reads any of them, so transcribing all three would be sixty lines of
+    /// interop whose only job would be to stay correct enough to ignore. The size is
+    /// the part that has to be right, and a test pins it.
+    /// </remarks>
+    [StructLayout(LayoutKind.Sequential, Size = 64)]
+    internal struct DISPLAYCONFIG_MODE_INFO
+    {
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    internal struct DISPLAYCONFIG_DEVICE_INFO_HEADER
+    {
+        public int type;
+        public int size;
+        public LUID adapterId;
+        public uint id;
+    }
+
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+    internal struct DISPLAYCONFIG_SOURCE_DEVICE_NAME
+    {
+        public DISPLAYCONFIG_DEVICE_INFO_HEADER header;
+
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)]
+        public string viewGdiDeviceName;
+    }
+
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+    internal struct DISPLAYCONFIG_TARGET_DEVICE_NAME
+    {
+        public DISPLAYCONFIG_DEVICE_INFO_HEADER header;
+        public uint flags;
+        public uint outputTechnology;
+        public ushort edidManufactureId;
+        public ushort edidProductCodeId;
+        public uint connectorInstance;
+
+        /// <summary>What the monitor calls itself, which is often nothing at all.</summary>
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 64)]
+        public string monitorFriendlyDeviceName;
+
+        /// <summary>The stable identity. See the note at the top of this section.</summary>
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 128)]
+        public string monitorDevicePath;
+    }
+
+    /// <summary>
+    /// <c>MONITORINFOEX</c>, which is <c>MONITORINFO</c> plus the GDI device name.
+    /// </summary>
+    /// <remarks>
+    /// That name is the only thing joining a monitor handle to a DisplayConfig path,
+    /// which is why this variant exists alongside the plain struct above rather than
+    /// replacing it.
+    /// </remarks>
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+    internal struct MONITORINFOEX
+    {
+        public int cbSize;
+        public RECT rcMonitor;
+        public RECT rcWork;
+        public uint dwFlags;
+
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)]
+        public string szDevice;
+    }
+
+    [DllImport("user32.dll", CharSet = CharSet.Unicode, EntryPoint = "GetMonitorInfoW")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static extern bool GetMonitorInfoEx(IntPtr hMonitor, ref MONITORINFOEX lpmi);
+
+    [DllImport("user32.dll")]
+    internal static extern int GetDisplayConfigBufferSizes(
+        uint flags, out uint numPathArrayElements, out uint numModeInfoArrayElements);
+
+    [DllImport("user32.dll")]
+    internal static extern int QueryDisplayConfig(
+        uint flags,
+        ref uint numPathArrayElements,
+        [Out] DISPLAYCONFIG_PATH_INFO[] pathArray,
+        ref uint numModeInfoArrayElements,
+        [Out] DISPLAYCONFIG_MODE_INFO[] modeInfoArray,
+        IntPtr currentTopologyId);
+
+    [DllImport("user32.dll")]
+    internal static extern int DisplayConfigGetDeviceInfo(
+        ref DISPLAYCONFIG_SOURCE_DEVICE_NAME requestPacket);
+
+    [DllImport("user32.dll")]
+    internal static extern int DisplayConfigGetDeviceInfo(
+        ref DISPLAYCONFIG_TARGET_DEVICE_NAME requestPacket);
 
     // ---- AppBar (auto-hide state) -----------------------------------------
 

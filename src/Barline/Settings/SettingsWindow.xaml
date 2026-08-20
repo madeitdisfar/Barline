@@ -1790,6 +1790,55 @@
 
             <!-- === Startup === -->
 
+            <!-- === Display === -->
+
+            <!--
+                Its own section rather than a row under Visualizer: it is about where
+                the widget is rather than what it looks like. The note is half the
+                point of the card. A machine that draws one taskbar offers one display
+                here, and without a word about why, a list of one reads as a fault.
+            -->
+            <TextBlock Style="{StaticResource SectionHeader}" Text="Display" />
+
+            <Border Style="{StaticResource Card}">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource CardLabel}" Text="Show on" />
+                    <TextBlock Style="{StaticResource CardDescription}"
+                               Text="Barline rides the taskbar, so it can only appear on a display that has one." />
+
+                    <!-- A grid rather than a horizontal stack, so the box takes
+                         whatever the button leaves. A monitor names itself, and the
+                         names run from "SecondScreen" to "Generic PnP Monitor (not
+                         connected)"; any fixed width is either too small for one of
+                         them or too wide for the card at its narrowest. -->
+                    <Grid Margin="0,12,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <ComboBox x:Name="DisplayPicker"
+                                  Grid.Column="0"
+                                  Style="{StaticResource CardCombo}"
+                                  HorizontalAlignment="Stretch" />
+                        <!-- Whether Windows draws a taskbar on every display is a
+                             Windows setting, and the answer to most of the questions
+                             this card raises is over there rather than here. -->
+                        <Button x:Name="TaskbarSettingsButton"
+                                Grid.Column="1"
+                                Style="{StaticResource CardButton}"
+                                Margin="8,0,0,0"
+                                Content="Taskbar settings" />
+                    </Grid>
+
+                    <TextBlock x:Name="DisplayNote"
+                               Style="{StaticResource CardDescription}"
+                               Margin="0,10,0,0"
+                               Visibility="Collapsed" />
+                </StackPanel>
+            </Border>
+
+            <!-- === Startup === -->
+
             <TextBlock Style="{StaticResource SectionHeader}" Text="Startup" />
 
             <Border Style="{StaticResource Card}">

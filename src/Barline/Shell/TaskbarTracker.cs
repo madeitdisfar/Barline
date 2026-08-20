@@ -41,15 +41,56 @@ internal sealed class TaskbarTracker : IDisposable
     // and the GC would otherwise collect a locally-scoped delegate.
     private readonly WinEventProc _winEventProc;
 
+    /// <summary>
+    /// How long acquisition keeps retrying after the displays change.
+    /// </summary>
+    /// <remarks>
+    /// Explorer creates a secondary monitor's taskbar some time after the display
+    /// change that announced the monitor, so a single attempt on the event usually
+    /// looks at a desktop that does not have it yet. The reconcile timer retries
+    /// across this window instead, which costs a few enumerations after a plug-in and
+    /// nothing at all the rest of the time.
+    /// </remarks>
+    private static readonly TimeSpan AcquireRetryWindow = TimeSpan.FromSeconds(5);
+
     private IntPtr _locationHook;
     private IntPtr _foregroundHook;
     private IntPtr _taskbarHwnd;
     private uint _explorerPid;
+    private string? _targetDisplayId;
+    private DateTime _retryUntil;
+    private bool _started;
     private bool _disposed;
 
     public TaskbarState Current { get; private set; } = TaskbarState.Unavailable;
 
     public IntPtr TaskbarHandle => _taskbarHwnd;
+
+    /// <summary>
+    /// The display whose taskbar the widget should ride, or null for the primary's.
+    /// </summary>
+    /// <remarks>
+    /// Setting it re-acquires immediately, so the widget moves as soon as the choice
+    /// is made rather than at the next restart. An id naming a display that is not
+    /// connected is not an error: acquisition falls back to the primary and picks the
+    /// display up again if it returns.
+    /// </remarks>
+    public string? TargetDisplayId
+    {
+        get => _targetDisplayId;
+        set
+        {
+            if (string.Equals(_targetDisplayId, value, StringComparison.OrdinalIgnoreCase))
+                return;
+
+            _targetDisplayId = value;
+
+            if (!_started) return;
+
+            AcquireTaskbar();
+            Reconcile(force: true);
+        }
+    }
 
     public event EventHandler<TaskbarState>? Changed;
 
@@ -68,9 +109,25 @@ internal sealed class TaskbarTracker : IDisposable
 
     public void Start()
     {
+        _started = true;
         AcquireTaskbar();
         InstallHooks();
         _reconcileTimer.Start();
+        Reconcile(force: true);
+    }
+
+    /// <summary>
+    /// Called when the desktop's display layout changed.
+    /// </summary>
+    /// <remarks>
+    /// Re-acquires rather than only re-placing. The taskbar handle survives a monitor
+    /// being added, so nothing else here would notice that the display the user asked
+    /// for has just come back.
+    /// </remarks>
+    public void HandleDisplayChange()
+    {
+        _retryUntil = DateTime.UtcNow + AcquireRetryWindow;
+        AcquireTaskbar();
         Reconcile(force: true);
     }
 
@@ -86,14 +143,41 @@ internal sealed class TaskbarTracker : IDisposable
         Reconcile(force: true);
     }
 
+    /// <summary>
+    /// Picks the taskbar to ride and notes which process owns it.
+    /// </summary>
+    /// <remarks>
+    /// The whole desktop is swept rather than just <c>Shell_TrayWnd</c>, because the
+    /// user may have asked for a secondary monitor's. Every taskbar belongs to the same
+    /// Explorer, so the process id this reads is the same whichever one is chosen, and
+    /// the hooks built around it do not have to be rebuilt when the choice changes.
+    /// </remarks>
     private void AcquireTaskbar()
     {
-        _taskbarHwnd = FindWindow(TaskbarClass, null);
+        var taskbars = Displays.Taskbars();
+
+        _taskbarHwnd = Displays.Choose(Displays.PrimaryTaskbar(), taskbars, _targetDisplayId);
         _explorerPid = 0;
+
         if (_taskbarHwnd != IntPtr.Zero)
         {
             GetWindowThreadProcessId(_taskbarHwnd, out _explorerPid);
         }
+
+        if (_targetDisplayId is null) return;
+
+        // Only worth a line when there was a choice to get wrong.
+        bool onTarget = taskbars.Any(t =>
+            t.Hwnd == _taskbarHwnd
+            && string.Equals(t.DisplayId, _targetDisplayId, StringComparison.OrdinalIgnoreCase));
+
+        DebugLog.Write(
+            $"taskbar acquired: 0x{_taskbarHwnd:X} of {taskbars.Count}, "
+            + (onTarget ? "on the chosen display" : "falling back to the primary"));
+
+        // Stop retrying the moment the chosen display answers, so a plug-in costs a
+        // tick or two rather than the whole window.
+        if (onTarget) _retryUntil = DateTime.MinValue;
     }
 
     private void InstallHooks()
@@ -167,8 +251,11 @@ internal sealed class TaskbarTracker : IDisposable
 
     private TaskbarState Probe()
     {
-        // Re-acquire if Explorer died without us seeing the broadcast.
-        if (_taskbarHwnd == IntPtr.Zero || !IsWindow(_taskbarHwnd))
+        // Re-acquire if Explorer died without us seeing the broadcast, or while a
+        // display change is still settling. See AcquireRetryWindow.
+        bool retrying = _targetDisplayId is not null && DateTime.UtcNow < _retryUntil;
+
+        if (_taskbarHwnd == IntPtr.Zero || !IsWindow(_taskbarHwnd) || retrying)
         {
             AcquireTaskbar();
             if (_taskbarHwnd == IntPtr.Zero)
