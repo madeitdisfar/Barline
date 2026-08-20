@@ -198,8 +198,10 @@ internal sealed class TrayIcon : IDisposable
         _menuFont = font;
         _defaultItemFont = emphasis;
 
-        // Room for the check column, which the renderer draws its glyph inside.
-        _menu.ImageScalingSize = new Size(Round(14, pixels), Round(14, pixels));
+        // Only decides where the check is centered. It does not move the text and does
+        // not widen the menu, which is why the gap between the two is opened by the
+        // renderer instead.
+        _menu.ImageScalingSize = new Size(Round(20, pixels), Round(20, pixels));
 
         // Bare surface above the first item and below the last, which is what keeps
         // their selection pills off the rounded corners.

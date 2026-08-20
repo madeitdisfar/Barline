@@ -50,6 +50,26 @@ internal sealed class FluentMenuRenderer : ToolStripRenderer
     /// <summary>Least distance the checkmark may sit from the item's left edge.</summary>
     private const float CheckInset = 4f;
 
+    /// <summary>
+    /// Drawn size of the checkmark, independent of the column reserved for it.
+    /// </summary>
+    /// <remarks>
+    /// The column is deliberately wider than the glyph, because it is also what holds
+    /// the text clear of the check. Sizing the glyph to fill it would make the check
+    /// grow every time that gap was widened.
+    /// </remarks>
+    private const float GlyphSize = 15f;
+
+    /// <summary>Extra distance the text is held clear of the check column.</summary>
+    /// <remarks>
+    /// Applied here because nothing in the layout will do it. The column WinForms
+    /// reserves is about half the width Windows 11 gives one, and neither the item's
+    /// padding, nor the menu's, nor the declared image size moves the text a pixel:
+    /// all three were measured leaving it at the same offset. Without this the
+    /// checkmark's last stroke and the first letter are two pixels apart.
+    /// </remarks>
+    private const float TextInset = 8f;
+
     private readonly Theme _theme;
 
     /// <summary>
@@ -144,6 +164,23 @@ internal sealed class FluentMenuRenderer : ToolStripRenderer
             e.Item.Enabled ? _theme.TextPrimary : _theme.TextTertiary,
             _theme.MenuBackground);
 
+        // Given back the whole item to sit in, and centered inside it. WinForms
+        // measures the text box against the content area but never offsets it by the
+        // top padding, so a rectangle 34 high is handed back at y=1 inside an item 72
+        // high and every line in the menu sits about a third of the way up.
+        var bounds = e.TextRectangle;
+        bounds.Y = 0;
+        bounds.Height = e.Item.Height;
+
+        // Taken out of the width as well as added to the left, so a line long enough to
+        // fill the item still stops inside it rather than running under the border.
+        int inset = (int)Math.Round(S(TextInset));
+        bounds.X += inset;
+        bounds.Width -= inset;
+
+        e.TextRectangle = bounds;
+        e.TextFormat |= TextFormatFlags.VerticalCenter;
+
         base.OnRenderItemText(e);
     }
 
@@ -163,17 +200,18 @@ internal sealed class FluentMenuRenderer : ToolStripRenderer
     /// </summary>
     protected override void OnRenderItemCheck(ToolStripItemImageRenderEventArgs e)
     {
-        var bounds = e.ImageRectangle;
-        if (bounds.Width <= 0 || bounds.Height <= 0) return;
+        var rect = e.ImageRectangle;
+        if (rect.Width <= 0 || rect.Height <= 0) return;
 
-        // WinForms centers the glyph inside a margin narrower than the glyph itself,
-        // which puts the rectangle's left edge at a negative x and paints the check on
-        // the desktop rather than on the menu. Clamped, so it cannot leave the surface
-        // whatever the layout hands over.
-        float x = Math.Max(bounds.X, S(CheckInset));
-        float y = bounds.Y;
-        float w = bounds.Width;
-        float h = bounds.Height;
+        float w = S(GlyphSize);
+        float h = w;
+
+        // Centered in the column rather than drawn to fill it, and clamped. WinForms
+        // centers the rectangle on a margin narrower than the image it was told to
+        // reserve, so its left edge can be negative, and the check was painted on the
+        // desktop beside the menu rather than inside it.
+        float x = Math.Max(rect.X + ((rect.Width - w) / 2f), S(CheckInset));
+        float y = rect.Y + ((rect.Height - h) / 2f);
 
         // Proportions of the Segoe Fluent CheckMark glyph in a unit box, so the stroke
         // lands where the system's own does at any size.
