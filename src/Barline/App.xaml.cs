@@ -93,7 +93,7 @@ public partial class App : Application
         window.VisualizerEnabled = settings.Current.VisualizerEnabled;
 
         var autoStart = new AutoStartService();
-        var tray = new TrayIcon(settings.Current);
+        var tray = new TrayIcon(settings.Current, theme);
 
         tray.ExitRequested += (_, _) => Shutdown();
         tray.RestartVisualizerRequested += (_, _) => analyzer.Restart();

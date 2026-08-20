@@ -2,8 +2,9 @@ using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
+using Barline.Diagnostics;
 using Barline.Settings;
-using Barline.Startup;
+using Barline.Ui;
 
 namespace Barline.Tray;
 
@@ -21,11 +22,29 @@ internal sealed class TrayIcon : IDisposable
     [DllImport("user32.dll", SetLastError = true)]
     private static extern bool DestroyIcon(IntPtr hIcon);
 
+    /// <summary>Physical pixels per logical pixel for a window, or 0 if it has none.</summary>
+    [DllImport("user32.dll")]
+    private static extern uint GetDpiForWindow(IntPtr hWnd);
+
+    [DllImport("dwmapi.dll", PreserveSig = true)]
+    private static extern int DwmSetWindowAttribute(
+        IntPtr hwnd, int attribute, ref int value, int size);
+
+    private const int DwmwaWindowCornerPreference = 33;
+
+    /// <summary>DWMWCP_ROUND: the radius Windows 11 gives its own menus.</summary>
+    private const int DwmwcpRound = 2;
+
+    private readonly Theme _theme;
     private readonly NotifyIcon _notifyIcon;
     private readonly ContextMenuStrip _menu;
     private readonly ToolStripMenuItem _visualizerItem;
+    private readonly ToolStripMenuItem _settingsItem;
+    private readonly FluentMenuRenderer _renderer;
     private readonly Icon _icon;
 
+    private Font? _menuFont;
+    private Font? _defaultItemFont;
     private bool _disposed;
 
     public event EventHandler? ExitRequested;
@@ -34,11 +53,15 @@ internal sealed class TrayIcon : IDisposable
     public event EventHandler? RestartRequested;
     public event EventHandler? SettingsRequested;
 
-    public TrayIcon(WidgetSettings settings)
+    public TrayIcon(WidgetSettings settings, Theme theme)
     {
-        var settingsItem = new ToolStripMenuItem("Settings");
-        settingsItem.Click += (_, _) => SettingsRequested?.Invoke(this, EventArgs.Empty);
-        settingsItem.Font = new Font(settingsItem.Font, System.Drawing.FontStyle.Bold);
+        _theme = theme;
+        _renderer = new FluentMenuRenderer(theme);
+
+        // Bold, because it is the default action. The font itself is set in
+        // ApplyMetrics, which is the only place that knows what size to make it.
+        _settingsItem = new ToolStripMenuItem("Settings");
+        _settingsItem.Click += (_, _) => SettingsRequested?.Invoke(this, EventArgs.Empty);
 
         _visualizerItem = new ToolStripMenuItem("Show visualizer")
         {
@@ -65,14 +88,24 @@ internal sealed class TrayIcon : IDisposable
         var exitItem = new ToolStripMenuItem("Exit");
         exitItem.Click += (_, _) => ExitRequested?.Invoke(this, EventArgs.Empty);
 
-        _menu = new ContextMenuStrip();
-        _menu.Items.Add(settingsItem);
+        _menu = new ContextMenuStrip { Renderer = _renderer };
+        _menu.Items.Add(_settingsItem);
         _menu.Items.Add(new ToolStripSeparator());
         _menu.Items.Add(_visualizerItem);
         _menu.Items.Add(restartVisualizerItem);
         _menu.Items.Add(new ToolStripSeparator());
         _menu.Items.Add(restartItem);
         _menu.Items.Add(exitItem);
+
+        // Both are re-applied per opening rather than set once. The menu's window is
+        // created on first show and its DPI is not known before that, and the system
+        // theme can change while the app runs.
+        _menu.Opened += (_, _) => ApplyWindowChrome();
+        _menu.Opening += (_, _) => ApplyMetrics();
+
+        _theme.Changed += OnThemeChanged;
+
+        ApplyMetrics();
 
         _icon = CreateIcon();
         _notifyIcon = new NotifyIcon
@@ -86,6 +119,141 @@ internal sealed class TrayIcon : IDisposable
 
     /// <summary>Opens the menu at the cursor, for right-clicks on the widget itself.</summary>
     public void ShowContextMenu() => _menu.Show(Control.MousePosition);
+
+    /// <summary>
+    /// Rounds the menu's corners, which is the window's business rather than the
+    /// renderer's.
+    /// </summary>
+    /// <remarks>
+    /// Asked of DWM rather than done by setting a window region. A region is clipped
+    /// without antialiasing, so the corners come out visibly stepped, and it would also
+    /// have to be rebuilt every time the menu resized. DWM rounds the composited result
+    /// at the same radius the shell's own menus use, and the app requires Windows 11, so
+    /// the attribute is always understood.
+    /// </remarks>
+    private void ApplyWindowChrome()
+    {
+        if (!_menu.IsHandleCreated) return;
+
+        try
+        {
+            int preference = DwmwcpRound;
+            DwmSetWindowAttribute(
+                _menu.Handle, DwmwaWindowCornerPreference, ref preference, sizeof(int));
+        }
+        catch (Exception ex)
+        {
+            // Cosmetic, and the menu is perfectly usable square.
+            DebugLog.Write($"tray menu corners unavailable: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Sizes the menu for the display it is about to appear on.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Two scales, because two different things are being sized and they do not agree.
+    /// </para>
+    /// <para>
+    /// Every pixel figure set from code is in device pixels, so a padding of 8 is 8
+    /// physical pixels however the display is scaled, which on a 200% display is half
+    /// the inset it looks like in the source. Those are multiplied by
+    /// <see cref="Control.DeviceDpi"/> over 96, which is what turns them back into the
+    /// logical pixels they are written as.
+    /// </para>
+    /// <para>
+    /// The font is the other way around. Point sizes are already physical, and GDI
+    /// converts them through the device's own DPI, so a 9pt menu font needs no help.
+    /// It gets a scale only if WinForms has laid the menu out at a DPI the window
+    /// disagrees with, which is measured rather than assumed: the ratio is 1 whenever
+    /// the two agree, and this whole clause costs nothing.
+    /// </para>
+    /// </remarks>
+    private void ApplyMetrics()
+    {
+        uint windowDpi = GetDpiForWindow(_menu.Handle);
+
+        double pixels = _menu.DeviceDpi / 96d;
+        double points = windowDpi == 0 ? 1d : windowDpi / (double)_menu.DeviceDpi;
+
+        _renderer.Scale = pixels;
+
+        DebugLog.Write(
+            $"tray menu: windowDpi={windowDpi} deviceDpi={_menu.DeviceDpi} " +
+            $"pixelScale={pixels:F2} fontScale={points:F2}");
+
+        var font = CreateFont(points);
+        var emphasis = new Font(font, FontStyle.Bold);
+
+        _menu.Font = font;
+
+        // Set on the item rather than left to inherit, and so it has to be rebuilt
+        // here: an item font, once assigned, no longer follows the menu's.
+        _settingsItem.Font = emphasis;
+
+        // After both are in use, so nothing is drawn with a disposed handle.
+        _menuFont?.Dispose();
+        _defaultItemFont?.Dispose();
+        _menuFont = font;
+        _defaultItemFont = emphasis;
+
+        // Room for the check column, which the renderer draws its glyph inside.
+        _menu.ImageScalingSize = new Size(Round(14, pixels), Round(14, pixels));
+
+        // Bare surface above the first item and below the last, which is what keeps
+        // their selection pills off the rounded corners.
+        _menu.Padding = new Padding(0, Round(4, pixels), 0, Round(4, pixels));
+
+        foreach (ToolStripItem item in _menu.Items)
+        {
+            item.Padding = item is ToolStripSeparator
+                ? new Padding(0, Round(3, pixels), 0, Round(3, pixels))
+                : new Padding(0, Round(9, pixels), 0, Round(9, pixels));
+
+            // Margin rather than Padding for the horizontal inset. The dropdown's
+            // layout resets an item's left and right padding, and the menu's own
+            // padding with it, but it stacks items by their margins.
+            item.Margin = new Padding(Round(4, pixels), 0, Round(4, pixels), 0);
+        }
+    }
+
+    private static int Round(double value, double scale) => (int)Math.Round(value * scale);
+
+    /// <summary>
+    /// The menu font, at the size the display actually needs.
+    /// </summary>
+    /// <remarks>
+    /// Segoe UI Variable Text is what Windows 11 sets menus in, and it is the optical
+    /// size cut for body text rather than for headings. It ships with Windows 11 and the
+    /// package requires that, but a font is a file and files go missing, so a machine
+    /// without it falls back to Segoe UI rather than to whatever GDI substitutes, which
+    /// is Microsoft Sans Serif and looks like a fault.
+    /// </remarks>
+    private static Font CreateFont(double scale)
+    {
+        float size = (float)(9d * scale);
+
+        try
+        {
+            var font = new Font("Segoe UI Variable Text", size);
+            if (font.Name == "Segoe UI Variable Text") return font;
+            font.Dispose();
+        }
+        catch (Exception ex)
+        {
+            DebugLog.Write($"tray menu font unavailable: {ex.Message}");
+        }
+
+        return new Font("Segoe UI", size);
+    }
+
+    private void OnThemeChanged(object? sender, EventArgs e)
+    {
+        // The colors are read from the theme at paint time, so a repaint is the whole
+        // of the update. The menu is almost never open when this arrives.
+        _menu.Invalidate();
+    }
 
     /// <summary>
     /// Reflects a visualizer-visibility change made elsewhere (the settings window)
@@ -144,11 +312,14 @@ internal sealed class TrayIcon : IDisposable
         if (_disposed) return;
         _disposed = true;
 
+        _theme.Changed -= OnThemeChanged;
         _notifyIcon.Visible = false;
 
         IntPtr handle = _icon.Handle;
         _notifyIcon.Dispose();
         _menu.Dispose();
+        _menuFont?.Dispose();
+        _defaultItemFont?.Dispose();
         _icon.Dispose();
         DestroyIcon(handle);
     }

@@ -128,6 +128,30 @@ internal sealed class Theme
 
     public Color Accent { get; private set; } = Color.FromRgb(0x00, 0x78, 0xD4);
 
+    // ---- Tray menu tokens -------------------------------------------------
+    //
+    // The tray menu is a WinForms ToolStripDropDown, which paints none of this for
+    // itself and defaults to a light gray 2005 menu whatever the system theme says.
+    //
+    // WinUI's flyout surface is acrylic. These are the solid fallbacks it resolves to
+    // when transparency is off, which is what the menu uses in every case: a
+    // ToolStripDropDown has no backdrop to give it, and a menu that was acrylic only
+    // sometimes would be worse than one that never is.
+    //
+    // Opaque rather than the alpha forms the WinUI tokens are published in. These are
+    // painted with GDI+ onto a surface whose color is already known, so flattening them
+    // here means the renderer never has to composite anything, and the two colors that
+    // sit on this surface cannot disagree about what is under them.
+
+    /// <summary>Menu surface (WinUI AcrylicBackgroundFillColorDefaultFallback).</summary>
+    public Color MenuBackground { get; private set; } = Color.FromRgb(0x2C, 0x2C, 0x2C);
+
+    /// <summary>Menu outline (WinUI SurfaceStrokeColorFlyout, flattened).</summary>
+    public Color MenuBorder { get; private set; } = Color.FromRgb(0x1D, 0x1D, 0x1D);
+
+    /// <summary>Separator between menu groups (WinUI DividerStrokeColorDefault, flattened).</summary>
+    public Color MenuDivider { get; private set; } = Color.FromRgb(0x3A, 0x3A, 0x3A);
+
     public event EventHandler? Changed;
 
     private bool _initialized;
@@ -169,6 +193,10 @@ internal sealed class Theme
             CardStroke = Frozen(0x0F, 0x00, 0x00, 0x00);
             ControlAltFill = Frozen(0x06, 0x00, 0x00, 0x00);
             ControlStrongStroke = Frozen(0x72, 0x00, 0x00, 0x00);
+
+            MenuBackground = Color.FromRgb(0xF9, 0xF9, 0xF9);
+            MenuBorder = Color.FromRgb(0xE5, 0xE5, 0xE5);
+            MenuDivider = Color.FromRgb(0xE8, 0xE8, 0xE8);
         }
         else
         {
@@ -186,6 +214,10 @@ internal sealed class Theme
             CardStroke = Frozen(0x1A, 0x00, 0x00, 0x00);
             ControlAltFill = Frozen(0x1A, 0x00, 0x00, 0x00);
             ControlStrongStroke = Frozen(0x8B, 0xFF, 0xFF, 0xFF);
+
+            MenuBackground = Color.FromRgb(0x2C, 0x2C, 0x2C);
+            MenuBorder = Color.FromRgb(0x1D, 0x1D, 0x1D);
+            MenuDivider = Color.FromRgb(0x3A, 0x3A, 0x3A);
         }
 
         var accentBrush = new SolidColorBrush(Accent);
