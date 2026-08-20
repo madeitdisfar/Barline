@@ -35,16 +35,19 @@ internal sealed class FluentMenuRenderer : ToolStripRenderer
     private const float ItemRadius = 4f;
 
     /// <summary>
-    /// How far the selection is inset from the item's own edges.
+    /// How far the selection is held clear of what surrounds it.
     /// </summary>
     /// <remarks>
-    /// Small, because the menu's padding already holds the items clear of the border.
-    /// This is only what keeps two adjacent pills from touching.
+    /// The horizontal one is measured from the menu rather than from the item, because
+    /// the item is not inside it: see <see cref="Span"/>. The vertical one is measured
+    /// from the item, and is also what holds the first and last pills off the rounded
+    /// corners, the dropdown having overruled the menu's own padding down to a pixel or
+    /// two of its own choosing.
     /// </remarks>
-    private const float ItemInsetX = 0f;
-    private const float ItemInsetY = 1f;
+    private const float ItemInsetX = 4f;
+    private const float ItemInsetY = 2f;
 
-    /// <summary>How far a separator stops short of the edges.</summary>
+    /// <summary>How far a separator stops short of the menu's edges.</summary>
     private const float SeparatorInset = 10f;
 
     /// <summary>Least distance the checkmark may sit from the item's left edge.</summary>
@@ -137,11 +140,9 @@ internal sealed class FluentMenuRenderer : ToolStripRenderer
         // Inset on both axes, so the selection is a rounded pill sitting inside the
         // flyout rather than a band spanning it. That shape is what a Fluent menu reads
         // as, more than the color does.
-        var bounds = new RectangleF(
-            S(ItemInsetX),
-            S(ItemInsetY),
-            e.Item.Width - (S(ItemInsetX) * 2f),
-            e.Item.Height - (S(ItemInsetY) * 2f));
+        var bounds = Span(e, S(ItemInsetX));
+        bounds.Y = S(ItemInsetY);
+        bounds.Height = e.Item.Height - (S(ItemInsetY) * 2f);
 
         if (bounds.Width <= 0f || bounds.Height <= 0f) return;
 
@@ -187,11 +188,42 @@ internal sealed class FluentMenuRenderer : ToolStripRenderer
     protected override void OnRenderSeparator(ToolStripSeparatorRenderEventArgs e)
     {
         float y = (float)Math.Round(e.Item.Height / 2d);
-        float inset = S(SeparatorInset);
+        var span = Span(e, S(SeparatorInset));
 
         using var pen = new Pen(Gdi(_theme.MenuDivider));
 
-        e.Graphics.DrawLine(pen, inset, y, e.Item.Width - inset, y);
+        e.Graphics.DrawLine(pen, span.Left, y, span.Right, y);
+    }
+
+    /// <summary>
+    /// The horizontal extent of something drawn inset from the menu's edges, given
+    /// in the item-relative coordinates the renderer is handed.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Measured from the menu because an item's own width is not a reliable guide to
+    /// where the menu ends. The dropdown's layout offsets each item by its left margin
+    /// but sizes them all to the same width regardless, so an item indented by 8 is
+    /// still as wide as the menu and overhangs the right edge by that much. Anything
+    /// drawn to the item's own width is therefore cut off by the border on one side
+    /// while sitting clear of it on the other, which is what the selection did.
+    /// </para>
+    /// <para>
+    /// Separators are laid out from a different origin again, so taking both from the
+    /// menu is also what makes the two agree.
+    /// </para>
+    /// </remarks>
+    private static RectangleF Span(ToolStripItemRenderEventArgs e, float inset)
+    {
+        // The origin is the item's top left, so the menu's left edge is behind it by
+        // however far along the item was placed.
+        float x = inset - e.Item.Bounds.X;
+
+        // An item with no host cannot be painting, so the fallback never runs; it is
+        // there because the width has to come from somewhere.
+        float width = (e.ToolStrip?.Width ?? e.Item.Width) - (inset * 2f);
+
+        return new RectangleF(x, 0f, width, e.Item.Height);
     }
 
     /// <summary>

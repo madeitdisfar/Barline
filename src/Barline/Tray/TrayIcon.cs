@@ -207,20 +207,19 @@ internal sealed class TrayIcon : IDisposable
         // renderer instead.
         _menu.ImageScalingSize = new Size(Round(20, pixels), Round(20, pixels));
 
-        // Bare surface above the first item and below the last, which is what keeps
-        // their selection pills off the rounded corners.
-        _menu.Padding = new Padding(0, Round(4, pixels), 0, Round(4, pixels));
-
         foreach (ToolStripItem item in _menu.Items)
         {
-            item.Padding = item is ToolStripSeparator
-                ? new Padding(0, Round(3, pixels), 0, Round(3, pixels))
-                : new Padding(0, Round(9, pixels), 0, Round(9, pixels));
+            // Above and below the text only. The height this produces is the whole of
+            // the item's height, so it is the one figure that decides how tall the menu
+            // is, and 6 puts a row at about the 30 logical pixels Windows 11 uses.
+            item.Padding = new Padding(0, Round(6, pixels), 0, Round(6, pixels));
 
-            // Margin rather than Padding for the horizontal inset. The dropdown's
-            // layout resets an item's left and right padding, and the menu's own
-            // padding with it, but it stacks items by their margins.
-            item.Margin = new Padding(Round(4, pixels), 0, Round(4, pixels), 0);
+            // The left inset only, and by margin rather than padding: the dropdown's
+            // layout resets an item's horizontal padding, and the menu's own padding
+            // with it, but it does place items at their left margin. A right margin is
+            // set nowhere because it changes nothing, the item being sized to the full
+            // menu either way. The renderer draws to the menu's edge instead.
+            item.Margin = new Padding(Round(4, pixels), 0, 0, 0);
         }
     }
 
