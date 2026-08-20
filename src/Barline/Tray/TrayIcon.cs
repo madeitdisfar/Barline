@@ -31,6 +31,7 @@ internal sealed class TrayIcon : IDisposable
     public event EventHandler? ExitRequested;
     public event EventHandler<bool>? VisualizerToggled;
     public event EventHandler? RestartVisualizerRequested;
+    public event EventHandler? RestartRequested;
     public event EventHandler? SettingsRequested;
 
     public TrayIcon(WidgetSettings settings)
@@ -50,8 +51,16 @@ internal sealed class TrayIcon : IDisposable
         // Manual fallback: the watchdog recovers a stalled capture on its own, but
         // this lets the user force it immediately if the visualizer ever stops
         // responding to audio.
-        var restartItem = new ToolStripMenuItem("Restart visualizer");
-        restartItem.Click += (_, _) => RestartVisualizerRequested?.Invoke(this, EventArgs.Empty);
+        var restartVisualizerItem = new ToolStripMenuItem("Restart visualizer");
+        restartVisualizerItem.Click += (_, _) => RestartVisualizerRequested?.Invoke(this, EventArgs.Empty);
+
+        // Grouped with Exit rather than with the visualizer above it, because what it
+        // acts on is the app rather than the bars. Worth having on its own merits, for
+        // the same reason any long-running background app offers one, and it is also
+        // the only route to the restart path that is reachable at all in a Store build:
+        // the one other button that offers it appears once, after a purchase.
+        var restartItem = new ToolStripMenuItem("Restart Barline");
+        restartItem.Click += (_, _) => RestartRequested?.Invoke(this, EventArgs.Empty);
 
         var exitItem = new ToolStripMenuItem("Exit");
         exitItem.Click += (_, _) => ExitRequested?.Invoke(this, EventArgs.Empty);
@@ -60,8 +69,9 @@ internal sealed class TrayIcon : IDisposable
         _menu.Items.Add(settingsItem);
         _menu.Items.Add(new ToolStripSeparator());
         _menu.Items.Add(_visualizerItem);
-        _menu.Items.Add(restartItem);
+        _menu.Items.Add(restartVisualizerItem);
         _menu.Items.Add(new ToolStripSeparator());
+        _menu.Items.Add(restartItem);
         _menu.Items.Add(exitItem);
 
         _icon = CreateIcon();

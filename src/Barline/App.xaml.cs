@@ -24,6 +24,28 @@ public partial class App : Application
     /// </summary>
     private const string InstanceMutexName = @"Local\Barline.SingleInstance";
 
+    /// <summary>
+    /// How long a launch waits for a predecessor to let go before deciding it is a
+    /// duplicate rather than a successor.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// A restart is two processes for a moment. The successor starts while the old one
+    /// is still tearing down its capture, its tray icon and its media session, and
+    /// without a wait it loses that race, refuses itself as a duplicate and exits. The
+    /// restart then looks exactly like having quit, which is what it looked like.
+    /// </para>
+    /// <para>
+    /// Waiting rather than refusing outright, because finding this taken usually means
+    /// a restart is in progress rather than that somebody launched a second copy by
+    /// hand. A genuine duplicate waits the timeout out and then exits, which nobody
+    /// sees: it has drawn nothing by this point. Generous on purpose, since the cost of
+    /// being too patient is an invisible background process and the cost of being too
+    /// impatient is the bug this exists to fix.
+    /// </para>
+    /// </remarks>
+    private static readonly TimeSpan HandoverTimeout = TimeSpan.FromSeconds(5);
+
     private Mutex? _instanceMutex;
     private TaskbarTracker? _tracker;
     private MediaSessionService? _media;
@@ -36,9 +58,15 @@ public partial class App : Application
         base.OnStartup(e);
 
         _instanceMutex = new Mutex(initiallyOwned: true, InstanceMutexName, out bool isFirstInstance);
-        if (!isFirstInstance)
+        if (!isFirstInstance && !WaitForPredecessor(_instanceMutex))
         {
             DebugLog.Write("another instance is already running; exiting");
+
+            // Closed rather than left to OnExit, which would try to release a lock this
+            // process never acquired.
+            _instanceMutex.Dispose();
+            _instanceMutex = null;
+
             Shutdown();
             return;
         }
@@ -69,6 +97,7 @@ public partial class App : Application
 
         tray.ExitRequested += (_, _) => Shutdown();
         tray.RestartVisualizerRequested += (_, _) => analyzer.Restart();
+        tray.RestartRequested += (_, _) => Restart();
         tray.SettingsRequested += (_, _) => ShowSettings(theme, settings, autoStart, window, media, lyrics, license);
         window.ContextMenuRequested += (_, _) => tray.ShowContextMenu();
 
@@ -145,6 +174,52 @@ public partial class App : Application
         // a tray right-click on every rebuild, and the tray menu is awkward to script.
         if (DevOverride.IsOn("BARLINE_SETTINGS"))
             ShowSettings(theme, settings, autoStart, window, media, lyrics, license);
+    }
+
+    /// <summary>
+    /// Restarts the app from the tray menu.
+    /// </summary>
+    /// <remarks>
+    /// A refusal shuts nothing down, so the app is still sitting there and the click
+    /// looks like it did nothing at all. The tray has no status line to say so in, and
+    /// the failure is worth more than a log entry to somebody who just asked for this,
+    /// so it is said in the one surface that is always available.
+    /// </remarks>
+    private static void Restart()
+    {
+        if (AppRestart.TryRestart()) return;
+
+        MessageBox.Show(
+            "Barline could not restart itself. Close it from the notification area "
+                + "and open it again.",
+            AppInfo.Name,
+            MessageBoxButton.OK,
+            MessageBoxImage.Warning);
+    }
+
+    /// <summary>
+    /// Waits for a predecessor to release the single-instance lock.
+    /// </summary>
+    /// <returns>True when this process now holds it and may carry on.</returns>
+    /// <remarks>
+    /// Blocking the UI thread is safe here and nowhere later: this runs before any
+    /// window exists, so there is nothing on screen to stop responding. See
+    /// <see cref="HandoverTimeout"/> for why the wait is there at all.
+    /// </remarks>
+    private static bool WaitForPredecessor(Mutex mutex)
+    {
+        try
+        {
+            return mutex.WaitOne(HandoverTimeout);
+        }
+        catch (AbandonedMutexException)
+        {
+            // The predecessor died without releasing it, which is what Windows
+            // terminating the process for a restart looks like from here. The wait
+            // still succeeded and this process now holds the lock.
+            DebugLog.Write("predecessor exited without releasing the instance lock");
+            return true;
+        }
     }
 
     /// <summary>

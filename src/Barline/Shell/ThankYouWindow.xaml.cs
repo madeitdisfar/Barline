@@ -1,11 +1,8 @@
-using System.Diagnostics;
 using System.Windows;
 using System.Windows.Interop;
 using System.Windows.Media;
-using Barline.Diagnostics;
 using Barline.Platform;
 using Barline.Ui;
-using Windows.ApplicationModel.Core;
 
 namespace Barline.Shell;
 
@@ -59,51 +56,19 @@ internal partial class ThankYouWindow : Window
     }
 
     /// <summary>
-    /// Restarts the app, by whichever route this build has.
+    /// Restarts the app, so the settings window is rebuilt with the paid controls live.
     /// </summary>
     /// <remarks>
-    /// Packaged, Windows owns the process lifetime and will not have a second copy
-    /// started behind its back, so the request goes through the app model. Unpackaged
-    /// there is nothing to ask: start the executable again and stand down. The single
-    /// instance mutex is released on exit, and the new process is started first only in
-    /// the unpackaged case where that ordering is ours to control.
+    /// Carried out by <see cref="AppRestart"/>, which the tray menu also uses. A refusal
+    /// there means nothing was shut down, so the app is still on screen and the button
+    /// has somewhere to report from.
     /// </remarks>
-    private async void Restart()
+    private void Restart()
     {
         RestartButton.IsEnabled = false;
+        RestartStatus.Visibility = Visibility.Collapsed;
 
-        if (!PackageContext.IsPackaged)
-        {
-            try
-            {
-                if (Environment.ProcessPath is { } path)
-                {
-                    Application.Current.Shutdown();
-                    Process.Start(path);
-                    return;
-                }
-            }
-            catch (Exception ex)
-            {
-                DebugLog.Write($"restart: could not start a new instance: {ex.Message}");
-            }
-
-            Failed();
-            return;
-        }
-
-        try
-        {
-            // Returns rather than throwing when Windows declines, and the app keeps
-            // running in that case — so the only wrong move here is assuming it worked.
-            var result = await CoreApplication.RequestRestartAsync(string.Empty);
-
-            DebugLog.Write($"restart: Windows answered {result}");
-        }
-        catch (Exception ex)
-        {
-            DebugLog.Write($"restart: request threw: {ex.Message}");
-        }
+        if (AppRestart.TryRestart()) return;
 
         Failed();
     }
@@ -112,7 +77,7 @@ internal partial class ThankYouWindow : Window
     {
         RestartButton.IsEnabled = true;
 
-        RestartStatus.Text = "Windows would not restart it. Close Barline from the "
+        RestartStatus.Text = "Barline could not restart itself. Close it from the "
             + "notification area and open it again.";
         RestartStatus.Visibility = Visibility.Visible;
     }
