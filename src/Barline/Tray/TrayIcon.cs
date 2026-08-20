@@ -6,6 +6,11 @@ using Barline.Diagnostics;
 using Barline.Settings;
 using Barline.Ui;
 
+// The shell layer's interop, aliased rather than imported: this file declares a few
+// P/Invokes of its own for the notification area, and a plain using static would put
+// two of some names in scope at once.
+using Win32 = Barline.Shell.NativeMethods;
+
 namespace Barline.Tray;
 
 /// <summary>
@@ -22,10 +27,6 @@ internal sealed class TrayIcon : IDisposable
     [DllImport("user32.dll", SetLastError = true)]
     private static extern bool DestroyIcon(IntPtr hIcon);
 
-    /// <summary>Physical pixels per logical pixel for a window, or 0 if it has none.</summary>
-    [DllImport("user32.dll")]
-    private static extern uint GetDpiForWindow(IntPtr hWnd);
-
     [DllImport("dwmapi.dll", PreserveSig = true)]
     private static extern int DwmSetWindowAttribute(
         IntPtr hwnd, int attribute, ref int value, int size);
@@ -34,6 +35,9 @@ internal sealed class TrayIcon : IDisposable
 
     /// <summary>DWMWCP_ROUND: the radius Windows 11 gives its own menus.</summary>
     private const int DwmwcpRound = 2;
+
+    /// <summary>The menu font's em size in logical pixels, being 9pt at 96 DPI.</summary>
+    private const double MenuFontPixels = 12d;
 
     private readonly Theme _theme;
     private readonly NotifyIcon _notifyIcon;
@@ -44,6 +48,15 @@ internal sealed class TrayIcon : IDisposable
 
     /// <summary>Redrawn whenever the theme moves, so it is never the wrong ink.</summary>
     private Icon _icon;
+
+    /// <summary>
+    /// Device pixels per logical pixel at the DPI the menu's window was created at.
+    /// </summary>
+    /// <remarks>
+    /// The baseline the font is expressed against. See <see cref="ApplyMetrics"/> for
+    /// why the font is the one metric here that is not sized for the target display.
+    /// </remarks>
+    private double _baseScale = 1d;
 
     private Font? _menuFont;
     private Font? _defaultItemFont;
@@ -98,6 +111,15 @@ internal sealed class TrayIcon : IDisposable
         _menu.Items.Add(new ToolStripSeparator());
         _menu.Items.Add(restartItem);
         _menu.Items.Add(exitItem);
+
+        // Noted before anything touches Handle, which is what creates the window.
+        // Re-read on a recreation as well, since that can happen on another display and
+        // moves the baseline the font is measured against.
+        _menu.HandleCreated += (_, _) =>
+        {
+            uint dpi = Win32.GetDpiForWindow(_menu.Handle);
+            _baseScale = dpi == 0 ? 1d : dpi / 96d;
+        };
 
         // Both are re-applied per opening rather than set once. The menu's window is
         // created on first show and its DPI is not known before that, and the system
@@ -157,37 +179,40 @@ internal sealed class TrayIcon : IDisposable
     /// </summary>
     /// <remarks>
     /// <para>
-    /// Two scales, because two different things are being sized and they do not agree.
+    /// Every figure written here as a logical pixel is multiplied by
+    /// <see cref="MenuScale"/> on the way out, because a padding of 8 set on a control
+    /// is 8 physical pixels however the display is scaled. WinForms takes the sizes and
+    /// margins exactly as given.
     /// </para>
     /// <para>
-    /// Every pixel figure set from code is in device pixels, so a padding of 8 is 8
-    /// physical pixels however the display is scaled, which on a 200% display is half
-    /// the inset it looks like in the source. Those are multiplied by
-    /// <see cref="Control.DeviceDpi"/> over 96, which is what turns them back into the
-    /// logical pixels they are written as.
+    /// The font is the exception, and the reason there are two scales rather than one.
+    /// WinForms rescales any font assigned to the menu by the ratio between the DPI its
+    /// window was created at and the DPI it is on now, so a font sized for the target
+    /// display is scaled toward it a second time and lands short. It is therefore
+    /// expressed against <see cref="_baseScale"/> and left alone: measured, a font
+    /// assigned as 24 pixels from a 200% baseline arrives as 18 on a 150% display,
+    /// which is the right answer by the route the framework already takes.
     /// </para>
     /// <para>
-    /// The font is the other way around. Point sizes are already physical, and GDI
-    /// converts them through the device's own DPI, so a 9pt menu font needs no help.
-    /// It gets a scale only if WinForms has laid the menu out at a DPI the window
-    /// disagrees with, which is measured rather than assumed: the ratio is 1 whenever
-    /// the two agree, and this whole clause costs nothing.
+    /// Sized in pixels rather than points for the same reason. A point size is
+    /// converted again through whichever DPI GDI measures a point against, which adds
+    /// a third conversion to a value that has already had two too many.
+    /// </para>
+    /// <para>
+    /// Re-applied on every opening rather than set once, because the answer changes. A
+    /// desk with two displays at different scales gets a different one each time the
+    /// menu moves between them.
     /// </para>
     /// </remarks>
     private void ApplyMetrics()
     {
-        uint windowDpi = GetDpiForWindow(_menu.Handle);
-
-        double pixels = _menu.DeviceDpi / 96d;
-        double points = windowDpi == 0 ? 1d : windowDpi / (double)_menu.DeviceDpi;
+        double pixels = MenuScale();
 
         _renderer.Scale = pixels;
 
-        DebugLog.Write(
-            $"tray menu: windowDpi={windowDpi} deviceDpi={_menu.DeviceDpi} " +
-            $"pixelScale={pixels:F2} fontScale={points:F2}");
+        DebugLog.Write($"tray menu: scale={pixels:F2} baseline={_baseScale:F2}");
 
-        var font = CreateFont(points);
+        var font = CreateFont(_baseScale);
         var emphasis = new Font(font, FontStyle.Bold);
 
         _menu.Font = font;
@@ -226,22 +251,82 @@ internal sealed class TrayIcon : IDisposable
     private static int Round(double value, double scale) => (int)Math.Round(value * scale);
 
     /// <summary>
+    /// Device pixels per logical pixel for the display the menu is about to open on.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Deliberately not <see cref="Control.DeviceDpi"/>, which is the bug this replaced.
+    /// WinForms updates that from <c>WM_DPICHANGED</c>, which arrives once the window
+    /// has moved, and the metrics are wanted before it is shown. On a desk with two
+    /// scales the menu was laid out at the display it was last on: a third too large on
+    /// the way to a 150% screen, clipping the longest item, and correct on the next
+    /// opening, so it was always one behind.
+    /// </para>
+    /// <para>
+    /// The drop-down positions its window before it raises <c>Opening</c>, so by the
+    /// time this runs the handle is already on the display it will appear on and can
+    /// be asked directly. Before there is a window at all, the cursor answers instead:
+    /// the menu is anchored to it whether it was opened from the notification area or
+    /// by right-clicking the widget.
+    /// </para>
+    /// </remarks>
+    private double MenuScale()
+    {
+        // Reading Handle creates the window if it does not exist, which is deliberate:
+        // the drop-down can only be asked where it is once there is something to ask,
+        // and creating it at startup is what puts it in place before the first opening.
+        uint dpi = Win32.GetDpiForWindow(_menu.Handle);
+
+        if (dpi == 0) dpi = CursorDpi();
+
+        return dpi == 0 ? 1d : dpi / 96d;
+    }
+
+    private static uint CursorDpi()
+    {
+        try
+        {
+            if (!Win32.GetCursorPos(out var cursor)) return 0;
+
+            var monitor = Win32.MonitorFromPoint(cursor, Win32.MONITOR_DEFAULTTONEAREST);
+            if (monitor == IntPtr.Zero) return 0;
+
+            return Win32.GetDpiForMonitor(monitor, Win32.MDT_EFFECTIVE_DPI, out uint x, out _) == 0
+                ? x
+                : 0;
+        }
+        catch (Exception ex)
+        {
+            // An unscaled menu is survivable; failing to open one is not.
+            DebugLog.Write($"cursor dpi unavailable: {ex.Message}");
+            return 0;
+        }
+    }
+
+    /// <summary>
     /// The menu font, at the size the display actually needs.
     /// </summary>
     /// <remarks>
+    /// <para>
     /// Segoe UI Variable Text is what Windows 11 sets menus in, and it is the optical
     /// size cut for body text rather than for headings. It ships with Windows 11 and the
     /// package requires that, but a font is a file and files go missing, so a machine
     /// without it falls back to Segoe UI rather than to whatever GDI substitutes, which
     /// is Microsoft Sans Serif and looks like a fault.
+    /// </para>
+    /// <para>
+    /// The scale here is the menu window's creation DPI rather than the display it is
+    /// opening on. See <see cref="ApplyMetrics"/>. Twelve pixels is what nine points
+    /// comes to at 96, which is the size Windows 11 sets its own menus in.
+    /// </para>
     /// </remarks>
     private static Font CreateFont(double scale)
     {
-        float size = (float)(9d * scale);
+        float size = (float)(MenuFontPixels * scale);
 
         try
         {
-            var font = new Font("Segoe UI Variable Text", size);
+            var font = new Font("Segoe UI Variable Text", size, GraphicsUnit.Pixel);
             if (font.Name == "Segoe UI Variable Text") return font;
             font.Dispose();
         }
@@ -250,7 +335,7 @@ internal sealed class TrayIcon : IDisposable
             DebugLog.Write($"tray menu font unavailable: {ex.Message}");
         }
 
-        return new Font("Segoe UI", size);
+        return new Font("Segoe UI", size, GraphicsUnit.Pixel);
     }
 
     private void OnThemeChanged(object? sender, EventArgs e)
