@@ -19,13 +19,16 @@ dotnet run --project src/Barline
 and the build fails on the copy step rather than saying anything useful about why.
 
 A release build is self-contained and single-file, and the project is configured so
-that a plain `dotnet publish -c Release` produces exactly what ships. The deployment
-shape is not a flag you have to remember.
+that a plain `dotnet publish -c Release` produces the portable build exactly as it is
+released. The deployment shape is not a flag you have to remember, and the Store
+package wraps that same publish output rather than being a second build of its own.
 
 ## Project layout
 
 ```
-tests/Barline.Tests/    color maths, contrast floor, hue extraction, lyric parsing
+tests/Barline.Tests/    color maths, contrast floor, hue extraction, lyric parsing,
+                        the playback clock, settings migration, the paid-value gate
+packaging/              the MSIX manifest, its assets, and the build script
 src/Barline/
 ├─ Shell/        window hosting, taskbar tracking, Win32 interop
 ├─ Media/        SMTC session handling, album art, the playback clock
@@ -33,14 +36,15 @@ src/Barline/
 ├─ Lyrics/       fetching, parsing, caching, word timing, appearance model
 ├─ Ui/           theme tokens, color resolution, the visualizer control
 ├─ Settings/     the settings model, its JSON store, and the settings window
-├─ Tray/         notification-area icon and menu
+├─ Platform/     package identity, data paths, app info, the Store license
+├─ Tray/         notification-area icon, its menu, and the renderer that styles it
 ├─ Startup/      run-at-sign-in registration
 └─ Diagnostics/  opt-in logging, demo content
 ```
 
 The reasoning behind the design is in [docs/design.md](docs/design.md). Read it before
-changing anything in `Audio/`, `Lyrics/` or the color path. Most of what looks
-arbitrary there is load-bearing.
+changing anything in `Audio/`, `Lyrics/`, the color path, or the licensing in
+`Platform/`. Most of what looks arbitrary there is load-bearing.
 
 ## Debugging
 
@@ -50,12 +54,23 @@ arbitrary there is load-bearing.
 | `BARLINE_DEMO=1` | Shows a synthetic track with generated cover art instead of reading SMTC. |
 | `BARLINE_DEMO_TITLE` / `BARLINE_DEMO_ARTIST` | Override the demo track's title/artist (needs `BARLINE_DEMO=1`). Handy for checking the overflow fade at different text lengths. |
 | `BARLINE_SETTINGS=1` | Opens the settings window at startup, instead of right-clicking the tray on every rebuild. |
-| `BARLINE_WELCOME=1` | Shows the first-run window, which otherwise appears once per machine and never again. |
+| `BARLINE_WELCOME=1` | Shows the first-run window, which otherwise appears once per machine and never again. Set it to `widgets` instead to force the Widgets-button notice inside that window as well, which is invisible on any machine set up the way the window asks you to set it up. |
 | `BARLINE_THANKS=1` | Shows the post-purchase window, which is otherwise only reachable by buying the add-on. |
 | `BARLINE_LICENSE` | Forces the license state: `owned`, `free` or `none`. See below. |
 
 `BARLINE_DEMO` exists because the widget hides itself when nothing is playing, which
 otherwise makes the design impossible to inspect on a quiet machine.
+
+**Every one of these except `BARLINE_DEBUG` is ignored in a packaged build**, whatever
+the environment says. `BARLINE_LICENSE` is the reason: left live in the Store build it
+would put "unlock everything" one `setx` away, since a user-level variable is inherited
+by anything Explorer launches. The rest grant nothing paid, but they are gated together
+rather than one at a time on merit, so that the next switch somebody adds is gated by
+the shape of the thing rather than by whoever remembers.
+
+`BARLINE_DEBUG` is deliberately not gated. A log from somebody else's machine is the
+only way to find out what went wrong on it, which is exactly the build where that
+matters, and the privacy policy already describes the file it writes.
 
 Debugging the window layer interactively is awkward, because attaching a debugger
 changes foreground-window behavior, which is often the thing being observed. Prefer
@@ -90,7 +105,14 @@ dotnet test
 The window and audio layers are verified by observation. They are about real
 windowing and device behavior, and a mock of either would only assert that the mock
 works. What *is* covered is the part with a guarantee attached: the color maths, the
-contrast floor, hue extraction from cover art, lyric parsing, and the playback clock.
+contrast floor, hue extraction from cover art, lyric parsing, the playback clock, the
+folding forward of an older settings file, and the taking out and putting back of paid
+values.
+
+That last one is worth running before anything in `Platform/` or `Settings/` is
+touched. It is the only suite guarding a routine that edits a file the user owns, and
+the failure it exists to catch is a Store outage costing somebody their configuration
+rather than anything you would see on screen.
 
 What is *not* covered is how the bars look, which is why the range on offer was chosen
 by rendering the real control at counts 4–8 and magnifying the actual pixels without
