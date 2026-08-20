@@ -41,7 +41,9 @@ internal sealed class TrayIcon : IDisposable
     private readonly ToolStripMenuItem _visualizerItem;
     private readonly ToolStripMenuItem _settingsItem;
     private readonly FluentMenuRenderer _renderer;
-    private readonly Icon _icon;
+
+    /// <summary>Redrawn whenever the theme moves, so it is never the wrong ink.</summary>
+    private Icon _icon;
 
     private Font? _menuFont;
     private Font? _defaultItemFont;
@@ -103,11 +105,9 @@ internal sealed class TrayIcon : IDisposable
         _menu.Opened += (_, _) => ApplyWindowChrome();
         _menu.Opening += (_, _) => ApplyMetrics();
 
-        _theme.Changed += OnThemeChanged;
-
         ApplyMetrics();
 
-        _icon = CreateIcon();
+        _icon = CreateIcon(_theme);
         _notifyIcon = new NotifyIcon
         {
             Icon = _icon,
@@ -115,6 +115,10 @@ internal sealed class TrayIcon : IDisposable
             Visible = true,
             ContextMenuStrip = _menu,
         };
+
+        // Last, because the handler redraws the icon and so needs the notification
+        // area to already have one.
+        _theme.Changed += OnThemeChanged;
     }
 
     /// <summary>Opens the menu at the cursor, for right-clicks on the widget itself.</summary>
@@ -252,9 +256,31 @@ internal sealed class TrayIcon : IDisposable
 
     private void OnThemeChanged(object? sender, EventArgs e)
     {
-        // The colors are read from the theme at paint time, so a repaint is the whole
-        // of the update. The menu is almost never open when this arrives.
+        // The menu's colors are read from the theme at paint time, so a repaint is the
+        // whole of that update. The menu is almost never open when this arrives.
         _menu.Invalidate();
+
+        RefreshIcon();
+    }
+
+    /// <summary>
+    /// Redraws the notification-area icon in the current theme's ink.
+    /// </summary>
+    /// <remarks>
+    /// The replacement is handed over before the old one is destroyed.
+    /// <see cref="Icon.FromHandle"/> does not own its <c>HICON</c>, so releasing it
+    /// while it is still the icon on display would leave a gap in the tray.
+    /// </remarks>
+    private void RefreshIcon()
+    {
+        var previous = _icon;
+
+        _icon = CreateIcon(_theme);
+        _notifyIcon.Icon = _icon;
+
+        IntPtr handle = previous.Handle;
+        previous.Dispose();
+        DestroyIcon(handle);
     }
 
     /// <summary>
@@ -279,7 +305,13 @@ internal sealed class TrayIcon : IDisposable
     /// Draws the tray icon rather than shipping an .ico, so it always matches the
     /// widget's own visualizer motif and stays crisp at any tray size.
     /// </summary>
-    private static Icon CreateIcon()
+    /// <remarks>
+    /// Drawing it also means it can be drawn again. The notification area sits on the
+    /// taskbar and follows the system theme, so the white bars this always drew were
+    /// invisible against a light one, and a shipped .ico would have had to be two files
+    /// and a choice between them.
+    /// </remarks>
+    private static Icon CreateIcon(Theme theme)
     {
         using var bitmap = new Bitmap(32, 32);
         using (var g = Graphics.FromImage(bitmap))
@@ -287,8 +319,11 @@ internal sealed class TrayIcon : IDisposable
             g.SmoothingMode = SmoothingMode.AntiAlias;
             g.Clear(Color.Transparent);
 
-            // Round caps give the same pill-shaped bars the widget draws.
-            using var pen = new Pen(Color.White, 4f)
+            // Read from the theme rather than fixed, and from the text token rather
+            // than the softer one the widget's own bars use. Those bars are one element
+            // among several across a wide strip, where this is a 16px mark that has to
+            // be picked out of a row of other apps' icons at a glance.
+            using var pen = new Pen(Ink(theme), 4f)
             {
                 StartCap = LineCap.Round,
                 EndCap = LineCap.Round,
@@ -308,6 +343,12 @@ internal sealed class TrayIcon : IDisposable
         IntPtr handle = bitmap.GetHicon();
         return Icon.FromHandle(handle);
     }
+
+    /// <summary>The theme's primary text color, as GDI wants it.</summary>
+    private static Color Ink(Theme theme) =>
+        theme.TextPrimary is System.Windows.Media.SolidColorBrush brush
+            ? Color.FromArgb(brush.Color.A, brush.Color.R, brush.Color.G, brush.Color.B)
+            : Color.White;
 
     public void Dispose()
     {

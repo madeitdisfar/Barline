@@ -17,6 +17,12 @@ internal partial class WelcomeWindow : Window
     private readonly Theme _theme;
     private readonly BarColorResolver _bars;
 
+    /// <summary>
+    /// The cover the sample track is showing, kept so the bar color can be resolved
+    /// against it again whenever the theme moves.
+    /// </summary>
+    private readonly ImageSource _sampleArt;
+
     public WelcomeWindow(Theme theme, SettingsStore settings)
     {
         _theme = theme;
@@ -27,7 +33,8 @@ internal partial class WelcomeWindow : Window
 
         InitializeComponent();
 
-        SampleArt.Source = DemoContent.CreateArt();
+        _sampleArt = DemoContent.CreateArt();
+        SampleArt.Source = _sampleArt;
         SampleTitle.Text = "Everything In Its Right Place";
         SampleArtist.Text = "Radiohead";
 
@@ -132,6 +139,13 @@ internal partial class WelcomeWindow : Window
         var strip = new SolidColorBrush(_theme.BackdropEstimate);
         strip.Freeze();
         SampleStrip.Background = strip;
+
+        // The resolver starts on white and stays there until it is asked, so without
+        // this the sample drew white bars on the light taskbar shade, which is the one
+        // combination the widget itself will never produce. Asked here rather than in
+        // the constructor because every mode is measured against the taskbar material,
+        // so the answer changes with the theme.
+        _bars.Update(_sampleArt);
 
         // The widget draws its text over the taskbar, not over this window, so the
         // sample's own labels follow the taskbar's shade rather than the window's.
