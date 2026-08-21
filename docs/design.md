@@ -59,6 +59,36 @@ back. It also retries for a few seconds afterwards: Explorer creates the new
 taskbar some time after the event that announced the monitor, so a single attempt
 looks at a desktop that does not have it yet.
 
+### The tray menu is WPF
+
+The notification area's menu was a WinForms `ContextMenuStrip` for as long as the tray
+icon needed `NotifyIcon`, which WPF has no answer for. Keeping the two together looked
+economical and was not. The drop-down took its scale from a field the framework updates
+only after its window has moved, so a menu opening on a second display was laid out for
+the one it was last on. It rescaled any font assigned to it by the ratio between its
+window's creation DPI and the current one, so a font sized for the target was scaled
+toward it twice. It sized items wider than the menu holding them, and clipped the
+longest label. It computed its image gutter once, at creation, and scaled it again per
+display, which no public property could reach.
+
+Each of those had a workaround, and together they were about 250 lines of GDI painting
+whose entire purpose was to make a 2005 control look like Windows 11. The menu is now a
+WPF `ContextMenu` with a styled template. Nothing in it multiplies by a DPI scale: the
+app declares PerMonitorV2 and WPF honors it, so the sizes are logical units and a
+display at another scale is not a case to compensate for. Measured, the flyout is the
+same 157x174 logical on a 200% and a 150% display. It also reads the theme's brushes
+directly rather than flattening their alpha by hand, GDI having no compositing.
+
+Two things had to be arranged. The flyout hangs from a one-pixel invisible window moved
+to the pointer first: a `ContextMenu` with no placement target has no visual parent, and
+WPF hands its popup the primary display's scale wherever it actually appears, which
+reproduced the original complaint exactly. That window doubles as the activation Win32
+requires, since a popup owned by nothing never gets the message that lets it close when
+the next click lands elsewhere. And the menu is built fresh for each opening, because a
+WPF popup parks its window at the origin on close and recomputes its position only when
+something it watches has changed, so a second right-click without moving the mouse
+reopened it in the corner of the screen.
+
 ## Media
 
 **Metadata comes from SMTC** (`GlobalSystemMediaTransportControlsSessionManager`), the

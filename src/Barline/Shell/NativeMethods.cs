@@ -182,23 +182,6 @@ internal static class NativeMethods
     [DllImport("user32.dll")]
     internal static extern IntPtr MonitorFromWindow(IntPtr hwnd, uint dwFlags);
 
-    [DllImport("user32.dll")]
-    internal static extern IntPtr MonitorFromPoint(POINT pt, uint dwFlags);
-
-    /// <summary>MDT_EFFECTIVE_DPI: the scale the user chose, which is the one to draw at.</summary>
-    internal const int MDT_EFFECTIVE_DPI = 0;
-
-    /// <summary>
-    /// The DPI of a monitor, for sizing something that has no window on it yet.
-    /// </summary>
-    /// <remarks>
-    /// <c>GetDpiForWindow</c> cannot answer for a window that has not been placed, and
-    /// a menu is sized before it is shown.
-    /// </remarks>
-    [DllImport("shcore.dll")]
-    internal static extern int GetDpiForMonitor(
-        IntPtr hmonitor, int dpiType, out uint dpiX, out uint dpiY);
-
     [DllImport("user32.dll", CharSet = CharSet.Unicode)]
     [return: MarshalAs(UnmanagedType.Bool)]
     internal static extern bool GetMonitorInfo(IntPtr hMonitor, ref MONITORINFO lpmi);

@@ -37,7 +37,7 @@ src/Barline/
 ├─ Ui/           theme tokens, color resolution, the visualizer control
 ├─ Settings/     the settings model, its JSON store, and the settings window
 ├─ Platform/     package identity, data paths, app info, the Store license
-├─ Tray/         notification-area icon, its menu, and the renderer that styles it
+├─ Tray/         notification-area icon, and the WPF flyout it opens
 ├─ Startup/      run-at-sign-in registration
 └─ Diagnostics/  opt-in logging, demo content
 ```

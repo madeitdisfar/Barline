@@ -1,0 +1,137 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!--
+        The tray menu, in WPF.
+
+        This replaces a WinForms ToolStripDropDown and about 250 lines of GDI painting
+        that existed only to make a 2005 control look like Windows 11. Everything here
+        is in logical units and nothing multiplies by a DPI scale, because WPF is
+        per-monitor aware and the app already declares PerMonitorV2 in its manifest.
+        That is the whole point of the change: the menu is sized by the framework that
+        draws the rest of the app, so a second display at a different scale is not a
+        special case to be compensated for.
+
+        Colors come through DynamicResource so a system theme change is a resource
+        swap, the same way the settings window does it.
+    -->
+
+    <!-- Windows 11 sets menus in the body optical size, not the heading cut. The
+         comma is a WPF fallback list: a machine missing the variable font gets plain
+         Segoe UI rather than whatever the renderer would otherwise substitute. -->
+    <FontFamily x:Key="MenuFontFamily">Segoe UI Variable Text, Segoe UI</FontFamily>
+
+    <Style x:Key="FluentMenuItem" TargetType="MenuItem">
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+        <Setter Property="FontFamily" Value="{StaticResource MenuFontFamily}" />
+        <Setter Property="FontSize" Value="14" />
+        <Setter Property="Height" Value="30" />
+        <Setter Property="SnapsToDevicePixels" Value="True" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="MenuItem">
+                    <!-- The selection is a rounded pill inset from the flyout rather
+                         than a band spanning it. That shape is what reads as Fluent,
+                         more than the color does. -->
+                    <Border x:Name="Pill"
+                            Background="Transparent"
+                            CornerRadius="4"
+                            Margin="4,1"
+                            SnapsToDevicePixels="True">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <!-- Reserved whether or not anything is checked, so
+                                     the labels line up down the menu. -->
+                                <ColumnDefinition Width="28" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+
+                            <!-- Two strokes rather than a glyph from the icon font, so
+                                 the check is exactly the shape intended on a machine
+                                 whose Segoe Fluent Icons is missing or substituted. -->
+                            <Path x:Name="Check"
+                                  Grid.Column="0"
+                                  Width="15"
+                                  Height="15"
+                                  HorizontalAlignment="Center"
+                                  VerticalAlignment="Center"
+                                  Visibility="Collapsed"
+                                  Stroke="{DynamicResource TextPrimaryBrush}"
+                                  StrokeThickness="1.3"
+                                  StrokeStartLineCap="Round"
+                                  StrokeEndLineCap="Round"
+                                  StrokeLineJoin="Round"
+                                  Data="M 3.3,7.8 L 6.3,10.8 L 11.7,4.2" />
+
+                            <ContentPresenter Grid.Column="1"
+                                              ContentSource="Header"
+                                              VerticalAlignment="Center"
+                                              Margin="0,0,16,0"
+                                              RecognizesAccessKey="True" />
+                        </Grid>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsHighlighted" Value="True">
+                            <Setter TargetName="Pill" Property="Background"
+                                    Value="{DynamicResource SubtleHoverBrush}" />
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="Pill" Property="Background"
+                                    Value="{DynamicResource SubtlePressedBrush}" />
+                        </Trigger>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="Check" Property="Visibility" Value="Visible" />
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Foreground"
+                                    Value="{DynamicResource TextTertiaryBrush}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="FluentSeparator" TargetType="Separator">
+        <Setter Property="SnapsToDevicePixels" Value="True" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Separator">
+                    <!-- Inset further than the pill, so the rule reads as dividing the
+                         items rather than as an edge of them. -->
+                    <Border Height="1"
+                            Margin="10,3"
+                            Background="{DynamicResource MenuDividerBrush}"
+                            SnapsToDevicePixels="True" />
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="FluentContextMenu" TargetType="ContextMenu">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="FontFamily" Value="{StaticResource MenuFontFamily}" />
+        <Setter Property="HasDropShadow" Value="True" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ContextMenu">
+                    <!-- The corner radius is drawn here rather than asked of DWM. The
+                         popup is a layered window, so WPF antialiases the curve itself
+                         and there is no window region to keep in step with a resize. -->
+                    <Border Background="{DynamicResource MenuBackgroundBrush}"
+                            BorderBrush="{DynamicResource MenuBorderBrush}"
+                            BorderThickness="1"
+                            CornerRadius="8"
+                            Padding="0,4"
+                            SnapsToDevicePixels="True">
+                        <StackPanel IsItemsHost="True"
+                                    KeyboardNavigation.DirectionalNavigation="Cycle" />
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+</ResourceDictionary>

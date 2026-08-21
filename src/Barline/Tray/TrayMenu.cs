@@ -1,0 +1,287 @@
+using System.Runtime.InteropServices;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
+using System.Windows.Interop;
+using System.Windows.Media;
+using Barline.Settings;
+using Barline.Ui;
+
+using Win32 = Barline.Shell.NativeMethods;
+
+namespace Barline.Tray;
+
+/// <summary>
+/// The notification area's menu, as a WPF flyout.
+/// </summary>
+/// <remarks>
+/// <para>
+/// WPF rather than the WinForms <c>ContextMenuStrip</c> this replaces, because that
+/// control's DPI model never agreed with the app around it. It took its scale from a
+/// field the framework updates only after the window has moved, so a menu opening on a
+/// second display was laid out for the one it was last on; it rescaled any font
+/// assigned to it by the ratio between its window's creation DPI and the current one;
+/// it sized items wider than the menu holding them; and it computed its image gutter
+/// once, at creation, and scaled it again per display. Each of those had a workaround.
+/// Together they were an argument for not using the control.
+/// </para>
+/// <para>
+/// Nothing here multiplies by a DPI scale, and that is the point. The app declares
+/// PerMonitorV2 in its manifest and WPF honors it, so the sizes in the XAML are logical
+/// units and a display at another scale is not a special case to compensate for. The
+/// only physical pixels left are the cursor position <see cref="Show"/> is handed,
+/// which goes straight to <c>SetWindowPos</c> without being converted at all.
+/// </para>
+/// </remarks>
+internal sealed class TrayMenu : IDisposable
+{
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool SetForegroundWindow(IntPtr hWnd);
+
+    private readonly Theme _theme;
+    private readonly ResourceDictionary _styles;
+
+    /// <summary>
+    /// A one-pixel invisible window the flyout hangs from.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// It exists to carry a DPI context. A <c>ContextMenu</c> with no placement target
+    /// has no visual parent, and WPF then gives its popup the primary display's scale
+    /// wherever the popup actually appears: measured, a menu opened on a 150% second
+    /// display came out at the 200% primary's pixel size, which is the same complaint
+    /// the WinForms menu drew. Hung from a window moved onto the target display first,
+    /// the popup inherits that window's scale and is laid out for the display it is on.
+    /// </para>
+    /// <para>
+    /// It doubles as the activation Win32 wants. A popup owned by no active window
+    /// never receives the activation that lets it close again when the next click lands
+    /// elsewhere, so it would sit on the desktop until something was chosen.
+    /// </para>
+    /// </remarks>
+    private readonly Window _anchor;
+
+    /// <summary>
+    /// Whether the visualizer is on, which is what the checkmark shows.
+    /// </summary>
+    /// <remarks>
+    /// Kept here rather than read off a menu item, because the menu is built fresh for
+    /// each opening and so has no state of its own to be the truth.
+    /// </remarks>
+    private bool _visualizerChecked;
+
+    private ContextMenu? _open;
+
+    public event EventHandler? ExitRequested;
+    public event EventHandler<bool>? VisualizerToggled;
+    public event EventHandler? RestartVisualizerRequested;
+    public event EventHandler? RestartRequested;
+    public event EventHandler? SettingsRequested;
+
+    public TrayMenu(WidgetSettings settings, Theme theme)
+    {
+        _theme = theme;
+        _visualizerChecked = settings.VisualizerEnabled;
+
+        _styles = new ResourceDictionary
+        {
+            Source = new Uri("/Barline;component/Tray/TrayMenu.xaml", UriKind.Relative),
+        };
+
+        _anchor = new Window
+        {
+            Width = 1,
+            Height = 1,
+            Opacity = 0d,
+            WindowStyle = WindowStyle.None,
+            ResizeMode = ResizeMode.NoResize,
+            AllowsTransparency = true,
+            Background = Brushes.Transparent,
+            ShowInTaskbar = false,
+            Topmost = true,
+        };
+    }
+
+    /// <summary>
+    /// Opens the menu at the pointer.
+    /// </summary>
+    /// <param name="cursor">The cursor position, in physical screen pixels.</param>
+    /// <remarks>
+    /// The anchor is moved by handle rather than through <c>Left</c> and <c>Top</c>,
+    /// which are device-independent units measured against the primary display and so
+    /// land somewhere else entirely on a desk with two scales. Physical pixels are what
+    /// the cursor arrives in and what <c>SetWindowPos</c> takes, so nothing is converted
+    /// at all. This is the last place the tray menu touches a screen coordinate.
+    /// </remarks>
+    public void Show(System.Drawing.Point cursor)
+    {
+        Close();
+
+        var handle = new WindowInteropHelper(_anchor).EnsureHandle();
+
+        // Moved before it is shown, so the window is already on the target display when
+        // it is first composed and never has to change scale afterwards.
+        Move(handle, cursor);
+        _anchor.Show();
+        Move(handle, cursor);
+
+        SetForegroundWindow(handle);
+
+        _open = Build();
+        _open.IsOpen = true;
+
+    }
+
+    private static void Move(IntPtr handle, System.Drawing.Point cursor) =>
+        Win32.SetWindowPos(
+            handle, Win32.HWND_TOPMOST, cursor.X, cursor.Y, 1, 1, Win32.SWP_NOACTIVATE);
+
+    /// <summary>
+    /// Reflects a visualizer-visibility change made elsewhere (the settings window) so
+    /// the menu's checkmark does not go stale.
+    /// </summary>
+    public void SetVisualizerChecked(bool enabled) => _visualizerChecked = enabled;
+
+    /// <summary>
+    /// Builds the flyout.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Built for each opening rather than kept, which is what makes it land where it
+    /// was asked to. A WPF popup parks its window at the origin when it closes and
+    /// works out a new position only when something it watches has changed, so a second
+    /// right-click without moving the mouse first reopened the menu in the top left
+    /// corner of the primary display. Nothing exposes "work the position out again",
+    /// and a popup that has never been opened has nothing stale to carry.
+    /// </para>
+    /// <para>
+    /// It costs five items and a style lookup, on a human right-click. The only state
+    /// that has to survive is one bool, and building fresh also removes the detaching
+    /// and reattaching the checkable item needed to keep from echoing its own updates.
+    /// </para>
+    /// </remarks>
+    private ContextMenu Build()
+    {
+        var menu = new ContextMenu
+        {
+            Style = (Style)_styles["FluentContextMenu"],
+            PlacementTarget = _anchor,
+
+            // The anchor is a single pixel sitting at the pointer, so the flyout's own
+            // top left lands there without any offset arithmetic of its own.
+            Placement = PlacementMode.Relative,
+        };
+
+        menu.Resources.MergedDictionaries.Add(_styles);
+        ApplyTheme(menu);
+
+        menu.Closed += (_, _) =>
+        {
+            _anchor.Hide();
+            _open = null;
+        };
+
+        var itemStyle = (Style)_styles["FluentMenuItem"];
+        var separatorStyle = (Style)_styles["FluentSeparator"];
+
+        // Bold, because it is the default action.
+        var settings = Item(
+            menu, "Settings", itemStyle, () => SettingsRequested?.Invoke(this, EventArgs.Empty));
+        settings.FontWeight = FontWeights.SemiBold;
+
+        var visualizer = Item(menu, "Show visualizer", itemStyle, null);
+        visualizer.IsCheckable = true;
+        visualizer.IsChecked = _visualizerChecked;
+        visualizer.Click += (_, _) =>
+        {
+            _visualizerChecked = visualizer.IsChecked;
+            menu.IsOpen = false;
+            VisualizerToggled?.Invoke(this, _visualizerChecked);
+        };
+
+        // Manual fallback: the watchdog recovers a stalled capture on its own, but this
+        // lets the user force it immediately if the visualizer stops answering audio.
+        var restartVisualizer = Item(
+            menu, "Restart visualizer", itemStyle,
+            () => RestartVisualizerRequested?.Invoke(this, EventArgs.Empty));
+
+        // Grouped with Exit rather than with the visualizer above it, because what it
+        // acts on is the app rather than the bars.
+        var restart = Item(
+            menu, "Restart Barline", itemStyle,
+            () => RestartRequested?.Invoke(this, EventArgs.Empty));
+
+        var exit = Item(menu, "Exit", itemStyle, () => ExitRequested?.Invoke(this, EventArgs.Empty));
+
+        menu.Items.Add(settings);
+        menu.Items.Add(new Separator { Style = separatorStyle });
+        menu.Items.Add(visualizer);
+        menu.Items.Add(restartVisualizer);
+        menu.Items.Add(new Separator { Style = separatorStyle });
+        menu.Items.Add(restart);
+        menu.Items.Add(exit);
+
+        return menu;
+    }
+
+    private static MenuItem Item(ContextMenu menu, string header, Style style, Action? onClick)
+    {
+        var item = new MenuItem { Header = header, Style = style };
+
+        if (onClick is not null)
+        {
+            // Closed first, so the action runs against a desktop the menu has already
+            // left. Opening the settings window under an open flyout leaves the flyout
+            // on top of it until something else takes the click.
+            item.Click += (_, _) =>
+            {
+                menu.IsOpen = false;
+                onClick();
+            };
+        }
+
+        return item;
+    }
+
+    /// <summary>
+    /// Puts the theme's colors into the menu's own resources.
+    /// </summary>
+    /// <remarks>
+    /// Done at build time rather than kept in step, since the menu is built for each
+    /// opening and so cannot be holding a stale color by the time anyone sees it. The
+    /// three menu colors are stored as colors rather than brushes, so they are wrapped
+    /// and frozen here; the rest are already brushes and already shared.
+    /// </remarks>
+    private void ApplyTheme(ContextMenu menu)
+    {
+        menu.Resources["TextPrimaryBrush"] = _theme.TextPrimary;
+        menu.Resources["TextTertiaryBrush"] = _theme.TextTertiary;
+        menu.Resources["SubtleHoverBrush"] = _theme.SubtleHover;
+        menu.Resources["SubtlePressedBrush"] = _theme.SubtlePressed;
+        menu.Resources["MenuBackgroundBrush"] = Frozen(_theme.MenuBackground);
+        menu.Resources["MenuBorderBrush"] = Frozen(_theme.MenuBorder);
+        menu.Resources["MenuDividerBrush"] = Frozen(_theme.MenuDivider);
+    }
+
+    private static SolidColorBrush Frozen(Color color)
+    {
+        var brush = new SolidColorBrush(color);
+        brush.Freeze();
+        return brush;
+    }
+
+    private void Close()
+    {
+        if (_open is null) return;
+
+        _open.IsOpen = false;
+        _open = null;
+    }
+
+    public void Dispose()
+    {
+        Close();
+        _anchor.Close();
+    }
+}
