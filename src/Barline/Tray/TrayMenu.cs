@@ -245,9 +245,11 @@ internal sealed class TrayMenu : IDisposable
             Style = (Style)_styles["FluentContextMenu"],
             PlacementTarget = _anchor,
 
-            // The anchor is a single pixel sitting at the pointer, so the flyout's own
-            // top left lands there without any offset arithmetic of its own.
-            Placement = PlacementMode.Relative,
+            // Upward from the pointer, which is what a notification-area menu does.
+            // The anchor is a single pixel sitting there, so this puts the flyout's
+            // bottom left corner on it with no offset arithmetic of its own. WPF still
+            // turns it over on its own if there is no room above.
+            Placement = PlacementMode.Top,
         };
 
         menu.Resources.MergedDictionaries.Add(_styles);
@@ -255,6 +257,13 @@ internal sealed class TrayMenu : IDisposable
 
         menu.Closed += (_, _) =>
         {
+            // Only if this is still the menu on screen. Right-clicking the tray while
+            // the flyout is up dismisses it and opens another, and the dismissal
+            // finishes after the replacement is already hanging from the anchor, so an
+            // unguarded handler pulls the anchor out from under the new menu and it
+            // vanishes about a tenth of a second after appearing.
+            if (!ReferenceEquals(_open, menu)) return;
+
             _anchor.Hide();
             _open = null;
         };

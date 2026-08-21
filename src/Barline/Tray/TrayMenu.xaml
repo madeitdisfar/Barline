@@ -24,8 +24,8 @@
     <Style x:Key="FluentMenuItem" TargetType="MenuItem">
         <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
         <Setter Property="FontFamily" Value="{StaticResource MenuFontFamily}" />
-        <Setter Property="FontSize" Value="14" />
-        <Setter Property="Height" Value="30" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="Height" Value="28" />
         <Setter Property="SnapsToDevicePixels" Value="True" />
         <Setter Property="Template">
             <Setter.Value>
@@ -42,7 +42,7 @@
                             <Grid.ColumnDefinitions>
                                 <!-- Reserved whether or not anything is checked, so
                                      the labels line up down the menu. -->
-                                <ColumnDefinition Width="28" />
+                                <ColumnDefinition Width="24" />
                                 <ColumnDefinition Width="*" />
                             </Grid.ColumnDefinitions>
 
@@ -51,8 +51,8 @@
                                  whose Segoe Fluent Icons is missing or substituted. -->
                             <Path x:Name="Check"
                                   Grid.Column="0"
-                                  Width="15"
-                                  Height="15"
+                                  Width="14"
+                                  Height="14"
                                   HorizontalAlignment="Center"
                                   VerticalAlignment="Center"
                                   Visibility="Collapsed"
@@ -66,7 +66,7 @@
                             <ContentPresenter Grid.Column="1"
                                               ContentSource="Header"
                                               VerticalAlignment="Center"
-                                              Margin="0,0,16,0"
+                                              Margin="0,0,14,0"
                                               RecognizesAccessKey="True" />
                         </Grid>
                     </Border>
@@ -100,7 +100,7 @@
                     <!-- Inset further than the pill, so the rule reads as dividing the
                          items rather than as an edge of them. -->
                     <Border Height="1"
-                            Margin="10,3"
+                            Margin="9,3"
                             Background="{DynamicResource MenuDividerBrush}"
                             SnapsToDevicePixels="True" />
                 </ControlTemplate>
@@ -124,7 +124,7 @@
                             BorderBrush="{DynamicResource MenuBorderBrush}"
                             BorderThickness="1"
                             CornerRadius="8"
-                            Padding="0,4"
+                            Padding="0,3"
                             SnapsToDevicePixels="True">
                         <StackPanel IsItemsHost="True"
                                     KeyboardNavigation.DirectionalNavigation="Cycle" />
