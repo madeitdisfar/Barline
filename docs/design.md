@@ -89,6 +89,16 @@ WPF popup parks its window at the origin on close and recomputes its position on
 something it watches has changed, so a second right-click without moving the mouse
 reopened it in the corner of the screen.
 
+The flyout is also anchored clear of the taskbar rather than at the pointer. Both ways
+of opening it put the pointer on the taskbar, and WPF fits a flyout to the screen rather
+than to the working area, so the last item came to rest under the widget: covered,
+because the widget is topmost, and dead to clicks, because the widget takes input.
+Clamping to the working area handles that, and handles a taskbar docked to any edge. A
+taskbar set to hide itself reserves no working area, though, so a second pass pushes the
+anchor off the taskbar's own rectangle, across it rather than along it and inward rather
+than toward the nearest edge. The nearest edge of a taskbar along the bottom is the
+bottom of the screen.
+
 ## Media
 
 **Metadata comes from SMTC** (`GlobalSystemMediaTransportControlsSessionManager`), the

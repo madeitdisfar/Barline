@@ -118,13 +118,14 @@ internal sealed class TrayMenu : IDisposable
     {
         Close();
 
+        var spot = ClearOfTheTaskbar(cursor);
         var handle = new WindowInteropHelper(_anchor).EnsureHandle();
 
         // Moved before it is shown, so the window is already on the target display when
         // it is first composed and never has to change scale afterwards.
-        Move(handle, cursor);
+        Move(handle, spot);
         _anchor.Show();
-        Move(handle, cursor);
+        Move(handle, spot);
 
         SetForegroundWindow(handle);
 
@@ -133,9 +134,85 @@ internal sealed class TrayMenu : IDisposable
 
     }
 
-    private static void Move(IntPtr handle, System.Drawing.Point cursor) =>
+    private static void Move(IntPtr handle, System.Drawing.Point spot) =>
         Win32.SetWindowPos(
-            handle, Win32.HWND_TOPMOST, cursor.X, cursor.Y, 1, 1, Win32.SWP_NOACTIVATE);
+            handle, Win32.HWND_TOPMOST, spot.X, spot.Y, 1, 1, Win32.SWP_NOACTIVATE);
+
+    /// <summary>
+    /// Pulls the anchor off the taskbar and onto the desktop proper.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Both ways of opening this menu put the pointer on the taskbar, so the flyout
+    /// would otherwise be anchored there. It has nowhere to go but up, and WPF fits it
+    /// to the screen rather than to the working area, so the last item came to rest
+    /// underneath the widget: covered, because the widget is topmost, and dead to
+    /// clicks, because the widget takes input. Anchored clear of the taskbar, the
+    /// flyout's bottom lands on the taskbar's top edge, which is where Windows puts
+    /// its own menus.
+    /// </para>
+    /// <para>
+    /// Two passes, because neither alone is enough. The working area covers the
+    /// ordinary case, and any edge the taskbar happens to be docked to. A taskbar set
+    /// to hide itself reserves no working area at all, though, so on one of those the
+    /// first pass changes nothing and the second is what does the work.
+    /// </para>
+    /// </remarks>
+    private static System.Drawing.Point ClearOfTheTaskbar(System.Drawing.Point cursor)
+    {
+        var point = new Win32.POINT { X = cursor.X, Y = cursor.Y };
+        var monitor = Win32.MonitorFromPoint(point, Win32.MONITOR_DEFAULTTONEAREST);
+
+        if (monitor == IntPtr.Zero) return cursor;
+
+        var info = new Win32.MONITORINFO { cbSize = Marshal.SizeOf<Win32.MONITORINFO>() };
+        if (!Win32.GetMonitorInfo(monitor, ref info)) return cursor;
+
+        var spot = new System.Drawing.Point(
+            Math.Clamp(cursor.X, info.rcWork.Left, info.rcWork.Right),
+            Math.Clamp(cursor.Y, info.rcWork.Top, info.rcWork.Bottom));
+
+        foreach (var taskbar in Shell.Displays.TaskbarHandles())
+        {
+            if (!Win32.GetWindowRect(taskbar, out var bounds)) continue;
+
+            var pushed = PushOut(spot, bounds, info.rcMonitor);
+            if (pushed != spot) return pushed;
+        }
+
+        return spot;
+    }
+
+    /// <summary>
+    /// Moves a point that is on the taskbar off it, or returns it untouched.
+    /// </summary>
+    /// <param name="spot">The point, in physical screen pixels.</param>
+    /// <param name="taskbar">The taskbar's rectangle.</param>
+    /// <param name="monitor">The rectangle of the display both are on.</param>
+    /// <remarks>
+    /// Out across the taskbar rather than along it, since a taskbar spans its display
+    /// and leaving by an end would put the flyout beside the Start button. Which way
+    /// across is decided by the display rather than by which edge is nearer: the near
+    /// edge of a taskbar along the bottom is the bottom of the screen, and leaving that
+    /// way is how the pointer ends up somewhere there is no room at all.
+    /// </remarks>
+    internal static System.Drawing.Point PushOut(
+        System.Drawing.Point spot, Win32.RECT taskbar, Win32.RECT monitor)
+    {
+        if (spot.X < taskbar.Left || spot.X > taskbar.Right) return spot;
+        if (spot.Y < taskbar.Top || spot.Y > taskbar.Bottom) return spot;
+
+        if (taskbar.Width >= taskbar.Height)
+        {
+            return taskbar.Top <= monitor.Top
+                ? spot with { Y = taskbar.Bottom }
+                : spot with { Y = taskbar.Top };
+        }
+
+        return taskbar.Left <= monitor.Left
+            ? spot with { X = taskbar.Right }
+            : spot with { X = taskbar.Left };
+    }
 
     /// <summary>
     /// Reflects a visualizer-visibility change made elsewhere (the settings window) so

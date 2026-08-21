@@ -56,7 +56,7 @@ internal static class Displays
         var byDevice = ReadDisplayConfig();
         var found = new List<TaskbarWindow>();
 
-        foreach (var hwnd in Handles())
+        foreach (var hwnd in TaskbarHandles())
             found.Add(new TaskbarWindow(hwnd, Describe(hwnd, byDevice)?.Id));
 
         return found;
@@ -68,7 +68,7 @@ internal static class Displays
         var byDevice = ReadDisplayConfig();
         var found = new List<DisplayTarget>();
 
-        foreach (var hwnd in Handles())
+        foreach (var hwnd in TaskbarHandles())
         {
             if (Describe(hwnd, byDevice) is not { } target) continue;
 
@@ -133,7 +133,7 @@ internal static class Displays
     /// Order matters only in that the primary comes first, which is what makes the
     /// picker list the main display at the top.
     /// </remarks>
-    private static IEnumerable<IntPtr> Handles()
+    public static IEnumerable<IntPtr> TaskbarHandles()
     {
         var primary = PrimaryTaskbar();
         if (primary != IntPtr.Zero) yield return primary;
