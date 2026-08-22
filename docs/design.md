@@ -85,6 +85,12 @@ without a registry watcher, and an absent or unexpected value counts as centered
 every existing user has the widget at the left end, and it should take Windows saying
 plainly otherwise to move it.
 
+The lyrics panel's widget position crosses with it, and hangs from the same end of the
+screen rather than from the widget's own edge. The panel is narrower than the widget,
+so lining the two up would leave it floating short of the corner at one end and past
+it at the other. What it belongs to is the widget; what it is measured from is the
+screen, less the margin that keeps a rounded corner out of the corner of the display.
+
 Two things this does not solve. Left-aligned buttons grow rightward as windows open,
 and Windows only starts overflowing them when they fill the whole taskbar, which it
 measures without knowing the widget is there, so enough windows will still reach it.
@@ -511,8 +517,9 @@ animating, rather than a screenshot. A picture would be wrong on a light theme, 
 at a different accent, and stale the first time the design moved.
 
 The advice about the Widgets button is shown only when `TaskbarDa` says the button is
-actually there, and only when the two would collide at all: the button sits at the left
-end of the taskbar, which the widget leaves when the taskbar is aligned left. Most of the setup advice an app can give is advice the reader has
+actually there. It does not depend on which end the widget is at: aligning the taskbar
+left moves Windows' own Widgets button to the far end too, so the two collide there
+just as they do at the left end of a centered one. Most of the setup advice an app can give is advice the reader has
 already followed, and being told to undo something you never did is how a first run
 starts to feel like a lecture. An unreadable or absent value counts as *visible*: the
 cost is asymmetric, since an unneeded hint is read once and ignored, where a silent

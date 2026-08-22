@@ -57,13 +57,12 @@ internal partial class WelcomeWindow : Window
                 "and looks like this.";
         }
 
-        // Only when the two would actually collide. The Widgets button sits at the
-        // left end of the taskbar, which is where the widget is until Windows is set to
-        // align its own buttons left and the widget crosses to the notification area.
-        // Being told to turn something off to make room is worse than useless once the
-        // room has been made another way.
+        // Unconditional, because the button moves with the widget. Aligning the
+        // taskbar left sends Windows' own Widgets button to the far end, which is the
+        // end the widget crosses to, so the two land on each other there exactly as
+        // they do at the left end of a centered taskbar.
         bool widgetsShowing =
-            (WidgetsButton.IsVisible() && !TaskbarAlignment.IsLeft()) ||
+            WidgetsButton.IsVisible() ||
             DevOverride.Read("BARLINE_WELCOME") == "widgets";
 
         if (widgetsShowing)

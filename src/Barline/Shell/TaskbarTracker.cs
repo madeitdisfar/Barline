@@ -44,6 +44,17 @@ internal readonly record struct TaskbarState(
         LeftAligned && TrayLeft is int tray
             ? Math.Max(Rect.Left, tray - width)
             : Rect.Left;
+
+    /// <summary>
+    /// Whether the widget has crossed to the far end of the taskbar.
+    /// </summary>
+    /// <param name="width">The widget's width, in physical pixels.</param>
+    /// <remarks>
+    /// Asked of the placement rather than of the alignment, so the cases where the
+    /// crossing does not happen answer no: an unknown tray edge, or a taskbar too
+    /// narrow to hold both.
+    /// </remarks>
+    public bool WidgetAtFarEnd(int width) => WidgetLeft(width) > Rect.Left;
 }
 
 /// <summary>

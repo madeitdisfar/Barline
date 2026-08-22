@@ -250,14 +250,17 @@ internal partial class LyricsPanel : Window
                 break;
 
             default:
-                // Above the widget, and clear of the screen edge by the same margin it
-                // clears the taskbar by. Sharing the widget's left edge exactly put a
-                // rounded corner flush against the side of the screen, where it read as
-                // a panel that had been cut off rather than one that had been placed.
-                // Measured from the widget rather than from the taskbar, because the
-                // widget crosses to the far end when Windows aligns its buttons left.
-                x = state.WidgetLeft(
-                    (int)Math.Round(OverlayWindow.WidgetLogicalWidth * scale)) + margin;
+                // Above the widget, at the same end of the screen the widget is at, and
+                // clear of that edge by the same margin it clears the taskbar by. Flush
+                // against the side put a rounded corner into the corner of the screen,
+                // where it read as a panel that had been cut off rather than placed.
+                // The panel is narrower than the widget, so it hangs from the screen
+                // edge rather than lining up with the widget's other side: the widget
+                // is what it belongs to, but the screen is what it is measured from.
+                x = state.WidgetAtFarEnd(
+                        (int)Math.Round(OverlayWindow.WidgetLogicalWidth * scale))
+                    ? screen.Right - width - margin
+                    : screen.Left + margin;
                 y = state.Rect.Top - margin - height;
                 break;
         }

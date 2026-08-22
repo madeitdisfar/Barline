@@ -79,6 +79,29 @@ public class WidgetSlotTests
         Assert.Equal(2880, State(leftAligned: false, trayLeft: 5276, left: 2880).WidgetLeft(600));
     }
 
+    [Fact]
+    public void The_far_end_is_where_the_lyrics_panel_is_told_to_go()
+    {
+        Assert.True(State(leftAligned: true, trayLeft: 2396).WidgetAtFarEnd(600));
+    }
+
+    [Fact]
+    public void A_widget_that_did_not_cross_leaves_the_panel_where_it_was()
+    {
+        // Both ways of not crossing: nothing to measure, and no room to cross into.
+        Assert.False(State(leftAligned: true, trayLeft: null).WidgetAtFarEnd(600));
+        Assert.False(State(leftAligned: true, trayLeft: 400).WidgetAtFarEnd(600));
+        Assert.False(State(leftAligned: false, trayLeft: 2396).WidgetAtFarEnd(600));
+    }
+
+    [Fact]
+    public void Crossing_is_judged_on_the_taskbar_being_used()
+    {
+        // Not against zero, which is another display's left edge.
+        Assert.True(State(leftAligned: true, trayLeft: 5276, left: 2880).WidgetAtFarEnd(600));
+        Assert.False(State(leftAligned: false, trayLeft: 5276, left: 2880).WidgetAtFarEnd(600));
+    }
+
     [Theory]
     [InlineData(0, true)]
     [InlineData(1, false)]
