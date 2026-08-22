@@ -74,6 +74,11 @@ internal sealed class TaskbarTracker : IDisposable
 {
     private readonly DispatcherTimer _reconcileTimer;
 
+    /// <summary>The far end of a secondary taskbar, which costs too much to ask often.</summary>
+    private readonly ClockEdge _clock = new();
+
+    private readonly Dispatcher _dispatcher = Dispatcher.CurrentDispatcher;
+
     // The delegate must be held in a field: SetWinEventHook stores a raw pointer
     // and the GC would otherwise collect a locally-scoped delegate.
     private readonly WinEventProc _winEventProc;
@@ -142,6 +147,11 @@ internal sealed class TaskbarTracker : IDisposable
             Interval = TimeSpan.FromSeconds(1)
         };
         _reconcileTimer.Tick += (_, _) => Reconcile();
+
+        // Answered on a background thread, and acted on here rather than at the next
+        // tick: a second is long enough for the widget to be shown at the wrong end of
+        // the taskbar in the meantime.
+        _clock.Answered += (_, _) => _dispatcher.BeginInvoke(new Action(() => Reconcile()));
     }
 
     public void Start()
@@ -308,6 +318,7 @@ internal sealed class TaskbarTracker : IDisposable
 
         bool autoHide = IsAutoHideEnabled();
         bool fullscreen = IsFullscreenAppForeground();
+        bool leftAligned = TaskbarAlignment.IsLeft();
 
         return new TaskbarState(
             IsAvailable: true,
@@ -315,8 +326,8 @@ internal sealed class TaskbarTracker : IDisposable
             Rect: rect,
             Dpi: dpi,
             IsAutoHide: autoHide,
-            LeftAligned: TaskbarAlignment.IsLeft(),
-            TrayLeft: TrayEdge(_taskbarHwnd, rect));
+            LeftAligned: leftAligned,
+            TrayLeft: TrayEdge(_taskbarHwnd, rect, leftAligned));
     }
 
     /// <summary>
@@ -334,28 +345,34 @@ internal sealed class TaskbarTracker : IDisposable
     /// Task View and the last two apps.
     /// </para>
     /// <para>
-    /// A secondary taskbar carries a clock and no tray icons, so its own class is tried
-    /// after. Anything found has to sit inside the taskbar to be believed, since a
-    /// stale child window that has never been moved reports the origin.
+    /// A secondary taskbar has no such window, because it has no notification area:
+    /// only a clock, which exists in the automation tree and nowhere else. That is
+    /// asked for separately, and only on a taskbar whose far end the widget is actually
+    /// going to use, since the question is thousands of times more expensive than this
+    /// one. See <see cref="ClockEdge"/>.
+    /// </para>
+    /// <para>
+    /// Whatever is found has to sit inside the taskbar to be believed. A child window
+    /// that has never been moved reports the origin.
     /// </para>
     /// </remarks>
-    private static int? TrayEdge(IntPtr taskbar, RECT bounds)
+    private int? TrayEdge(IntPtr taskbar, RECT bounds, bool leftAligned)
     {
-        foreach (var cls in TrayClasses)
-        {
-            var child = FindWindowEx(taskbar, IntPtr.Zero, cls, null);
-            if (child == IntPtr.Zero) continue;
-            if (!GetWindowRect(child, out var tray)) continue;
-            if (tray.Left <= bounds.Left || tray.Left >= bounds.Right) continue;
+        var tray = FindWindowEx(taskbar, IntPtr.Zero, TrayClass, null);
 
-            return tray.Left;
+        if (tray != IntPtr.Zero &&
+            GetWindowRect(tray, out var rect) &&
+            rect.Left > bounds.Left &&
+            rect.Left < bounds.Right)
+        {
+            return rect.Left;
         }
 
-        return null;
+        return leftAligned ? _clock.For(taskbar, bounds) : null;
     }
 
-    /// <summary>The notification area, on a primary taskbar and on a secondary one.</summary>
-    private static readonly string[] TrayClasses = ["TrayNotifyWnd", "ClockButton"];
+    /// <summary>The notification area, which only a primary taskbar has.</summary>
+    private const string TrayClass = "TrayNotifyWnd";
 
     private static bool IsAutoHideEnabled()
     {

@@ -133,8 +133,30 @@ internal partial class LyricsPanel : Window
         ex |= WS_EX_NOACTIVATE | WS_EX_TOOLWINDOW | WS_EX_TRANSPARENT;
         SetWindowLongPtr(_hwnd, GWL_EXSTYLE, new IntPtr(ex));
 
+        HwndSource.FromHwnd(_hwnd)?.AddHook(WndProc);
+
         ApplyAppearance();
         Place(_tracker.Current);
+    }
+
+    /// <summary>
+    /// Re-places the panel after a change of display scale.
+    /// </summary>
+    /// <remarks>
+    /// The panel is sized in physical pixels by <see cref="Place"/>, and WPF answers
+    /// the DPI change that a move to another display raises by rescaling the window it
+    /// was just given. Measured on a 150% second display: a panel placed at 390x150 was
+    /// resized to 293x113, which is 390x150 times the ratio between the two displays'
+    /// scales, and stayed that way because nothing placed it again. Placing it once
+    /// more after WPF has finished its own bookkeeping is what the widget does, for the
+    /// same reason.
+    /// </remarks>
+    private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
+    {
+        if (msg == WM_DPICHANGED)
+            Dispatcher.BeginInvoke(new Action(() => Place(_tracker.Current)));
+
+        return IntPtr.Zero;
     }
 
     // ---- Appearance --------------------------------------------------------

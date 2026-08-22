@@ -78,6 +78,18 @@ any of these windows. `MSTaskSwWClass` reported 1132..1660 while the buttons rea
 has that truth. So the widget is placed against the one edge the legacy windows still
 get right, and never against the buttons.
 
+A second display's taskbar has to be measured another way. It carries no notification
+area, and Explorer keeps none of the old child windows on it either: enumerating one
+turns up the XAML bridge, an invisible `Start`, and the task list. The only thing at its
+far end is the clock, which exists in the automation tree and nowhere else. That answer
+costs 20 to 25 milliseconds warm and 80 or more on the first call of the process, which
+is far too much for a probe that runs every second on the thread that draws the widget,
+so it is asked on a background thread and kept, and asked at all only on a taskbar whose
+far end the widget is actually going to use. It announces itself when it lands rather
+than waiting for the next probe, because the widget's first appearance can fall inside
+that second: measured, it showed at the near end of the taskbar and slid across a third
+of a second later.
+
 Which end to take is read from `TaskbarAl`, the setting itself, since there is no
 window to measure for it and no shell API that reports it. It is read on the same
 one-second reconcile as everything else, so switching alignment moves the widget
@@ -303,6 +315,12 @@ with no lyrics (the old ones dropped, the new ones not yet fetched), and hiding
 immediately made the panel blink out and back on every song change. Showing is never
 delayed; only hiding. A source app closing is a different thing from a gap between
 songs, so the panel goes when the widget does rather than waiting out that grace.
+
+The panel is sized in physical pixels, so it is placed again whenever the display scale
+changes under it. WPF answers that change by rescaling the window it was just given: on
+a 150% second display a panel placed at 390x150 came back 293x113, the ratio between the
+two displays' scales, and stayed that way because nothing placed it again. The widget
+already did this; the panel does now too.
 
 Position anchors are measured from the taskbar's own monitor, so the panel follows the
 taskbar rather than assuming the primary screen. **Free** stores its position as a
