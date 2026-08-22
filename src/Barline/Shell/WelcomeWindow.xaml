@@ -133,7 +133,9 @@
                    Foreground="{DynamicResource TextPrimaryBrush}"
                    Text="Barline is running" />
 
-        <TextBlock FontSize="14"
+        <!-- Which end it lives at depends on the taskbar; the text is set in code. -->
+        <TextBlock x:Name="WhereItLives"
+                   FontSize="14"
                    Margin="0,6,0,0"
                    TextWrapping="Wrap"
                    Foreground="{DynamicResource TextSecondaryBrush}"

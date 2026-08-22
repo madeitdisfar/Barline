@@ -1,6 +1,7 @@
 using System.Runtime.InteropServices;
 using System.Windows.Threading;
 using Barline.Diagnostics;
+using Barline.Platform;
 using static Barline.Shell.NativeMethods;
 
 namespace Barline.Shell;
@@ -14,10 +15,35 @@ internal readonly record struct TaskbarState(
     bool ShouldShow,
     RECT Rect,
     uint Dpi,
-    bool IsAutoHide)
+    bool IsAutoHide,
+    bool LeftAligned,
+    int? TrayLeft)
 {
     public static readonly TaskbarState Unavailable =
-        new(false, false, default, 96, false);
+        new(false, false, default, 96, false, false, null);
+
+    /// <summary>
+    /// Where the widget starts, in physical pixels.
+    /// </summary>
+    /// <param name="width">The widget's width, in physical pixels.</param>
+    /// <remarks>
+    /// <para>
+    /// The left end of the taskbar, which is empty on the centered taskbar Windows 11
+    /// ships with. Aligning the taskbar left puts Start and the task buttons there
+    /// instead, and the only stretch left free is the one between them and the
+    /// notification area, so the widget crosses over and parks against the tray.
+    /// </para>
+    /// <para>
+    /// Both bounds are held. A tray edge that could not be found leaves the widget
+    /// where it has always been, and one too close to the left end (a taskbar too
+    /// narrow for both, or a shell that puts its tray somewhere unexpected) leaves it
+    /// on the taskbar rather than off the side of it.
+    /// </para>
+    /// </remarks>
+    public int WidgetLeft(int width) =>
+        LeftAligned && TrayLeft is int tray
+            ? Math.Max(Rect.Left, tray - width)
+            : Rect.Left;
 }
 
 /// <summary>
@@ -243,7 +269,8 @@ internal sealed class TaskbarTracker : IDisposable
         {
             DebugLog.Write(
                 $"state change: available={next.IsAvailable} shouldShow={next.ShouldShow} " +
-                $"rect={next.Rect} dpi={next.Dpi} autoHide={next.IsAutoHide}");
+                $"rect={next.Rect} dpi={next.Dpi} autoHide={next.IsAutoHide} " +
+                $"leftAligned={next.LeftAligned} trayLeft={next.TrayLeft}");
             Current = next;
             Changed?.Invoke(this, next);
         }
@@ -276,8 +303,48 @@ internal sealed class TaskbarTracker : IDisposable
             ShouldShow: !fullscreen,
             Rect: rect,
             Dpi: dpi,
-            IsAutoHide: autoHide);
+            IsAutoHide: autoHide,
+            LeftAligned: TaskbarAlignment.IsLeft(),
+            TrayLeft: TrayEdge(_taskbarHwnd, rect));
     }
+
+    /// <summary>
+    /// The left edge of the notification area, in physical pixels, or null if it
+    /// cannot be found.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Windows 11 draws its taskbar in XAML, but Explorer still keeps the old child
+    /// windows and still moves them. <c>TrayNotifyWnd</c> was measured landing within
+    /// a pixel of where UI Automation puts the first tray button, and within a pixel of
+    /// where the chevron is actually drawn, which is what makes a single
+    /// <c>GetWindowRect</c> enough. The task buttons are not knowable this way, and are
+    /// not asked for: <c>MSTaskSwWClass</c> reported a rectangle missing Start, Search,
+    /// Task View and the last two apps.
+    /// </para>
+    /// <para>
+    /// A secondary taskbar carries a clock and no tray icons, so its own class is tried
+    /// after. Anything found has to sit inside the taskbar to be believed, since a
+    /// stale child window that has never been moved reports the origin.
+    /// </para>
+    /// </remarks>
+    private static int? TrayEdge(IntPtr taskbar, RECT bounds)
+    {
+        foreach (var cls in TrayClasses)
+        {
+            var child = FindWindowEx(taskbar, IntPtr.Zero, cls, null);
+            if (child == IntPtr.Zero) continue;
+            if (!GetWindowRect(child, out var tray)) continue;
+            if (tray.Left <= bounds.Left || tray.Left >= bounds.Right) continue;
+
+            return tray.Left;
+        }
+
+        return null;
+    }
+
+    /// <summary>The notification area, on a primary taskbar and on a secondary one.</summary>
+    private static readonly string[] TrayClasses = ["TrayNotifyWnd", "ClockButton"];
 
     private static bool IsAutoHideEnabled()
     {

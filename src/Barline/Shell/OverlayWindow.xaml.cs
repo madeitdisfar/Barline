@@ -18,8 +18,9 @@ using static Barline.Shell.NativeMethods;
 namespace Barline.Shell;
 
 /// <summary>
-/// The widget's host window: a transparent, non-activating overlay pinned to the
-/// left end of the taskbar.
+/// The widget's host window: a transparent, non-activating overlay pinned to
+/// whichever end of the taskbar Windows is not using. See
+/// <see cref="TaskbarState.WidgetLeft"/>.
 /// <para>
 /// It paints no background of its own. The real taskbar's Mica / acrylic material
 /// shows through, so the widget inherits the system backdrop exactly and stays
@@ -30,7 +31,7 @@ namespace Barline.Shell;
 internal partial class OverlayWindow : Window, IAlbumArtSource
 {
     /// <summary>Widget width in logical (DPI-independent) pixels.</summary>
-    private const double WidgetLogicalWidth = 300d;
+    internal const double WidgetLogicalWidth = 300d;
 
     /// <summary>Gap between the taskbar's left edge and the widget, in logical pixels.</summary>
     private const double LeftInsetLogical = 0d;
@@ -732,7 +733,9 @@ internal partial class OverlayWindow : Window, IAlbumArtSource
 
         int width = (int)Math.Round(WidgetLogicalWidth * scale);
         int height = state.Rect.Height;
-        int x = state.Rect.Left + (int)Math.Round(LeftInsetLogical * scale);
+
+        // Which end of the taskbar is free is the state's business, not the widget's.
+        int x = state.WidgetLeft(width) + (int)Math.Round(LeftInsetLogical * scale);
         int y = state.Rect.Top;
 
         // Position in physical pixels and re-assert topmost in the same call.

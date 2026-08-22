@@ -191,6 +191,10 @@ project. Thank you for your support!
 
 - **One taskbar at a time.** You choose which display Barline appears on, but it
   appears on that one alone rather than on every taskbar at once.
+- **A left-aligned taskbar can still fill up.** Barline moves to the far end, beside
+  the clock, when your taskbar buttons are aligned left. Open enough windows and the
+  buttons grow far enough right to reach it, since Windows decides when to collapse
+  them without knowing Barline is there.
 - **The visualizer hears everything**, not just the media session on display, so other
   system audio moves the bars.
 - **Click-to-focus is best-effort.** Windows identifies media sessions in a way that

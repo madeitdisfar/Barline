@@ -59,6 +59,38 @@ back. It also retries for a few seconds afterwards: Explorer creates the new
 taskbar some time after the event that announced the monitor, so a single attempt
 looks at a desktop that does not have it yet.
 
+### Which end
+
+The widget takes the left end of the taskbar, which is empty on the centered taskbar
+Windows 11 ships with. Set the taskbar to the left instead and that end is Start, so
+the widget crosses to the far end and parks against the notification area, the only
+stretch a left-aligned taskbar leaves free.
+
+Finding that stretch means finding where the tray begins. Windows 11 draws its taskbar
+in XAML, but Explorer still keeps the old child windows and still moves them:
+`TrayNotifyWnd` was measured landing within a pixel of where UI Automation puts the
+first tray button, and within a pixel of where the chevron is actually drawn. One
+`GetWindowRect` is enough, with no UI Automation and nothing to keep in step.
+
+The task buttons are *not* knowable that way, which is worth knowing before leaning on
+any of these windows. `MSTaskSwWClass` reported 1132..1660 while the buttons really ran
+1043..1837, missing Start, Search, Task View and the last two apps. Only the XAML tree
+has that truth. So the widget is placed against the one edge the legacy windows still
+get right, and never against the buttons.
+
+Which end to take is read from `TaskbarAl`, the setting itself, since there is no
+window to measure for it and no shell API that reports it. It is read on the same
+one-second reconcile as everything else, so switching alignment moves the widget
+without a registry watcher, and an absent or unexpected value counts as centered:
+every existing user has the widget at the left end, and it should take Windows saying
+plainly otherwise to move it.
+
+Two things this does not solve. Left-aligned buttons grow rightward as windows open,
+and Windows only starts overflowing them when they fill the whole taskbar, which it
+measures without knowing the widget is there, so enough windows will still reach it.
+And a right-to-left Windows mirrors the taskbar; the clamp keeps the widget on the
+taskbar there, but the placement has not been tested on one.
+
 ### The tray menu is WPF
 
 The notification area's menu was a WinForms `ContextMenuStrip` for as long as the tray
@@ -479,7 +511,8 @@ animating, rather than a screenshot. A picture would be wrong on a light theme, 
 at a different accent, and stale the first time the design moved.
 
 The advice about the Widgets button is shown only when `TaskbarDa` says the button is
-actually there. Most of the setup advice an app can give is advice the reader has
+actually there, and only when the two would collide at all: the button sits at the left
+end of the taskbar, which the widget leaves when the taskbar is aligned left. Most of the setup advice an app can give is advice the reader has
 already followed, and being told to undo something you never did is how a first run
 starts to feel like a lecture. An unreadable or absent value counts as *visible*: the
 cost is asymmetric, since an unneeded hint is read once and ignored, where a silent

@@ -48,8 +48,22 @@ internal partial class WelcomeWindow : Window
         // The override exists because the notice is invisible on any machine set up
         // the way this one asks you to set it up, so the branch could otherwise only
         // be looked at by changing a Windows setting to inspect a window.
+        // Pointing at the wrong end of the taskbar is worse than not pointing at all,
+        // and the reader is looking at their own taskbar while they read this.
+        if (TaskbarAlignment.IsLeft())
+        {
+            WhereItLives.Text =
+                "It lives at the right end of your taskbar, beside the clock, " +
+                "and looks like this.";
+        }
+
+        // Only when the two would actually collide. The Widgets button sits at the
+        // left end of the taskbar, which is where the widget is until Windows is set to
+        // align its own buttons left and the widget crosses to the notification area.
+        // Being told to turn something off to make room is worse than useless once the
+        // room has been made another way.
         bool widgetsShowing =
-            WidgetsButton.IsVisible() ||
+            (WidgetsButton.IsVisible() && !TaskbarAlignment.IsLeft()) ||
             DevOverride.Read("BARLINE_WELCOME") == "widgets";
 
         if (widgetsShowing)
