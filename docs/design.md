@@ -85,6 +85,17 @@ without a registry watcher, and an absent or unexpected value counts as centered
 every existing user has the widget at the left end, and it should take Windows saying
 plainly otherwise to move it.
 
+Moves along the taskbar are animated, over the same quarter second and the same Fluent
+curve as everything else in the widget: arriving somewhere else instantly reads as a
+glitch rather than as a move, and gives no sense that it is the same widget. Only moves
+along a taskbar that has not otherwise changed are eased, which is exactly the two
+things that move the widget while somebody is watching, the tray changing width and the
+alignment changing. The widget is a satellite, and one that eased into position would
+trail its taskbar through an auto-hide, a resolution change or a jump to another
+display. What is animated is the window rather than what is drawn in it: the widget
+paints to its edges, so a render transform would slide the content out of a frame that
+stayed where it was.
+
 The lyrics panel's widget position crosses with it, and hangs from the same end of the
 screen rather than from the widget's own edge. The panel is narrower than the widget,
 so lining the two up would leave it floating short of the corner at one end and past

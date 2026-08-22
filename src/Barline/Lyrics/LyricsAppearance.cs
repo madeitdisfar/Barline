@@ -63,7 +63,7 @@ internal enum LyricsDisplayMode
 /// <summary>Where the lyrics panel sits on screen.</summary>
 internal enum LyricsPanelPosition
 {
-    /// <summary>Just above the widget, tracking the taskbar's left edge.</summary>
+    /// <summary>Just above the widget, at whichever end of the screen it is at.</summary>
     AboveWidget,
 
     /// <summary>Centered horizontally, just above the taskbar.</summary>

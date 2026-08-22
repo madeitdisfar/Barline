@@ -146,6 +146,14 @@ internal partial class OverlayWindow : Window, IAlbumArtSource
     private IntPtr _hwnd;
     private IntPtr _ownerHandle;
     private TrackInfo? _track;
+    /// <summary>Carries the widget across when its end of the taskbar moves.</summary>
+    private readonly Slide _slide = new();
+
+    /// <summary>The placement the widget is currently sitting at, if it is on screen.</summary>
+    private RECT _placedAgainst;
+    private int _placedX;
+    private bool _onScreen;
+
     private bool _hovered;
     private bool _visualizerEnabled = true;
 
@@ -738,11 +746,30 @@ internal partial class OverlayWindow : Window, IAlbumArtSource
         int x = state.WidgetLeft(width) + (int)Math.Round(LeftInsetLogical * scale);
         int y = state.Rect.Top;
 
-        // Position in physical pixels and re-assert topmost in the same call.
-        // Re-asserting on every taskbar change keeps the widget above other
-        // topmost windows; ownership (below) keeps it above the taskbar itself.
-        SetWindowPos(_hwnd, HWND_TOPMOST, x, y, width, height,
-            SWP_NOACTIVATE | SWP_SHOWWINDOW);
+        // Only a move along a taskbar that has not otherwise changed is worth animating,
+        // which is exactly the two things that move the widget while somebody is looking
+        // at it: the tray changing width, and the taskbar's alignment changing. Anything
+        // that moved the taskbar itself has to be matched at once instead. The widget is
+        // a satellite, and a satellite that eased into position would trail its taskbar
+        // through an auto-hide, a resolution change or a jump to another display.
+        if (_onScreen && x != _placedX && state.Rect.Equals(_placedAgainst))
+        {
+            _slide.Run(_hwnd, x, y);
+        }
+        else
+        {
+            _slide.Stop();
+
+            // Position in physical pixels and re-assert topmost in the same call.
+            // Re-asserting on every taskbar change keeps the widget above other
+            // topmost windows; ownership (below) keeps it above the taskbar itself.
+            SetWindowPos(_hwnd, HWND_TOPMOST, x, y, width, height,
+                SWP_NOACTIVATE | SWP_SHOWWINDOW);
+        }
+
+        _placedAgainst = state.Rect;
+        _placedX = x;
+        _onScreen = true;
     }
 
     /// <summary>
@@ -835,6 +862,9 @@ internal partial class OverlayWindow : Window, IAlbumArtSource
         _panel?.HideNow();
 
         if (_hwnd == IntPtr.Zero) return;
+
+        _slide.Stop();
+        _onScreen = false;
 
         SetWindowPos(_hwnd, HWND_TOPMOST, 0, 0, 0, 0,
             SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_HIDEWINDOW);

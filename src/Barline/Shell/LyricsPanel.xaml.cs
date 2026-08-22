@@ -66,6 +66,12 @@ internal partial class LyricsPanel : Window
     private int _placedWidth;
     private int _placedHeight;
 
+    /// <summary>Carries the panel across with the widget. See <see cref="Slide"/>.</summary>
+    private readonly Slide _slide = new();
+
+    private RECT _placedAgainst;
+    private bool _onScreen;
+
     /// <summary>
     /// The current line split into words, with a start for each — taken from the file
     /// when it carries word timing, and estimated from the line when it does not.
@@ -211,6 +217,9 @@ internal partial class LyricsPanel : Window
 
         if (hidden)
         {
+            _slide.Stop();
+            _onScreen = false;
+
             SetWindowPos(_hwnd, HWND_TOPMOST, 0, 0, 0, 0,
                 SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_HIDEWINDOW);
             return;
@@ -265,8 +274,33 @@ internal partial class LyricsPanel : Window
                 break;
         }
 
-        SetWindowPos(_hwnd, HWND_TOPMOST, x, y, width, height,
-            SWP_NOACTIVATE | SWP_SHOWWINDOW);
+        // Alongside the widget, and only when following it is what moved the panel.
+        // The anchors that do not track the taskbar are set from the settings window,
+        // where a slider is being dragged and a quarter second of easing behind every
+        // step would feel like lag rather than polish.
+        bool follows =
+            _onScreen &&
+            style.Position == LyricsPanelPosition.AboveWidget &&
+            x != _placedX &&
+            y == _placedY &&
+            width == _placedWidth &&
+            height == _placedHeight &&
+            state.Rect.Equals(_placedAgainst);
+
+        if (follows)
+        {
+            _slide.Run(_hwnd, x, y);
+        }
+        else
+        {
+            _slide.Stop();
+
+            SetWindowPos(_hwnd, HWND_TOPMOST, x, y, width, height,
+                SWP_NOACTIVATE | SWP_SHOWWINDOW);
+        }
+
+        _placedAgainst = state.Rect;
+        _onScreen = true;
 
         _placedX = x;
         _placedY = y;
