@@ -549,6 +549,33 @@
             </Setter>
         </Style>
 
+        <!-- The filled half of a slider track. It is the track's decrease button,
+             which already spans exactly the stretch from the start to the knob, so
+             there is nothing to measure and nothing to keep in step with the value.
+
+             The negative margin carries the bar the last half-knob to the value
+             itself: the button stops at the knob's left edge, and the gap that leaves
+             between the fill and the knob reads as a break in the track. -->
+        <Style x:Key="SliderFill" TargetType="RepeatButton">
+            <Setter Property="Focusable" Value="False" />
+            <Setter Property="IsTabStop" Value="False" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="RepeatButton">
+                        <!-- Transparent behind the bar, so the full height of the track
+                             takes a click here exactly as it does on the unfilled half. -->
+                        <Grid Background="Transparent">
+                            <Border Height="4"
+                                    Margin="0,0,-10,0"
+                                    CornerRadius="2"
+                                    VerticalAlignment="Center"
+                                    Background="{DynamicResource AccentFillBrush}" />
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <!-- Windows 11 slider: a thin track with the filled portion in the accent and
              a ringed knob that grows on hover. -->
         <Style x:Key="CardSlider" TargetType="Slider">
@@ -564,10 +591,7 @@
                                     Opacity="0.45" />
                             <Track x:Name="PART_Track">
                                 <Track.DecreaseRepeatButton>
-                                    <!-- Dynamic, not static: this style is declared
-                                         further down the dictionary, and a static
-                                         reference only sees what precedes it. -->
-                                    <RepeatButton Style="{DynamicResource ScrollPageButton}"
+                                    <RepeatButton Style="{StaticResource SliderFill}"
                                                   Command="Slider.DecreaseLarge" />
                                 </Track.DecreaseRepeatButton>
                                 <Track.IncreaseRepeatButton>
