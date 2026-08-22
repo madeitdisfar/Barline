@@ -121,6 +121,26 @@ internal partial class OverlayWindow : Window, IAlbumArtSource
     /// </remarks>
     private readonly DispatcherTimer _reassert;
 
+    /// <summary>
+    /// A test for the app's own flyout being on screen, or null before one is given.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The tray menu opens above everything and <see cref="Reassert"/> put the widget
+    /// back on top of it one tick later. Measured on a bottom taskbar: the flyout was
+    /// first in the topmost band the instant it appeared, and behind both the widget
+    /// and the lyrics panel 400ms after that. The panel rides up too because a
+    /// <c>SetWindowPos</c> raising an owned window carries its owner with it, and
+    /// everything Barline puts on the taskbar is owned by <c>Shell_TrayWnd</c>.
+    /// </para>
+    /// <para>
+    /// A question asked each tick rather than a timer stopped and started, so there is
+    /// nothing to turn back on. However the flyout ends, the next tick asks again and
+    /// the widget resumes by itself.
+    /// </para>
+    /// </remarks>
+    private Func<bool>? _flyoutOpen;
+
     private uint _taskbarCreatedMessage;
     private IntPtr _hwnd;
     private IntPtr _ownerHandle;
@@ -755,12 +775,21 @@ internal partial class OverlayWindow : Window, IAlbumArtSource
     {
         if (_hwnd == IntPtr.Zero) return;
 
+        // Our own menu is the one topmost window the widget should not climb over.
+        if (_flyoutOpen?.Invoke() == true) return;
+
         var state = _tracker.Current;
         if (!state.IsAvailable || !state.ShouldShow || _track?.HasContent != true) return;
 
         SetWindowPos(_hwnd, HWND_TOPMOST, 0, 0, 0, 0,
             SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_SHOWWINDOW);
     }
+
+    /// <summary>
+    /// Gives the widget a way to tell when the app's own flyout is up, which is the
+    /// one thing it stands aside for. See <see cref="_flyoutOpen"/>.
+    /// </summary>
+    public void YieldTo(Func<bool> flyoutOpen) => _flyoutOpen = flyoutOpen;
 
     /// <summary>
     /// Makes the taskbar the widget's owner window.

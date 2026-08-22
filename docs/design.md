@@ -76,7 +76,7 @@ whose entire purpose was to make a 2005 control look like Windows 11. The menu i
 WPF `ContextMenu` with a styled template. Nothing in it multiplies by a DPI scale: the
 app declares PerMonitorV2 and WPF honors it, so the sizes are logical units and a
 display at another scale is not a case to compensate for. Measured, the flyout is the
-same 157x174 logical on a 200% and a 150% display. It also reads the theme's brushes
+same 143.5x162 logical on a 200% and a 150% display. It also reads the theme's brushes
 directly rather than flattening their alpha by hand, GDI having no compositing.
 
 Two things had to be arranged. The flyout hangs from a one-pixel invisible window moved
@@ -99,6 +99,17 @@ taskbar set to hide itself reserves no working area, though, so a second pass pu
 anchor off the taskbar's own rectangle, across it rather than along it and inward rather
 than toward the nearest edge. The nearest edge of a taskbar along the bottom is the
 bottom of the screen.
+
+That cleared the widget but not the lyrics panel, which sits directly above it. Both are
+topmost and the flyout was losing to them: the widget re-asserts `HWND_TOPMOST` every
+400ms so Show Desktop cannot leave it uncomposited, and one tick after the flyout opened
+it was back on top of it. The panel rode up as well, because a `SetWindowPos` that raises
+an owned window carries its owner with it and everything Barline puts on the taskbar is
+owned by `Shell_TrayWnd`. Measured on a bottom taskbar: the flyout was first in the
+topmost band the instant it appeared, and third 400ms later. The timer now asks whether
+the app's own menu is up and skips the tick while it is. A question asked each tick
+rather than a timer stopped and started, so nothing has to be turned back on: however the
+flyout ends, the next tick asks again and the widget resumes by itself.
 
 One more thing follows from building the menu per opening. Right-clicking the tray while
 the flyout is up dismisses it and opens another, and the dismissal finishes after the

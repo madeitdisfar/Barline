@@ -116,6 +116,9 @@ internal sealed class TrayIcon : IDisposable
     /// </summary>
     public void SetVisualizerChecked(bool enabled) => _menu.SetVisualizerChecked(enabled);
 
+    /// <summary>Whether the menu is on screen.</summary>
+    public bool MenuIsOpen => _menu.IsOpen;
+
     /// <summary>
     /// Draws the tray icon rather than shipping an .ico, so it always matches the
     /// widget's own visualizer motif and stays crisp at any tray size.

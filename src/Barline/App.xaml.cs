@@ -101,6 +101,10 @@ public partial class App : Application
         tray.SettingsRequested += (_, _) => ShowSettings(theme, settings, autoStart, window, media, lyrics, license);
         window.ContextMenuRequested += (_, _) => tray.ShowContextMenu();
 
+        // The widget holds the top of the z-order against everything except the menu
+        // it opens itself, which would otherwise be buried by the next reassert.
+        window.YieldTo(() => tray.MenuIsOpen);
+
         tray.VisualizerToggled += (_, enabled) =>
         {
             window.VisualizerEnabled = enabled;

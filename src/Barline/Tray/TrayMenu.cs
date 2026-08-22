@@ -73,6 +73,13 @@ internal sealed class TrayMenu : IDisposable
 
     private ContextMenu? _open;
 
+    /// <summary>Whether the flyout is on screen.</summary>
+    /// <remarks>
+    /// Read by the widget, which stops climbing back to the top of the z-order for as
+    /// long as this is true. See <c>OverlayWindow.YieldTo</c>.
+    /// </remarks>
+    public bool IsOpen => _open is not null;
+
     public event EventHandler? ExitRequested;
     public event EventHandler<bool>? VisualizerToggled;
     public event EventHandler? RestartVisualizerRequested;
