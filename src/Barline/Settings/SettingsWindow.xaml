@@ -6,7 +6,7 @@
         Title="Barline"
         Width="560" Height="805"
         MinWidth="460" MinHeight="420"
-        WindowStartupLocation="CenterScreen"
+        WindowStartupLocation="Manual"
         UseLayoutRounding="True"
         SnapsToDevicePixels="True"
         FontFamily="Segoe UI Variable Text, Segoe UI"

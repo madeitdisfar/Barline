@@ -410,6 +410,23 @@ than asserting a default it never chose.
 
 ## Settings storage
 
+The window opens on the display the pointer is on, sized to fit that display's work
+area. WPF's `CenterScreen` was doing neither: it centers on a display it picks itself,
+and sizes in units of the primary display's scale. Both assumptions fail on a desk with
+two screens at different scales, and the failure is not cosmetic. On a 1920x1200 display
+at 150%, whose work area is 752 units tall against this window's 805, centering put the
+title bar above the top of the screen, where a window cannot be moved or closed.
+
+The pointer decides which display because both ways of opening this window are clicks,
+and where the pointer is is where the person is looking. The size is measured against
+the work area rather than the screen, so a taskbar cannot swallow the bottom of it
+either, and trimming costs nothing that cannot be scrolled to.
+
+The placement is applied twice. Landing on a display at another scale raises
+`WM_DPICHANGED`, and WPF answers that by rescaling the window it was just given:
+measured, 840x1092 came back as 690x819. The second call crosses no boundary and so is
+left alone.
+
 Changes apply and persist immediately. There is no OK or Apply button, matching
 Windows 11 Settings, and the widget is on the taskbar the whole time so every change is
 already previewed where it counts.

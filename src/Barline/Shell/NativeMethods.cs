@@ -55,6 +55,7 @@ internal static class NativeMethods
     internal static readonly IntPtr HWND_TOPMOST = new(-1);
     internal const uint SWP_NOSIZE = 0x0001;
     internal const uint SWP_NOMOVE = 0x0002;
+    internal const uint SWP_NOZORDER = 0x0004;
     internal const uint SWP_NOACTIVATE = 0x0010;
     internal const uint SWP_SHOWWINDOW = 0x0040;
     internal const uint SWP_HIDEWINDOW = 0x0080;
@@ -155,6 +156,19 @@ internal static class NativeMethods
 
     [DllImport("user32.dll")]
     internal static extern uint GetDpiForWindow(IntPtr hWnd);
+
+    internal const int MDT_EFFECTIVE_DPI = 0;
+
+    /// <summary>
+    /// A display's scale, which is not the same question as a window's.
+    /// </summary>
+    /// <remarks>
+    /// Asked when a window has to be sized for a display it is not on yet.
+    /// <c>GetDpiForWindow</c> would answer for the display it is leaving.
+    /// </remarks>
+    [DllImport("shcore.dll")]
+    internal static extern int GetDpiForMonitor(
+        IntPtr hMonitor, int dpiType, out uint dpiX, out uint dpiY);
 
     // ---- Pointer ----------------------------------------------------------
 

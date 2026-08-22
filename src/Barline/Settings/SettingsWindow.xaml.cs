@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
@@ -13,6 +14,7 @@ using Barline.Platform;
 using Barline.Shell;
 using Barline.Startup;
 using Barline.Ui;
+using static Barline.Shell.NativeMethods;
 
 namespace Barline.Settings;
 
@@ -274,8 +276,72 @@ internal partial class SettingsWindow : Window
     protected override void OnSourceInitialized(EventArgs e)
     {
         base.OnSourceInitialized(e);
+
+        Place();
         ApplyWindowChrome();
     }
+
+    /// <summary>The gap left when the window has to be trimmed to fit a display.</summary>
+    private const double EdgeMarginLogical = 12d;
+
+    /// <summary>
+    /// Puts the window on the display the pointer is on, and inside it.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// WPF's <c>CenterScreen</c> centers on the primary display and sizes in units of
+    /// the primary display's scale, which is two assumptions this app cannot make: the
+    /// widget can be riding a second display's taskbar, and that display can be at
+    /// another scale. Measured on a 1920x1080 display at 150%, whose work area is 700
+    /// units tall against this window's 805: it was centered anyway, which put its
+    /// title bar above the top of the screen, where a window cannot be moved or closed.
+    /// </para>
+    /// <para>
+    /// The pointer decides which display, because both ways of opening this window are
+    /// clicks, and where the pointer is is where the person is looking. The size is
+    /// trimmed to the work area rather than the screen, so it never lands under the
+    /// taskbar either, and the window is a scroller: a short one shows less at a time
+    /// rather than losing anything.
+    /// </para>
+    /// </remarks>
+    private void Place()
+    {
+        var handle = new WindowInteropHelper(this).Handle;
+        if (handle == IntPtr.Zero) return;
+
+        if (!GetCursorPos(out var cursor)) return;
+
+        var monitor = MonitorFromPoint(cursor, MONITOR_DEFAULTTONEAREST);
+        if (monitor == IntPtr.Zero) return;
+
+        var info = new MONITORINFO { cbSize = Marshal.SizeOf<MONITORINFO>() };
+        if (!GetMonitorInfo(monitor, ref info)) return;
+
+        // The display's scale rather than the window's: the window is still on
+        // whichever display Windows first put it on, and may be about to leave it.
+        if (GetDpiForMonitor(monitor, MDT_EFFECTIVE_DPI, out uint dpi, out _) != 0 || dpi == 0)
+            dpi = 96;
+
+        double scale = dpi / 96d;
+        var work = info.rcWork;
+
+        int margin = (int)Math.Round(EdgeMarginLogical * scale);
+        int width = Math.Min((int)Math.Round(Width * scale), work.Width - (margin * 2));
+        int height = Math.Min((int)Math.Round(Height * scale), work.Height - (margin * 2));
+
+        int x = work.Left + ((work.Width - width) / 2);
+        int y = work.Top + ((work.Height - height) / 2);
+
+        // Twice, because the move itself can change the window's scale. Landing on a
+        // display at another scale raises WM_DPICHANGED, and WPF answers it by
+        // rescaling the window it was just given: measured, 840x1092 came back 690x819.
+        // The second call crosses no boundary and so is left alone.
+        Move(handle, x, y, width, height);
+        Move(handle, x, y, width, height);
+    }
+
+    private static void Move(IntPtr handle, int x, int y, int width, int height) =>
+        SetWindowPos(handle, IntPtr.Zero, x, y, width, height, SWP_NOZORDER | SWP_NOACTIVATE);
 
     private void ApplyWindowChrome()
     {
