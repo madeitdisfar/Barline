@@ -39,6 +39,9 @@ internal sealed class TrayIcon : IDisposable
     /// <summary>Redrawn whenever the theme moves, so it is never the wrong ink.</summary>
     private Icon _icon;
 
+    /// <summary>Whether the icon is carrying the update dot.</summary>
+    private bool _update;
+
     private bool _disposed;
 
     public event EventHandler? ExitRequested;
@@ -46,6 +49,7 @@ internal sealed class TrayIcon : IDisposable
     public event EventHandler? RestartVisualizerRequested;
     public event EventHandler? RestartRequested;
     public event EventHandler? SettingsRequested;
+    public event EventHandler? UpdateRequested;
 
     public TrayIcon(WidgetSettings settings, Theme theme)
     {
@@ -57,8 +61,9 @@ internal sealed class TrayIcon : IDisposable
         _menu.RestartVisualizerRequested += (_, e) => RestartVisualizerRequested?.Invoke(this, e);
         _menu.RestartRequested += (_, e) => RestartRequested?.Invoke(this, e);
         _menu.SettingsRequested += (_, e) => SettingsRequested?.Invoke(this, e);
+        _menu.UpdateRequested += (_, e) => UpdateRequested?.Invoke(this, e);
 
-        _icon = CreateIcon(_theme);
+        _icon = CreateIcon(_theme, _update);
         _notifyIcon = new NotifyIcon
         {
             Icon = _icon,
@@ -102,7 +107,7 @@ internal sealed class TrayIcon : IDisposable
     {
         var previous = _icon;
 
-        _icon = CreateIcon(_theme);
+        _icon = CreateIcon(_theme, _update);
         _notifyIcon.Icon = _icon;
 
         IntPtr handle = previous.Handle;
@@ -120,6 +125,26 @@ internal sealed class TrayIcon : IDisposable
     public bool MenuIsOpen => _menu.IsOpen;
 
     /// <summary>
+    /// Says that an update is waiting, which the icon and the menu both show.
+    /// </summary>
+    /// <remarks>
+    /// The icon is the point of it. A user who never opens the settings window would
+    /// otherwise never learn there is anything to install, and the notification area is
+    /// the one piece of this app that is on screen whether or not anything is playing.
+    /// A dot is also as loud as this deserves to be: nothing is wrong, and the app the
+    /// user already has keeps working.
+    /// </remarks>
+    public void SetUpdateAvailable(bool available, string? version)
+    {
+        _menu.SetUpdateAvailable(available, version);
+
+        if (available == _update) return;
+
+        _update = available;
+        RefreshIcon();
+    }
+
+    /// <summary>
     /// Draws the tray icon rather than shipping an .ico, so it always matches the
     /// widget's own visualizer motif and stays crisp at any tray size.
     /// </summary>
@@ -129,7 +154,8 @@ internal sealed class TrayIcon : IDisposable
     /// invisible against a light one, and a shipped .ico would have had to be two files
     /// and a choice between them.
     /// </remarks>
-    private static Icon CreateIcon(Theme theme)
+    /// <param name="update">Whether to mark the icon with the update dot.</param>
+    private static Icon CreateIcon(Theme theme, bool update)
     {
         using var bitmap = new Bitmap(32, 32);
         using (var g = Graphics.FromImage(bitmap))
@@ -155,11 +181,42 @@ internal sealed class TrayIcon : IDisposable
                 g.DrawLine(pen, x, 16f - half, x, 16f + half);
                 x += 7f;
             }
+
+            if (update) DrawUpdateDot(g, theme);
         }
 
         // Icon.FromHandle does not own the handle, so the HICON is released in Dispose.
         IntPtr handle = bitmap.GetHicon();
         return Icon.FromHandle(handle);
+    }
+
+    /// <summary>
+    /// Marks the icon with an accent dot in the corner.
+    /// </summary>
+    /// <remarks>
+    /// The gap around it is punched out of what is already drawn rather than filled
+    /// with a background color, because the notification area's background is the
+    /// taskbar's material and no color would match it. Copying transparency over the
+    /// bars leaves a real hole, which reads correctly on any taskbar and at the 16px
+    /// the tray usually draws this at.
+    /// </remarks>
+    private static void DrawUpdateDot(Graphics g, Theme theme)
+    {
+        var previous = g.CompositingMode;
+
+        g.CompositingMode = CompositingMode.SourceCopy;
+        using (var hole = new SolidBrush(Color.Transparent))
+        {
+            g.FillEllipse(hole, 15f, 15f, 17f, 17f);
+        }
+
+        g.CompositingMode = previous;
+
+        var accent = theme.Accent;
+        using var brush = new SolidBrush(
+            Color.FromArgb(accent.A, accent.R, accent.G, accent.B));
+
+        g.FillEllipse(brush, 18f, 18f, 12f, 12f);
     }
 
     /// <summary>The theme's primary text color, as GDI wants it.</summary>

@@ -571,6 +571,43 @@ starts to feel like a lecture. An unreadable or absent value counts as *visible*
 cost is asymmetric, since an unneeded hint is read once and ignored, where a silent
 overlap looks like the app is broken.
 
+## Updates, and why the app asks about them
+
+The Store updates apps by itself, so an app that told you about a new version would
+normally be telling you about something Windows has already handled. Barline is the
+exception, for a reason particular to what it is: a package cannot be replaced while
+its processes are running, and this one runs from sign-in until shutdown.
+
+Observed on a machine a release had been published to: the silent update never applied
+while the widget was up. Driving it by hand from the Store downloaded the payload,
+finished, and then offered a **Retry** — the registration could not complete with the
+app holding the package. Retry closed Barline and the update landed. Nothing started
+the app again afterwards.
+
+So the update waits for a restart, which on a laptop that only sleeps can be weeks
+away, and when it does land the widget disappears from the taskbar with no explanation.
+Rather than depend on knowing exactly what the Store does unattended, the app asks
+whether an update is waiting and offers to install it. That puts both the timing and
+the wording in the app's hands and makes the question moot.
+
+It is asked a minute after startup and daily after that, through the same
+`StoreContext` the add-on is bought with, and never at all on a build with no package
+identity. A minute, because the first minute after sign-in belongs to everything else
+starting; daily, because nothing about a release clearing certification is urgent.
+
+Three surfaces, none of them a notification. A dot drawn into the tray icon, which is
+the only part of the app that is on screen whether or not anything is playing and the
+only one a user who never opens settings will see. An item at the top of the tray menu,
+naming the version. And a card at the top of the settings window, with the button that
+does it. A toast was considered and rejected: it would arrive at sign-in, about
+something that is not wrong, into the one channel people have learned to resent, and
+Focus Assist would swallow it half the time anyway.
+
+The install closes the app, and the wording says exactly that and no more.
+`RegisterApplicationRestart` asks Windows to start it again afterwards, but it is the
+installer that decides whether to honor that, so it is a bonus rather than a promise.
+Until it has been watched happening on a real Store release, the card does not claim it.
+
 ## About, and why it is not decoration
 
 The `LICENSE` and `THIRD-PARTY-NOTICES.md` files are copied beside the executable by

@@ -1,6 +1,7 @@
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Interop;
+using System.Windows.Threading;
 using Microsoft.Win32;
 using Barline.Audio;
 using Barline.Diagnostics;
@@ -52,6 +53,7 @@ public partial class App : Application
     private LoopbackAnalyzer? _analyzer;
     private TrayIcon? _tray;
     private SettingsWindow? _settingsWindow;
+    private DispatcherTimer? _updateTimer;
 
     protected override void OnStartup(StartupEventArgs e)
     {
@@ -93,12 +95,22 @@ public partial class App : Application
         window.VisualizerEnabled = settings.Current.VisualizerEnabled;
 
         var autoStart = new AutoStartService();
+        var updates = new StoreUpdates();
         var tray = new TrayIcon(settings.Current, theme);
 
         tray.ExitRequested += (_, _) => Shutdown();
         tray.RestartVisualizerRequested += (_, _) => analyzer.Restart();
         tray.RestartRequested += (_, _) => Restart();
-        tray.SettingsRequested += (_, _) => ShowSettings(theme, settings, autoStart, window, media, lyrics, license);
+        tray.SettingsRequested += (_, _) =>
+            ShowSettings(theme, settings, autoStart, window, media, lyrics, license, updates);
+
+        // The menu's own entry opens the settings window rather than starting the
+        // install from under the pointer. Closing the app is not something to do to
+        // somebody who has just opened a menu, and the card says what will happen.
+        tray.UpdateRequested += (_, _) =>
+            ShowSettings(theme, settings, autoStart, window, media, lyrics, license, updates);
+
+        updates.Changed += (_, _) => tray.SetUpdateAvailable(updates.Available, updates.Version);
         window.ContextMenuRequested += (_, _) => tray.ShowContextMenu();
 
         // The widget holds the top of the z-order against everything except the menu
@@ -141,6 +153,8 @@ public partial class App : Application
         // must be on the taskbar whether or not the Store ever answers.
         _ = AskTheStore(window, settings, license);
 
+        WatchForUpdates(window, updates);
+
         // Same pattern: shown so the handle exists, then it hides itself until there
         // is a lyric to put in it.
         var panel = new LyricsPanel(tracker, media, settings, lyrics);
@@ -181,7 +195,7 @@ public partial class App : Application
         // Opened last, after a track exists: iterating on this window otherwise means
         // a tray right-click on every rebuild, and the tray menu is awkward to script.
         if (DevOverride.IsOn("BARLINE_SETTINGS"))
-            ShowSettings(theme, settings, autoStart, window, media, lyrics, license);
+            ShowSettings(theme, settings, autoStart, window, media, lyrics, license, updates);
     }
 
     /// <summary>
@@ -268,6 +282,45 @@ public partial class App : Application
     }
 
     /// <summary>
+    /// Asks the Store about updates, once the app has settled and daily after that.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Delayed rather than immediate, because the first minute after sign-in belongs to
+    /// everything else starting, and an update that has been waiting since yesterday
+    /// can wait another minute. Daily rather than hourly, because the Store publishes a
+    /// release when a submission clears certification and nothing about that is urgent.
+    /// </para>
+    /// <para>
+    /// The widget owns the call. A <c>StoreContext</c> in a desktop process has to be
+    /// handed a window, and the widget is the one window that is always there.
+    /// </para>
+    /// </remarks>
+    private void WatchForUpdates(OverlayWindow window, StoreUpdates updates)
+    {
+        var handle = new WindowInteropHelper(window).Handle;
+
+        if (handle == IntPtr.Zero) return;
+
+        _updateTimer = new DispatcherTimer(DispatcherPriority.Background)
+        {
+            // Waiting a minute to see a card is not a way to iterate on one, so the
+            // override that pretends an update is waiting also shortens the wait.
+            Interval = DevOverride.IsSet("BARLINE_UPDATE")
+                ? TimeSpan.FromSeconds(1)
+                : TimeSpan.FromMinutes(1),
+        };
+
+        _updateTimer.Tick += async (_, _) =>
+        {
+            _updateTimer.Interval = TimeSpan.FromHours(24);
+            await updates.CheckAsync(handle);
+        };
+
+        _updateTimer.Start();
+    }
+
+    /// <summary>
     /// Opens the settings window, or brings the existing one forward.
     /// </summary>
     /// <remarks>
@@ -283,12 +336,13 @@ public partial class App : Application
         OverlayWindow window,
         MediaSessionService media,
         LyricsService lyrics,
-        LicenseService license)
+        LicenseService license,
+        StoreUpdates updates)
     {
         if (_settingsWindow is null)
         {
             _settingsWindow = new SettingsWindow(
-                theme, settings, autoStart, window, media, lyrics, license);
+                theme, settings, autoStart, window, media, lyrics, license, updates);
 
             _settingsWindow.Closed += (_, _) => _settingsWindow = null;
             _settingsWindow.Show();
@@ -316,6 +370,7 @@ public partial class App : Application
     {
         SystemEvents.PowerModeChanged -= OnPowerModeChanged;
 
+        _updateTimer?.Stop();
         _tray?.Dispose();
         _analyzer?.Dispose();
         _media?.Dispose();

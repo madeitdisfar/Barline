@@ -1,13 +1,14 @@
 # Privacy policy
 
-**Barline**. Last updated 12 August 2026.
+**Barline**. Last updated 23 August 2026.
 
 Barline collects nothing. The app contains no analytics, no telemetry, no crash
 reporting, no account, and no advertising. Nothing you do in the app is reported to its
 author, and the app never sees your identity.
 
-The app makes exactly one kind of network request, described below. Everything else
-it needs stays on your machine.
+The app makes two kinds of request, both described below: looking up lyrics, and, in
+the Microsoft Store build, asking Windows about your license and about app updates.
+Everything else it needs stays on your machine.
 
 Installing from the Microsoft Store adds reporting that Barline does not perform and
 cannot switch off. It is described under [The Microsoft Store
@@ -36,7 +37,24 @@ once rather than once per play. Your network connection exposes the request to
 LRCLIB and to anyone able to observe your traffic, as with any web request. LRCLIB's
 own handling of requests is governed by its operators, not by this policy.
 
-**If lyrics are off, Barline makes no network requests at all.**
+**If lyrics are off, Barline makes no lyrics requests at all.**
+
+### Asking the Store
+
+**Only in the Microsoft Store build.** That build asks Windows two questions through
+the Store APIs built into the system: whether this machine owns the paid add-on, and
+whether a newer version of Barline is waiting to be installed. The license question is
+asked at startup; the update question a minute after startup and once a day after that.
+
+These are calls to Windows, which answers them from the Store. Barline sends nothing of
+its own with them: no identifier it invented, nothing about what you are playing, and
+no record of how you use the app. Whatever your device tells Microsoft in the course of
+answering is Microsoft's, under the [Microsoft Privacy
+Statement](https://privacy.microsoft.com/privacystatement), and is the same exchange
+that installing the app from the Store already involves.
+
+**A build from source asks neither question.** There is no Store to ask, and it is
+updated by replacing it.
 
 ## What is stored on your computer
 

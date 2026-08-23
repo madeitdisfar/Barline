@@ -82,6 +82,7 @@ internal partial class SettingsWindow : Window
     private readonly LyricsPresetStore _presets = new();
 
     private readonly LicenseService _license;
+    private readonly StoreUpdates _updates;
 
     /// <summary>
     /// The style the card is editing — which is the only one there is. Two of them, one
@@ -115,7 +116,8 @@ internal partial class SettingsWindow : Window
         IAlbumArtSource albumArt,
         MediaSessionService media,
         LyricsService lyrics,
-        LicenseService license)
+        LicenseService license,
+        StoreUpdates updates)
     {
         _theme = theme;
         _settings = settings;
@@ -124,6 +126,7 @@ internal partial class SettingsWindow : Window
         _media = media;
         _lyrics = lyrics;
         _license = license;
+        _updates = updates;
         _preview = new BarColorResolver(theme, settings);
 
         InitializeComponent();
@@ -251,6 +254,7 @@ internal partial class SettingsWindow : Window
 
         SetUpAbout();
         SetUpLicense();
+        SetUpUpdates();
 
         _theme.Changed += OnThemeChanged;
         _settings.Changed += OnSettingsChanged;
@@ -267,6 +271,7 @@ internal partial class SettingsWindow : Window
             _settings.Changed -= OnSettingsChanged;
             _albumArt.AlbumArtChanged -= OnAlbumArtChanged;
             _media.TrackChanged -= OnMediaTrackChanged;
+            _updates.Changed -= OnUpdateAvailability;
         };
 
         ApplyTheme();
@@ -1351,6 +1356,64 @@ internal partial class SettingsWindow : Window
             : $"Saving your own presets is part of {LicenseService.ProductName}.");
 
         SetUpPurchase();
+    }
+
+    /// <summary>
+    /// The card that offers the update, which is hidden whenever there is not one.
+    /// </summary>
+    /// <remarks>
+    /// Subscribed as well as read, because the window can be open when the daily check
+    /// lands, and a settings window that knew about an update and did not say so would
+    /// be the one place a user went to look.
+    /// </remarks>
+    private void SetUpUpdates()
+    {
+        UpdateButton.Click += async (_, _) => await UpdateAsync();
+
+        _updates.Changed += OnUpdateAvailability;
+        ShowUpdate();
+    }
+
+    private void OnUpdateAvailability(object? sender, EventArgs e) =>
+        Dispatcher.BeginInvoke(new Action(ShowUpdate));
+
+    private void ShowUpdate()
+    {
+        UpdateCard.Visibility = _updates.Available ? Visibility.Visible : Visibility.Collapsed;
+
+        if (!_updates.Available) return;
+
+        UpdateLabel.Text = _updates.Version is { } version
+            ? $"Barline {version} is available"
+            : "An update is available";
+
+        // What happens next, in the words it will happen in. The Store closes the app
+        // to replace the package it is running from, and whether anything starts it
+        // again afterwards is the installer's decision rather than ours, so this
+        // promises only the part that is certain.
+        Say(UpdateDescription, "Barline closes to install it.");
+    }
+
+    private async Task UpdateAsync()
+    {
+        UpdateButton.IsEnabled = false;
+        Say(UpdateDescription, "Asking the Store…");
+
+        var outcome = await _updates.InstallAsync(new WindowInteropHelper(this).Handle);
+
+        // Only reached if the app is still alive, which for a completed install it
+        // usually is not: the process is ended to replace the package under it.
+        UpdateButton.IsEnabled = true;
+
+        Say(UpdateDescription, outcome switch
+        {
+            UpdateOutcome.Started => "Installing. Barline closes to finish.",
+            UpdateOutcome.NothingToDo => "Barline is already up to date.",
+            UpdateOutcome.Canceled => "Nothing was installed.",
+            _ => "The Store could not install the update just now. Try again later.",
+        });
+
+        if (outcome == UpdateOutcome.NothingToDo) ShowUpdate();
     }
 
     /// <summary>

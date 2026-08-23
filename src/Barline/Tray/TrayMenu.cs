@@ -71,6 +71,16 @@ internal sealed class TrayMenu : IDisposable
     /// </remarks>
     private bool _visualizerChecked;
 
+    /// <summary>
+    /// The version waiting in the Store, or null when there is nothing to install.
+    /// </summary>
+    /// <remarks>
+    /// Kept here for the same reason as the checkmark: the menu is built fresh for each
+    /// opening, so the item that names the version has nowhere of its own to remember
+    /// it. An update that lands while the menu is open is picked up the next time it is.
+    /// </remarks>
+    private string? _update;
+
     private ContextMenu? _open;
 
     /// <summary>Whether the flyout is on screen.</summary>
@@ -85,6 +95,7 @@ internal sealed class TrayMenu : IDisposable
     public event EventHandler? RestartVisualizerRequested;
     public event EventHandler? RestartRequested;
     public event EventHandler? SettingsRequested;
+    public event EventHandler? UpdateRequested;
 
     public TrayMenu(WidgetSettings settings, Theme theme)
     {
@@ -228,6 +239,28 @@ internal sealed class TrayMenu : IDisposable
     public void SetVisualizerChecked(bool enabled) => _visualizerChecked = enabled;
 
     /// <summary>
+    /// Says whether an update is waiting, and which one.
+    /// </summary>
+    /// <remarks>
+    /// A version that could not be read still counts as an update. What matters to the
+    /// person reading the menu is that there is one, and the item can say so without
+    /// naming it.
+    /// </remarks>
+    public void SetUpdateAvailable(bool available, string? version) =>
+        _update = available ? version ?? string.Empty : null;
+
+    /// <summary>
+    /// What the update item says.
+    /// </summary>
+    /// <remarks>
+    /// The version is worth naming when there is one: it is the difference between an
+    /// item that tells you something and an item that tells you to click it. An empty
+    /// string is the update whose version could not be read, which is still an update.
+    /// </remarks>
+    internal static string UpdateLabel(string version) =>
+        version.Length == 0 ? "Update Barline" : $"Update to {version}";
+
+    /// <summary>
     /// Builds the flyout.
     /// </summary>
     /// <remarks>
@@ -277,6 +310,20 @@ internal sealed class TrayMenu : IDisposable
 
         var itemStyle = (Style)_styles["FluentMenuItem"];
         var separatorStyle = (Style)_styles["FluentSeparator"];
+
+        // First, and only while there is one. It is the only item here that is not
+        // always true, and the only one that goes away by being used.
+        if (_update is { } waiting)
+        {
+            var update = Item(
+                menu,
+                UpdateLabel(waiting),
+                itemStyle,
+                () => UpdateRequested?.Invoke(this, EventArgs.Empty));
+
+            menu.Items.Add(update);
+            menu.Items.Add(new Separator { Style = separatorStyle });
+        }
 
         // Bold, because it is the default action.
         var settings = Item(

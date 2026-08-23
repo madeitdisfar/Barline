@@ -919,6 +919,36 @@
     <ScrollViewer Style="{StaticResource OverlayScrollViewer}">
         <StackPanel Margin="24,16,24,24">
 
+            <!-- === An update is waiting === -->
+
+            <!-- Above everything, and collapsed unless there is something to say. It is
+                 the only card here that is not a setting: it appears on its own and
+                 goes away by being used. -->
+            <Border x:Name="UpdateCard"
+                    Style="{StaticResource Card}"
+                    Margin="0,0,0,16"
+                    Visibility="Collapsed">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0" Margin="0,0,16,0" VerticalAlignment="Center">
+                        <TextBlock x:Name="UpdateLabel"
+                                   Style="{StaticResource CardLabel}"
+                                   Text="Update available" />
+                        <TextBlock x:Name="UpdateDescription"
+                                   Style="{StaticResource CardDescription}"
+                                   Text="Barline closes to install it." />
+                    </StackPanel>
+                    <Button x:Name="UpdateButton"
+                            Grid.Column="1"
+                            Style="{StaticResource AccentCardButton}"
+                            VerticalAlignment="Center"
+                            Content="Update now" />
+                </Grid>
+            </Border>
+
             <!-- === Preview === -->
 
             <TextBlock Style="{StaticResource SectionHeader}"
