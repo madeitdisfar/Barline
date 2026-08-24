@@ -5,7 +5,7 @@
        nothing breaks when it drifts, which is exactly why it drifted: it sat at 1.2.1.0
        through the 2.0.0 work. Not generated, because the manifest has to exist before
        the build reads it. -->
-  <assemblyIdentity version="2.1.1.0" name="Barline.app" />
+  <assemblyIdentity version="2.2.0.0" name="Barline.app" />
 
   <compatibility xmlns="urn:schemas-microsoft-com:compatibility.v1">
     <application>
