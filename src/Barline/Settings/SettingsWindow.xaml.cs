@@ -1415,13 +1415,20 @@ internal partial class SettingsWindow : Window
 
         Say(UpdateDescription, outcome switch
         {
-            UpdateOutcome.Started => "Installing. Barline closes to finish.",
+            UpdateOutcome.Installed => "Installed. Starting the new version…",
             UpdateOutcome.NothingToDo => "Barline is already up to date.",
             UpdateOutcome.Canceled => "Nothing was installed.",
             _ => "The Store could not install the update just now. Try again later.",
         });
 
         if (outcome == UpdateOutcome.NothingToDo) ShowUpdate();
+
+        // Getting here after a completed install means the installer left this process
+        // alive, and it is now the old code running against a package that has been
+        // replaced underneath it. The successor is started as a child, which is what
+        // carries the package identity across. See AppRestart.
+        if (outcome == UpdateOutcome.Installed && !AppRestart.TryRestart())
+            Say(UpdateDescription, "Installed. Restart Barline to use the new version.");
     }
 
     /// <summary>

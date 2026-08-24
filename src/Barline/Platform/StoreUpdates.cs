@@ -1,4 +1,3 @@
-using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using Barline.Diagnostics;
 using Windows.Services.Store;
@@ -13,8 +12,11 @@ internal readonly record struct UpdateProgress(double Fraction, bool Installing)
 /// <summary>What came of asking the Store to install an update.</summary>
 internal enum UpdateOutcome
 {
-    /// <summary>The install began. The app is closed to finish it.</summary>
-    Started,
+    /// <summary>
+    /// The install finished. Usually unreachable, the app having been closed to get
+    /// there, and worth acting on when it is reached: see <see cref="StoreUpdates"/>.
+    /// </summary>
+    Installed,
 
     /// <summary>There was nothing to install after all.</summary>
     NothingToDo,
@@ -46,29 +48,30 @@ internal enum UpdateOutcome
 /// moot.
 /// </para>
 /// <para>
+/// Nothing here promises the app comes back. The installer closes it to replace the
+/// package it is running from, and whether anything starts it again is the installer's
+/// decision: Microsoft's own sample calls that step <c>IsNowAGoodTimeToRestartApp</c>
+/// and warns that installing "may cause the application to exit".
+/// <c>RegisterApplicationRestart</c> was tried and taken out again. It asks Windows to
+/// run the executable's command line afresh, which is not the case
+/// <see cref="AppRestart"/> measured: that one works because the successor is a child
+/// and inherits this process's package identity. A fresh launch has nothing to inherit,
+/// and a Barline that came back without identity would read the portable data folder
+/// and look to its owner like it had thrown their settings away. Not worth risking for
+/// a relaunch that may not happen anyway.
+/// </para>
+/// <para>
+/// What is worth doing is the case where the install finishes and this process is
+/// somehow still alive, which leaves the old code running against a replaced package.
+/// <see cref="AppRestart"/> covers that one properly, and the caller uses it.
+/// </para>
+/// <para>
 /// Nothing here runs on an unpackaged build. There is no Store to ask, and a portable
 /// copy is updated by replacing it.
 /// </para>
 /// </remarks>
 internal sealed class StoreUpdates
 {
-    /// <summary>
-    /// Asks Windows to start this app again if it is shut down to be patched.
-    /// </summary>
-    /// <remarks>
-    /// Registered just before the install, because that is the shutdown it is for. It
-    /// is the installer that decides whether to honor it, so nothing the user is told
-    /// promises a relaunch: the copy says the app will close, and coming back by itself
-    /// is a bonus rather than a claim. Failing here is not worth reporting, since the
-    /// worst case is the app the user has to start again, which is the case anyway.
-    /// </remarks>
-    [DllImport("kernel32.dll", CharSet = CharSet.Unicode)]
-    private static extern int RegisterApplicationRestart(string? commandLine, int flags);
-
-    /// <summary>Restart for patching and reboots, but not for crashes or hangs.</summary>
-    private const int RestartNoCrash = 1;
-    private const int RestartNoHang = 2;
-
     /// <summary>
     /// The share of the Store's progress figure that the download accounts for.
     /// </summary>
@@ -164,8 +167,6 @@ internal sealed class StoreUpdates
                 return UpdateOutcome.NothingToDo;
             }
 
-            RegisterApplicationRestart(null, RestartNoCrash | RestartNoHang);
-
             var operation = context.RequestDownloadAndInstallStorePackageUpdatesAsync(updates);
 
             // Raised once per step per package, on a thread of the Store's choosing.
@@ -179,7 +180,7 @@ internal sealed class StoreUpdates
 
             return result.OverallState switch
             {
-                StorePackageUpdateState.Completed => UpdateOutcome.Started,
+                StorePackageUpdateState.Completed => UpdateOutcome.Installed,
 
                 // Reached only if the app is somehow still alive: the install ends by
                 // replacing the package this process is running from.
@@ -210,7 +211,7 @@ internal sealed class StoreUpdates
             progress?.Report(Describe(step / 20d));
         }
 
-        return UpdateOutcome.Started;
+        return UpdateOutcome.Installed;
     }
 
     private static async Task<IReadOnlyList<StorePackageUpdate>> UpdatesAsync(IntPtr owner) =>

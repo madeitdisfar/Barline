@@ -618,12 +618,26 @@ at the documented boundary into two waits that each fill the bar once, and the l
 underneath says which one is running.
 
 The install closes the app, and the wording says exactly that and no more. Nothing in
-the documentation promises the app comes back: its own sample calls the step
+the documentation promises it comes back: the sample calls that step
 `IsNowAGoodTimeToRestartApp` and warns that installing "may cause the application to
-exit". `RegisterApplicationRestart` asks Windows to start it again afterwards, but it is
-the installer that decides whether to honor that, so it is a bonus rather than a
-promise. Until it has been watched happening on a real Store release, the card does not
-claim it.
+exit".
+
+`RegisterApplicationRestart` was tried and taken out again, and the reason is worth
+keeping. It asks Windows to run the executable's command line afresh, which is not the
+case the restart after a purchase measured: that one works because the successor is a
+*child* and inherits the package identity of the process that started it. A fresh
+launch has nothing to inherit, and identity is what decides where the app's data lives,
+so a Barline that came back without it would read the portable folder and look to its
+owner like it had thrown their settings away. That is not a risk worth taking for a
+relaunch the installer may not perform anyway.
+
+Nothing else can wait for us either: any process started from inside the package
+inherits its identity, so a helper watching for our exit would hold the package open
+and block the update it was waiting for.
+
+What is left is the case where the install finishes and the process is somehow still
+alive, which leaves old code running against a package that has been replaced
+underneath it. That one restarts through the ordinary path, child and all.
 
 Two things the documentation offers that are deliberately not used yet.
 `RequestDownloadStorePackageUpdatesAsync` downloads without installing, so the wait and
