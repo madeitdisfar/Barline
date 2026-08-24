@@ -776,3 +776,57 @@ supported route is a startup task declared in the package manifest, which the us
 approves and can revoke. Windows also lets the user switch a startup task off from
 Task Manager and will refuse to let the app switch it back on, so the toggle reports
 what Windows actually did rather than what was asked, and says why when they differ.
+
+## What it costs to leave running
+
+A widget is judged by the number beside its name in Task Manager, and Barline's was
+around 150 MB. Almost none of that was the app doing anything: measured on a session
+eight minutes old, the managed heap was 4.6 MB and had not been collected once. Nothing
+was allocating and nothing was leaking.
+
+What it was is startup. Bringing up a self-contained WPF app touches an enormous number
+of pages exactly once each: the assemblies, the JIT, WPF's own initialization, and the
+graphics driver that arrives with creating a D3D device, which on this machine mapped
+about 150 MB of Intel's shader compiler on its own. None of it is read again, and on a
+machine with memory to spare nothing ever forces it out, so it sits in the working set
+for the rest of the session looking exactly like memory in use. Trimming that session
+took it from 311 MB to 4 MB, and twenty seconds of ordinary running brought it back
+only to 10 MB.
+
+So the pages are handed back deliberately, at the few moments a burst of one-time work
+has just finished: once startup settles, when a window nobody will open again closes,
+and after the daily update check has pulled in the whole Store stack. Windows would do
+this itself the moment anything else wanted the memory. Doing it first is the
+difference between a widget that looks expensive and one that does not.
+
+Never on a repeating timer, though, and that is the constraint the whole design turns
+on. Trimming moves pages out of the working set rather than freeing them, so doing it
+during use only faults the same pages straight back in, which costs a stutter and saves
+nothing. Left alone after a trim the working set re-warms to what the app genuinely
+touches and settles there, which over a long run measured 55 to 65 MB rather than the
+10 MB a fresh trim leaves behind. That number, not the one just after a trim, is the
+honest figure.
+
+### The Store package is not a single file
+
+Release publishes single-file because one downloaded file is the whole point of the
+portable zip. A package is a folder either way, so the Store build turns it off.
+Assemblies inside a bundle are private to the process; loose ones are mapped from disk
+and shared with anything else that has them open. Measured on the same Release build,
+that is 117.6 MB of private working set against 91.1 MB.
+
+### Software rendering was measured and rejected
+
+Most of what a WPF process occupies arrives with the D3D device, and never creating one
+is the largest single saving available: private commit fell from 120 MB to 58 MB, and
+the thread count from 43 to 26. It is still the wrong trade. The lyrics glow is a blur
+effect, and WPF renders effects on the CPU once hardware acceleration is off, which
+would make a paid feature unusable to save memory that trimming gives back anyway.
+
+### Album art is decoded to the size it is drawn
+
+The art is drawn into a 32 by 32 logical square and sampled for a hue at 32 pixels, and
+nowhere in the app is it wanted larger. Sources hand out a great deal more: 640 by 640
+is ordinary and 1400 is not rare, and at eight cached entries that is tens of megabytes
+of unmanaged decode buffer held to paint a thumbnail. Decoding to 128 pixels, the most
+a 400% display could ask for, puts an entry at about 64 KB.

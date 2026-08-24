@@ -20,8 +20,13 @@ and the build fails on the copy step rather than saying anything useful about wh
 
 A release build is self-contained and single-file, and the project is configured so
 that a plain `dotnet publish -c Release` produces the portable build exactly as it is
-released. The deployment shape is not a flag you have to remember, and the Store
-package wraps that same publish output rather than being a second build of its own.
+released. The deployment shape is not a flag you have to remember.
+
+The Store package is that same publish with one flag changed: `Build-Package.ps1`
+turns `PublishSingleFile` off, so the assemblies are laid out loose rather than bundled
+into the executable. One file is the point of a portable zip and buys a folder-shaped
+package nothing, and loose assemblies are mapped from disk and shared instead of being
+private to the process. [docs/design.md](docs/design.md) has the measurement.
 
 ## Project layout
 
@@ -38,7 +43,7 @@ src/Barline/
 ├─ Ui/           theme tokens, color resolution, the visualizer control
 ├─ Settings/     the settings model, its JSON store, and the settings window
 ├─ Platform/     package identity, data paths, app info, the Store license and
-│                its updates, taskbar alignment, restarting
+│                its updates, taskbar alignment, restarting, working-set trimming
 ├─ Tray/         notification-area icon, and the WPF flyout it opens
 ├─ Startup/      run-at-sign-in registration
 └─ Diagnostics/  opt-in logging, demo content

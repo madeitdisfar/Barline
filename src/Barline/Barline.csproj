@@ -61,6 +61,11 @@
   <PropertyGroup Condition="'$(Configuration)' == 'Release'">
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <SelfContained>true</SelfContained>
+    <!-- For the portable zip, where one downloaded file is the point. The Store
+         package publishes with this off: a package is a folder whichever way it is
+         built, and assemblies inside a bundle are private to the process where loose
+         ones are mapped from disk and shared, which measured 26 MB of working set.
+         See packaging\Build-Package.ps1. -->
     <PublishSingleFile>true</PublishSingleFile>
     <!-- The WPF native libraries refuse to run from the bundle, so they sit beside
          the executable. Extracting them at startup instead would work, but it writes

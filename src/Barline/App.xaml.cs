@@ -159,6 +159,10 @@ public partial class App : Application
 
         WatchForUpdates(window, updates);
 
+        // The startup burst is the bulk of what the app ever occupies, and none of it
+        // is read again. See WorkingSet.
+        WorkingSet.TrimWhenQuiet();
+
         // Same pattern: shown so the handle exists, then it hides itself until there
         // is a lyric to put in it.
         var panel = new LyricsPanel(tracker, media, settings, lyrics);
@@ -189,12 +193,12 @@ public partial class App : Application
         // widget is hidden and the taskbar looks untouched. Without this the app is
         // indistinguishable from one that failed to start.
         if (settings.IsFirstRun || DevOverride.IsSet("BARLINE_WELCOME"))
-            new WelcomeWindow(theme, settings).Show();
+            Transient(new WelcomeWindow(theme, settings));
 
         // Only reachable by buying the add-on, which cannot be done on demand, so it
         // gets the same escape hatch the welcome window has.
         if (DevOverride.IsSet("BARLINE_THANKS"))
-            new ThankYouWindow(theme).Show();
+            Transient(new ThankYouWindow(theme));
 
         // Opened last, after a track exists: iterating on this window otherwise means
         // a tray right-click on every rebuild, and the tray menu is awkward to script.
@@ -319,6 +323,10 @@ public partial class App : Application
         {
             _updateTimer.Interval = TimeSpan.FromHours(24);
             await updates.CheckAsync(handle);
+
+            // Asking the Store loads the whole Store stack into a process that will
+            // not ask again for a day. See WorkingSet.
+            WorkingSet.TrimWhenQuiet();
         };
 
         _updateTimer.Start();
@@ -350,7 +358,8 @@ public partial class App : Application
                 theme, settings, autoStart, window, media, lyrics, license, updates, version);
 
             _settingsWindow.Closed += (_, _) => _settingsWindow = null;
-            _settingsWindow.Show();
+
+            Transient(_settingsWindow);
             return;
         }
 
@@ -360,6 +369,16 @@ public partial class App : Application
             _settingsWindow.WindowState = WindowState.Normal;
 
         _settingsWindow.Activate();
+    }
+
+    /// <summary>
+    /// Shows a window that is opened once and thrown away, and gives back what it
+    /// cost when it closes.
+    /// </summary>
+    private static void Transient(Window window)
+    {
+        WorkingSet.TrimWhenClosed(window);
+        window.Show();
     }
 
     private void OnPowerModeChanged(object sender, PowerModeChangedEventArgs e)
