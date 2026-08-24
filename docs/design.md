@@ -603,10 +603,35 @@ does it. A toast was considered and rejected: it would arrive at sign-in, about
 something that is not wrong, into the one channel people have learned to resent, and
 Focus Assist would swallow it half the time anyway.
 
-The install closes the app, and the wording says exactly that and no more.
-`RegisterApplicationRestart` asks Windows to start it again afterwards, but it is the
-installer that decides whether to honor that, so it is a bonus rather than a promise.
-Until it has been watched happening on a real Store release, the card does not claim it.
+What the install itself looks like is the OS's decision, and it is documented: Windows
+puts up a dialog asking permission to download, and a second one after the download
+asking permission to install, which warns that the app may have to restart. Declining
+either ends the operation as `Canceled` rather than as a failure. The call has to be
+made on the UI thread, or it fails with `ERROR_INVALID_WINDOW_HANDLE`, which names the
+wrong problem.
+
+Between those dialogs the app shows its own progress, because the dialogs come and go
+and the waiting does not. The Store reports one figure that covers both halves: it runs
+0 to 0.8 while the package downloads and 0.8 to 1 while it installs. Mapped straight
+onto a bar it would stop at 80% to ask a question, which reads as stuck, so it is split
+at the documented boundary into two waits that each fill the bar once, and the line
+underneath says which one is running.
+
+The install closes the app, and the wording says exactly that and no more. Nothing in
+the documentation promises the app comes back: its own sample calls the step
+`IsNowAGoodTimeToRestartApp` and warns that installing "may cause the application to
+exit". `RegisterApplicationRestart` asks Windows to start it again afterwards, but it is
+the installer that decides whether to honor that, so it is a bonus rather than a
+promise. Until it has been watched happening on a real Store release, the card does not
+claim it.
+
+Two things the documentation offers that are deliberately not used yet.
+`RequestDownloadStorePackageUpdatesAsync` downloads without installing, so the wait and
+the closing could be separated. And `TrySilentDownloadStorePackageUpdatesAsync`, gated
+on `CanSilentlyDownloadStorePackageUpdates`, downloads with no dialogs at all when the
+user already has automatic updates on and is not on a metered connection. Together they
+would make the button an install rather than a download, at the cost of fetching a
+package on the user's connection before they asked for one.
 
 ## About, and why it is not decoration
 

@@ -549,6 +549,28 @@
             </Setter>
         </Style>
 
+        <!-- The same track and accent fill as a slider, for the one place something
+             takes long enough to watch. -->
+        <Style x:Key="CardProgress" TargetType="ProgressBar">
+            <Setter Property="Height" Value="4" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ProgressBar">
+                        <Grid>
+                            <Border CornerRadius="2"
+                                    Background="{DynamicResource ControlStrongStrokeBrush}"
+                                    Opacity="0.45" />
+                            <Border x:Name="PART_Track" />
+                            <Border x:Name="PART_Indicator"
+                                    CornerRadius="2"
+                                    HorizontalAlignment="Left"
+                                    Background="{DynamicResource AccentFillBrush}" />
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <!-- The filled half of a slider track. It is the track's decrease button,
              which already spans exactly the stretch from the start to the knob, so
              there is nothing to measure and nothing to keep in step with the value.
@@ -940,6 +962,15 @@
                         <TextBlock x:Name="UpdateDescription"
                                    Style="{StaticResource CardDescription}"
                                    Text="Barline closes to install it." />
+
+                        <!-- Shown once something is actually being waited for. The
+                             Store's own dialogs come and go around this; the bar is
+                             what remains on screen while the work happens. -->
+                        <ProgressBar x:Name="UpdateBar"
+                                     Style="{StaticResource CardProgress}"
+                                     Margin="0,10,0,2"
+                                     Maximum="1"
+                                     Visibility="Collapsed" />
                     </StackPanel>
                     <Button x:Name="UpdateButton"
                             Grid.Column="1"

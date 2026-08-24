@@ -5,6 +5,11 @@ using Windows.Services.Store;
 
 namespace Barline.Platform;
 
+/// <summary>How far along an install is, and which half of it.</summary>
+/// <param name="Fraction">0 to 1 through the phase named by <paramref name="Installing"/>.</param>
+/// <param name="Installing">False while downloading, true once installing.</param>
+internal readonly record struct UpdateProgress(double Fraction, bool Installing);
+
 /// <summary>What came of asking the Store to install an update.</summary>
 internal enum UpdateOutcome
 {
@@ -64,6 +69,17 @@ internal sealed class StoreUpdates
     private const int RestartNoCrash = 1;
     private const int RestartNoHang = 2;
 
+    /// <summary>
+    /// The share of the Store's progress figure that the download accounts for.
+    /// </summary>
+    /// <remarks>
+    /// Documented, not guessed: <c>PackageDownloadProgress</c> runs 0 to 0.8 while the
+    /// package downloads and 0.8 to 1 while it installs. Shown as one bar climbing to
+    /// 100% and then starting again, since those are two different waits with a dialog
+    /// between them, and a bar that stops at 80% to ask a question reads as stuck.
+    /// </remarks>
+    private const double DownloadShare = 0.8d;
+
     /// <summary>Whether a newer version is waiting.</summary>
     public bool Available { get; private set; }
 
@@ -108,13 +124,33 @@ internal sealed class StoreUpdates
     /// <summary>
     /// Installs whatever is waiting. The app is closed part way through this.
     /// </summary>
+    /// <param name="owner">The window the Store's own dialogs belong to.</param>
+    /// <param name="progress">Told how far along it is, on the calling thread.</param>
     /// <remarks>
+    /// <para>
+    /// Two dialogs of the OS's own bracket this, and they are the consent that matters:
+    /// one asking permission to download, and one after the download asking permission
+    /// to install, which warns that the app may have to restart. Declining either ends
+    /// the operation as <c>Canceled</c> rather than as a failure.
+    /// </para>
+    /// <para>
     /// The list is fetched again rather than kept from the check. These are WinRT
     /// objects describing packages on a server, and the interesting case for this
     /// method is the one where the check ran hours ago.
+    /// </para>
+    /// <para>
+    /// Called on the UI thread, because the Store requires it: off it, the call fails
+    /// with <c>ERROR_INVALID_WINDOW_HANDLE</c> rather than with anything that names the
+    /// real problem.
+    /// </para>
     /// </remarks>
-    public async Task<UpdateOutcome> InstallAsync(IntPtr owner)
+    public async Task<UpdateOutcome> InstallAsync(
+        IntPtr owner, IProgress<UpdateProgress>? progress = null)
     {
+        // An override that pretends an update is waiting has to pretend to install it
+        // too, or the half of this the user actually watches could never be looked at.
+        if (Override() is not null) return await PretendAsync(progress);
+
         if (!PackageContext.IsPackaged) return UpdateOutcome.NothingToDo;
 
         try
@@ -130,7 +166,14 @@ internal sealed class StoreUpdates
 
             RegisterApplicationRestart(null, RestartNoCrash | RestartNoHang);
 
-            var result = await context.RequestDownloadAndInstallStorePackageUpdatesAsync(updates);
+            var operation = context.RequestDownloadAndInstallStorePackageUpdatesAsync(updates);
+
+            // Raised once per step per package, on a thread of the Store's choosing.
+            // An IProgress made on the UI thread is what carries it back to one.
+            operation.Progress = (_, status) =>
+                progress?.Report(Describe(status.PackageDownloadProgress));
+
+            var result = await operation;
 
             DebugLog.Write($"updates: install ended as {result.OverallState}");
 
@@ -150,6 +193,24 @@ internal sealed class StoreUpdates
             DebugLog.Write($"updates: install failed: {ex.Message}");
             return UpdateOutcome.Failed;
         }
+    }
+
+    /// <summary>Splits the Store's one figure into the two waits it covers.</summary>
+    internal static UpdateProgress Describe(double far) =>
+        far < DownloadShare
+            ? new UpdateProgress(far / DownloadShare, false)
+            : new UpdateProgress((far - DownloadShare) / (1d - DownloadShare), true);
+
+    /// <summary>Walks the bar through both phases at a believable pace.</summary>
+    private static async Task<UpdateOutcome> PretendAsync(IProgress<UpdateProgress>? progress)
+    {
+        for (int step = 0; step <= 20; step++)
+        {
+            await Task.Delay(150);
+            progress?.Report(Describe(step / 20d));
+        }
+
+        return UpdateOutcome.Started;
     }
 
     private static async Task<IReadOnlyList<StorePackageUpdate>> UpdatesAsync(IntPtr owner) =>

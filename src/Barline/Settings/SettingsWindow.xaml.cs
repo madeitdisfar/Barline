@@ -1397,13 +1397,21 @@ internal partial class SettingsWindow : Window
     private async Task UpdateAsync()
     {
         UpdateButton.IsEnabled = false;
-        Say(UpdateDescription, "Asking the Store…");
+        UpdateBar.Value = 0d;
+        UpdateBar.Visibility = Visibility.Visible;
 
-        var outcome = await _updates.InstallAsync(new WindowInteropHelper(this).Handle);
+        // Windows asks for permission before it downloads anything, so the first thing
+        // that happens is a dialog rather than a download.
+        Say(UpdateDescription, "Waiting for the Store…");
+
+        var outcome = await _updates.InstallAsync(
+            new WindowInteropHelper(this).Handle,
+            new Progress<UpdateProgress>(Advance));
 
         // Only reached if the app is still alive, which for a completed install it
         // usually is not: the process is ended to replace the package under it.
         UpdateButton.IsEnabled = true;
+        UpdateBar.Visibility = Visibility.Collapsed;
 
         Say(UpdateDescription, outcome switch
         {
@@ -1414,6 +1422,23 @@ internal partial class SettingsWindow : Window
         });
 
         if (outcome == UpdateOutcome.NothingToDo) ShowUpdate();
+    }
+
+    /// <summary>
+    /// Moves the bar, and says which of the two waits it is measuring.
+    /// </summary>
+    /// <remarks>
+    /// Named rather than left to the bar alone, because the download and the install
+    /// are separated by a dialog and a bar that filled twice with no explanation would
+    /// look like it had restarted.
+    /// </remarks>
+    private void Advance(UpdateProgress step)
+    {
+        UpdateBar.Value = step.Fraction;
+
+        Say(UpdateDescription, step.Installing
+            ? "Installing. Barline closes to finish."
+            : $"Downloading… {step.Fraction:P0}");
     }
 
     /// <summary>
