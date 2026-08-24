@@ -63,3 +63,47 @@ public class UpdateProgressTests
         Assert.Equal(shown, step.Fraction, 4);
     }
 }
+
+/// <summary>
+/// Noticing that this run follows an update.
+/// </summary>
+/// <remarks>
+/// The card this decides exists to answer a disappearance: installing closes the app,
+/// so the widget goes away and comes back as a different version. Which makes the
+/// cases that are not that worth stating, since each of them would put a notice in
+/// front of somebody who watched nothing happen.
+/// </remarks>
+public class VersionChangeTests
+{
+    [Fact]
+    public void A_higher_version_is_an_update()
+    {
+        Assert.True(VersionChange.IsUpdate("2.1.1", "2.2.0"));
+    }
+
+    [Fact]
+    public void A_first_run_is_not_one()
+    {
+        // Nothing to have updated from, and the welcome window is already talking.
+        Assert.False(VersionChange.IsUpdate(null, "2.2.0"));
+    }
+
+    [Fact]
+    public void The_same_version_is_not_one()
+    {
+        Assert.False(VersionChange.IsUpdate("2.2.0", "2.2.0"));
+    }
+
+    [Fact]
+    public void Going_back_is_not_one()
+    {
+        // A rolled-back build is somebody's own doing, and not news to them.
+        Assert.False(VersionChange.IsUpdate("2.3.0", "2.2.0"));
+    }
+
+    [Fact]
+    public void Something_that_will_not_parse_is_not_compared()
+    {
+        Assert.False(VersionChange.IsUpdate("who knows", "2.2.0"));
+    }
+}

@@ -639,6 +639,20 @@ What is left is the case where the install finishes and the process is somehow s
 alive, which leaves old code running against a package that has been replaced
 underneath it. That one restarts through the ordinary path, child and all.
 
+The run after an update says so, in the same slot and never at the same time: an update
+cannot be waiting and finished at once. The version that last ran is kept in the
+settings file and compared at startup, and the file is rewritten straight away, so the
+answer lives for that session and no longer. Somebody who does not open the settings
+window before the next restart never hears about it, which is the right amount of
+insistence for news that keeps for nobody.
+
+Three things are deliberately not an update. A first run, which has nothing to have
+updated from and where the welcome window is already talking. The same version again.
+And going backwards, since a rolled-back build is somebody's own doing rather than news
+to them. The card says what it replaced and nothing more: by the time the settings
+window is open the widget is plainly back, so explaining that installing closes the app
+would be answering a question in the one place nobody is asking it.
+
 Two things the documentation offers that are deliberately not used yet.
 `RequestDownloadStorePackageUpdatesAsync` downloads without installing, so the wait and
 the closing could be separated. And `TrySilentDownloadStorePackageUpdatesAsync`, gated

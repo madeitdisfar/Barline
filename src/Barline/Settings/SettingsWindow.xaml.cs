@@ -83,6 +83,7 @@ internal partial class SettingsWindow : Window
 
     private readonly LicenseService _license;
     private readonly StoreUpdates _updates;
+    private readonly VersionChange _version;
 
     /// <summary>
     /// The style the card is editing — which is the only one there is. Two of them, one
@@ -117,7 +118,8 @@ internal partial class SettingsWindow : Window
         MediaSessionService media,
         LyricsService lyrics,
         LicenseService license,
-        StoreUpdates updates)
+        StoreUpdates updates,
+        VersionChange version)
     {
         _theme = theme;
         _settings = settings;
@@ -127,6 +129,7 @@ internal partial class SettingsWindow : Window
         _lyrics = lyrics;
         _license = license;
         _updates = updates;
+        _version = version;
         _preview = new BarColorResolver(theme, settings);
 
         InitializeComponent();
@@ -1372,6 +1375,17 @@ internal partial class SettingsWindow : Window
 
         _updates.Changed += OnUpdateAvailability;
         ShowUpdate();
+
+        if (!_version.Updated) return;
+
+        UpdatedCard.Visibility = Visibility.Visible;
+        UpdatedLabel.Text = $"Barline updated to {AppInfo.Version}";
+
+        // What it replaced, and nothing else. Explaining that installing closes the app
+        // would be answering a question in the one place nobody is asking it.
+        Say(UpdatedDescription, _version.Previous is { } previous
+            ? $"You were on {previous}."
+            : string.Empty);
     }
 
     private void OnUpdateAvailability(object? sender, EventArgs e) =>

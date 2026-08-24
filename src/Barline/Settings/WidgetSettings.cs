@@ -160,6 +160,17 @@ internal sealed class WidgetSettings
     /// </remarks>
     public string? DisplayName { get; set; }
 
+    /// <summary>
+    /// The app version that ran last, so an update can be noticed the run after it.
+    /// </summary>
+    /// <remarks>
+    /// Written on every start where it differs, which on an ordinary run is never.
+    /// Absent means a file written before this existed, or a first run: both are read
+    /// as no update rather than as one, since a version nobody recorded cannot be shown
+    /// to have changed.
+    /// </remarks>
+    public string? LastRunVersion { get; set; }
+
     /// <summary>The bar count when nothing says otherwise, and the shipped design.</summary>
     public const int DefaultBarCount = 4;
 

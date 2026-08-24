@@ -96,19 +96,23 @@ public partial class App : Application
 
         var autoStart = new AutoStartService();
         var updates = new StoreUpdates();
+
+        // Read before anything else can rewrite the file, and answered for this run
+        // only. See VersionChange.
+        var version = new VersionChange(settings);
         var tray = new TrayIcon(settings.Current, theme);
 
         tray.ExitRequested += (_, _) => Shutdown();
         tray.RestartVisualizerRequested += (_, _) => analyzer.Restart();
         tray.RestartRequested += (_, _) => Restart();
         tray.SettingsRequested += (_, _) =>
-            ShowSettings(theme, settings, autoStart, window, media, lyrics, license, updates);
+            ShowSettings(theme, settings, autoStart, window, media, lyrics, license, updates, version);
 
         // The menu's own entry opens the settings window rather than starting the
         // install from under the pointer. Closing the app is not something to do to
         // somebody who has just opened a menu, and the card says what will happen.
         tray.UpdateRequested += (_, _) =>
-            ShowSettings(theme, settings, autoStart, window, media, lyrics, license, updates);
+            ShowSettings(theme, settings, autoStart, window, media, lyrics, license, updates, version);
 
         updates.Changed += (_, _) => tray.SetUpdateAvailable(updates.Available, updates.Version);
         window.ContextMenuRequested += (_, _) => tray.ShowContextMenu();
@@ -195,7 +199,7 @@ public partial class App : Application
         // Opened last, after a track exists: iterating on this window otherwise means
         // a tray right-click on every rebuild, and the tray menu is awkward to script.
         if (DevOverride.IsOn("BARLINE_SETTINGS"))
-            ShowSettings(theme, settings, autoStart, window, media, lyrics, license, updates);
+            ShowSettings(theme, settings, autoStart, window, media, lyrics, license, updates, version);
     }
 
     /// <summary>
@@ -337,12 +341,13 @@ public partial class App : Application
         MediaSessionService media,
         LyricsService lyrics,
         LicenseService license,
-        StoreUpdates updates)
+        StoreUpdates updates,
+        VersionChange version)
     {
         if (_settingsWindow is null)
         {
             _settingsWindow = new SettingsWindow(
-                theme, settings, autoStart, window, media, lyrics, license, updates);
+                theme, settings, autoStart, window, media, lyrics, license, updates, version);
 
             _settingsWindow.Closed += (_, _) => _settingsWindow = null;
             _settingsWindow.Show();
