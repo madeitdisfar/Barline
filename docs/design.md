@@ -404,9 +404,10 @@ and it appears in the list.
 
 Withdrawing a built-in has to reach into the user's folder, so it happens only while
 the file still matches the copy we shipped, field for field. An edited one is theirs
-and stays under its old name. `Lime` was retired that way when `Raw` replaced it. One that predates placement being part of a style says
-nothing about where the lyrics go, so loading it leaves them where they are rather
-than asserting a default it never chose.
+and stays under its old name. `Lime` was retired that way when `Raw` replaced it. One
+that predates placement being part of a style says nothing about where the lyrics go,
+so loading it leaves them where they are rather than asserting a default it never
+chose.
 
 ## Settings storage
 
@@ -565,9 +566,9 @@ at a different accent, and stale the first time the design moved.
 The advice about the Widgets button is shown only when `TaskbarDa` says the button is
 actually there. It does not depend on which end the widget is at: aligning the taskbar
 left moves Windows' own Widgets button to the far end too, so the two collide there
-just as they do at the left end of a centered one. Most of the setup advice an app can give is advice the reader has
-already followed, and being told to undo something you never did is how a first run
-starts to feel like a lecture. An unreadable or absent value counts as *visible*: the
+just as they do at the left end of a centered one. Most of the setup advice an app can
+give is advice the reader has already followed, and being told to undo something you
+never did is how a first run starts to feel like a lecture. An unreadable or absent value counts as *visible*: the
 cost is asymmetric, since an unneeded hint is read once and ignored, where a silent
 overlap looks like the app is broken.
 

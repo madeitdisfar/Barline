@@ -27,7 +27,8 @@ package wraps that same publish output rather than being a second build of its o
 
 ```
 tests/Barline.Tests/    color maths, contrast floor, hue extraction, lyric parsing,
-                        the playback clock, settings migration, the paid-value gate
+                        the playback clock, settings migration, the paid-value gate,
+                        display choice, widget and flyout placement, update wording
 packaging/              the MSIX manifest, its assets, and the build script
 src/Barline/
 ├─ Shell/        window hosting, taskbar tracking, Win32 interop
@@ -36,7 +37,8 @@ src/Barline/
 ├─ Lyrics/       fetching, parsing, caching, word timing, appearance model
 ├─ Ui/           theme tokens, color resolution, the visualizer control
 ├─ Settings/     the settings model, its JSON store, and the settings window
-├─ Platform/     package identity, data paths, app info, the Store license
+├─ Platform/     package identity, data paths, app info, the Store license and
+│                its updates, taskbar alignment, restarting
 ├─ Tray/         notification-area icon, and the WPF flyout it opens
 ├─ Startup/      run-at-sign-in registration
 └─ Diagnostics/  opt-in logging, demo content
@@ -56,6 +58,7 @@ changing anything in `Audio/`, `Lyrics/`, the color path, or the licensing in
 | `BARLINE_SETTINGS=1` | Opens the settings window at startup, instead of right-clicking the tray on every rebuild. |
 | `BARLINE_WELCOME=1` | Shows the first-run window, which otherwise appears once per machine and never again. Set it to `widgets` instead to force the Widgets-button notice inside that window as well, which is invisible on any machine set up the way the window asks you to set it up. |
 | `BARLINE_THANKS=1` | Shows the post-purchase window, which is otherwise only reachable by buying the add-on. |
+| `BARLINE_UPDATE` | Pretends a Store update of that version is waiting, so the badge, the menu item and the card can be looked at. Pressing **Update now** walks the progress bar through both phases without installing anything. |
 | `BARLINE_LICENSE` | Forces the license state: `owned`, `free` or `none`. See below. |
 
 `BARLINE_DEMO` exists because the widget hides itself when nothing is playing, which
@@ -108,6 +111,14 @@ works. What *is* covered is the part with a guarantee attached: the color maths,
 contrast floor, hue extraction from cover art, lyric parsing, the playback clock, the
 folding forward of an older settings file, and the taking out and putting back of paid
 values.
+
+The geometry is there too, for the same reason. Which display the widget falls back to,
+which end of the taskbar it takes, where the tray flyout goes to stay off it, and how an
+update is worded and its progress split are all arithmetic over a shape, and the shapes
+that matter are the ones a desk cannot easily be put into: a display that is not
+connected, a taskbar too narrow to hold both, an auto-hiding taskbar docked to the left.
+Reaching those by hand means changing Windows settings that belong to whoever is at the
+machine, so the arithmetic is separated from the probing and checked here.
 
 That last one is worth running before anything in `Platform/` or `Settings/` is
 touched. It is the only suite guarding a routine that edits a file the user owns, and

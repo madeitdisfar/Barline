@@ -60,7 +60,8 @@ updated by replacing it.
 
 In Barline's own data folder:
 
-- `settings.json`: your preferences.
+- `settings.json`: your preferences, and the app version that ran last, which is how
+  the run after an update knows to say so.
 - `presets\`: saved appearance presets.
 - `lyrics\`: any `.lrc` files you import yourself.
 - `cache\`: lyrics fetched from LRCLIB, including the misses.

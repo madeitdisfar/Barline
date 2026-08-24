@@ -273,9 +273,10 @@ internal sealed class TrayMenu : IDisposable
     /// and a popup that has never been opened has nothing stale to carry.
     /// </para>
     /// <para>
-    /// It costs five items and a style lookup, on a human right-click. The only state
-    /// that has to survive is one bool, and building fresh also removes the detaching
-    /// and reattaching the checkable item needed to keep from echoing its own updates.
+    /// It costs half a dozen items and a style lookup, on a human right-click. The only
+    /// state that has to survive is a bool and a version string, and building fresh also
+    /// removes the detaching and reattaching the checkable item needed to keep from
+    /// echoing its own updates.
     /// </para>
     /// </remarks>
     private ContextMenu Build()

@@ -50,6 +50,8 @@ no background of its own, so the taskbar's real Mica material shows through auto
 - Displays album art, title, and artist directly on the taskbar.
 - Fixed layout that remains consistent as songs change.
 - Follows taskbar position, DPI, and auto-hide behavior.
+- Sits at the free end: the left of a centered taskbar, beside the clock on a
+  left-aligned one.
 - Pick which display it sits on, on a desk with a taskbar on more than one.
 
 ### Live audio visualizer 📊
@@ -84,7 +86,8 @@ Supports any player that integrates with Windows Media Controls, including:
 
 - No telemetry in the app.
 - No accounts.
-- No network access unless lyrics are enabled.
+- No lyrics lookups unless you enable them. The Store build also asks Windows whether
+  you own the add-on and whether an update is waiting.
 
 The Store build is distributed by Microsoft, which reports aggregate install and crash
 counts to the developer. Barline neither performs nor controls that; see
@@ -97,6 +100,10 @@ Requires **Windows 11**.
 **Microsoft Store** is the recommended way to install Barline. It installs in one
 click, updates itself, and removes cleanly. The app is free, and a single optional
 purchase unlocks some extra customization.
+
+Because Barline runs from sign-in until shutdown, an update the Store has downloaded
+cannot replace it while it is running. So it says when one is waiting, with a dot on the
+notification-area icon and a card in **Settings** that installs it.
 
 <p>
   <a href="https://apps.microsoft.com/detail/9MVWJBV9SBC4?cid=readme-install">
@@ -119,9 +126,9 @@ still showing its own button in the same corner:
 Note that the widget hides itself while nothing is playing, so a quiet machine looks
 exactly as it did before. Start a track and it appears.
 
-Right-click the widget for **Settings**, **Show visualizer**, **Restart visualizer**
-and **Exit**. The same menu is on the notification-area icon, which is where to reach
-it while the widget is hidden.
+Right-click the widget for **Settings**, **Show visualizer**, **Restart visualizer**,
+**Restart Barline** and **Exit**. The same menu is on the notification-area icon, which
+is where to reach it while the widget is hidden.
 
 ## Lyrics
 
