@@ -127,12 +127,18 @@ public partial class App : Application
             settings.Update(s => s.VisualizerEnabled = enabled);
         };
 
-        // The settings window writes the same setting, so the menu's checkmark is
+        // Nothing to push into the widget by hand: the store's own change event is what
+        // starts a lookup or takes the panel down, the same as it does for the switch in
+        // the settings window.
+        tray.LyricsToggled += (_, enabled) => settings.Update(s => s.LyricsEnabled = enabled);
+
+        // The settings window writes the same settings, so the menu's checkmarks are
         // pushed back from the store rather than only being set at construction.
         settings.Changed += (_, _) =>
         {
             window.VisualizerEnabled = settings.Current.VisualizerEnabled;
             tray.SetVisualizerChecked(settings.Current.VisualizerEnabled);
+            tray.SetLyricsChecked(settings.Current.LyricsEnabled);
 
             // Assigning the same id again does nothing, so this costs a comparison on
             // every other setting rather than an acquisition.

@@ -150,6 +150,17 @@ WPF popup parks its window at the origin on close and recomputes its position on
 something it watches has changed, so a second right-click without moving the mouse
 reopened it in the corner of the screen.
 
+What it holds is five actions and two checkmarks: **Show visualizer** and **Show
+lyrics**, then **Restart visualizer**, **Restart Barline** and **Exit**, with
+**Settings** above them and the update item above that. The two checkmarks are the only
+settings repeated outside the settings window, and they are there because both are
+flipped in the middle of a track, which is the moment opening a window to reach one
+switch is most obviously too much. They sit together, separated from the actions below
+them, so the group that says what is on screen is not mixed with the group that does
+something. Neither item is the truth about its setting: the click writes to the settings
+store, and the store's change event is what moves the widget and pushes the checkmark
+back, so the menu and the settings window cannot disagree.
+
 The flyout opens upward from the pointer, which is what a notification-area menu does,
 and is anchored clear of the taskbar rather than on it. Both ways
 of opening it put the pointer on the taskbar, and WPF fits a flyout to the screen rather

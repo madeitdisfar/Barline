@@ -126,13 +126,13 @@ still showing its own button in the same corner:
 Note that the widget hides itself while nothing is playing, so a quiet machine looks
 exactly as it did before. Start a track and it appears.
 
-Right-click the widget for **Settings**, **Show visualizer**, **Restart visualizer**,
-**Restart Barline** and **Exit**. The same menu is on the notification-area icon, which
-is where to reach it while the widget is hidden.
+Right-click the widget for **Settings**, **Show visualizer**, **Show lyrics**, **Restart
+visualizer**, **Restart Barline** and **Exit**. The same menu is on the notification-area
+icon, which is where to reach it while the widget is hidden.
 
 ## Lyrics
 
-Lyrics are disabled by default because looking up a track sends its title and artist to [LRCLIB](https://lrclib.net). Turn it on under **Lyrics → Show lyrics**.
+Lyrics are disabled by default because looking up a track sends its title and artist to [LRCLIB](https://lrclib.net). Turn it on under **Lyrics → Show lyrics**, or from the right-click menu once you have.
 
 They go either in a **floating panel** above the taskbar, which you can move, resize
 and give a look of your own:

@@ -22,9 +22,11 @@ namespace Barline.Tray;
 /// WPF has no answer for. The menu it opens is WPF: see <see cref="TrayMenu"/> for why.
 /// </para>
 /// <para>
-/// The menu holds quick actions only. Anything that is configuration rather than a
-/// one-off action lives in the settings window instead, which also avoids two places
-/// showing the same state and drifting out of sync.
+/// The menu holds quick actions, plus the two switches for what the widget shows. Those
+/// two are worth being in both places because they are flipped in the middle of a track;
+/// everything else that is configuration rather than a one-off action lives in the
+/// settings window alone. The state the menu does repeat is pushed back from the store
+/// on every change, so the two cannot drift apart.
 /// </para>
 /// </remarks>
 internal sealed class TrayIcon : IDisposable
@@ -46,6 +48,7 @@ internal sealed class TrayIcon : IDisposable
 
     public event EventHandler? ExitRequested;
     public event EventHandler<bool>? VisualizerToggled;
+    public event EventHandler<bool>? LyricsToggled;
     public event EventHandler? RestartVisualizerRequested;
     public event EventHandler? RestartRequested;
     public event EventHandler? SettingsRequested;
@@ -58,6 +61,7 @@ internal sealed class TrayIcon : IDisposable
 
         _menu.ExitRequested += (_, e) => ExitRequested?.Invoke(this, e);
         _menu.VisualizerToggled += (_, enabled) => VisualizerToggled?.Invoke(this, enabled);
+        _menu.LyricsToggled += (_, enabled) => LyricsToggled?.Invoke(this, enabled);
         _menu.RestartVisualizerRequested += (_, e) => RestartVisualizerRequested?.Invoke(this, e);
         _menu.RestartRequested += (_, e) => RestartRequested?.Invoke(this, e);
         _menu.SettingsRequested += (_, e) => SettingsRequested?.Invoke(this, e);
@@ -120,6 +124,12 @@ internal sealed class TrayIcon : IDisposable
     /// so the menu's checkmark does not go stale.
     /// </summary>
     public void SetVisualizerChecked(bool enabled) => _menu.SetVisualizerChecked(enabled);
+
+    /// <summary>
+    /// Reflects a lyrics change made elsewhere (the settings window) so the menu's
+    /// checkmark does not go stale.
+    /// </summary>
+    public void SetLyricsChecked(bool enabled) => _menu.SetLyricsChecked(enabled);
 
     /// <summary>Whether the menu is on screen.</summary>
     public bool MenuIsOpen => _menu.IsOpen;

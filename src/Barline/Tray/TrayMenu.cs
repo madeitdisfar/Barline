@@ -72,6 +72,14 @@ internal sealed class TrayMenu : IDisposable
     private bool _visualizerChecked;
 
     /// <summary>
+    /// Whether lyrics are on, which is what that checkmark shows.
+    /// </summary>
+    /// <remarks>
+    /// Kept here for the same reason as the one above it.
+    /// </remarks>
+    private bool _lyricsChecked;
+
+    /// <summary>
     /// The version waiting in the Store, or null when there is nothing to install.
     /// </summary>
     /// <remarks>
@@ -92,6 +100,7 @@ internal sealed class TrayMenu : IDisposable
 
     public event EventHandler? ExitRequested;
     public event EventHandler<bool>? VisualizerToggled;
+    public event EventHandler<bool>? LyricsToggled;
     public event EventHandler? RestartVisualizerRequested;
     public event EventHandler? RestartRequested;
     public event EventHandler? SettingsRequested;
@@ -101,6 +110,7 @@ internal sealed class TrayMenu : IDisposable
     {
         _theme = theme;
         _visualizerChecked = settings.VisualizerEnabled;
+        _lyricsChecked = settings.LyricsEnabled;
 
         _styles = new ResourceDictionary
         {
@@ -239,6 +249,12 @@ internal sealed class TrayMenu : IDisposable
     public void SetVisualizerChecked(bool enabled) => _visualizerChecked = enabled;
 
     /// <summary>
+    /// Reflects a lyrics change made elsewhere (the settings window) so the menu's
+    /// checkmark does not go stale.
+    /// </summary>
+    public void SetLyricsChecked(bool enabled) => _lyricsChecked = enabled;
+
+    /// <summary>
     /// Says whether an update is waiting, and which one.
     /// </summary>
     /// <remarks>
@@ -273,7 +289,7 @@ internal sealed class TrayMenu : IDisposable
     /// and a popup that has never been opened has nothing stale to carry.
     /// </para>
     /// <para>
-    /// It costs half a dozen items and a style lookup, on a human right-click. The only
+    /// It costs seven items and a style lookup, on a human right-click. The only
     /// state that has to survive is a bool and a version string, and building fresh also
     /// removes the detaching and reattaching the checkable item needed to keep from
     /// echoing its own updates.
@@ -331,6 +347,10 @@ internal sealed class TrayMenu : IDisposable
             menu, "Settings", itemStyle, () => SettingsRequested?.Invoke(this, EventArgs.Empty));
         settings.FontWeight = FontWeights.SemiBold;
 
+        // The two halves of what the widget can show, checkable and side by side.
+        // Both are already in the settings window; they are repeated here because
+        // turning one off is something people do in the middle of a track, and opening
+        // a window to flip one switch is more than that is worth.
         var visualizer = Item(menu, "Show visualizer", itemStyle, null);
         visualizer.IsCheckable = true;
         visualizer.IsChecked = _visualizerChecked;
@@ -341,14 +361,22 @@ internal sealed class TrayMenu : IDisposable
             VisualizerToggled?.Invoke(this, _visualizerChecked);
         };
 
+        var lyrics = Item(menu, "Show lyrics", itemStyle, null);
+        lyrics.IsCheckable = true;
+        lyrics.IsChecked = _lyricsChecked;
+        lyrics.Click += (_, _) =>
+        {
+            _lyricsChecked = lyrics.IsChecked;
+            menu.IsOpen = false;
+            LyricsToggled?.Invoke(this, _lyricsChecked);
+        };
+
         // Manual fallback: the watchdog recovers a stalled capture on its own, but this
         // lets the user force it immediately if the visualizer stops answering audio.
         var restartVisualizer = Item(
             menu, "Restart visualizer", itemStyle,
             () => RestartVisualizerRequested?.Invoke(this, EventArgs.Empty));
 
-        // Grouped with Exit rather than with the visualizer above it, because what it
-        // acts on is the app rather than the bars.
         var restart = Item(
             menu, "Restart Barline", itemStyle,
             () => RestartRequested?.Invoke(this, EventArgs.Empty));
@@ -358,8 +386,14 @@ internal sealed class TrayMenu : IDisposable
         menu.Items.Add(settings);
         menu.Items.Add(new Separator { Style = separatorStyle });
         menu.Items.Add(visualizer);
-        menu.Items.Add(restartVisualizer);
+        menu.Items.Add(lyrics);
         menu.Items.Add(new Separator { Style = separatorStyle });
+
+        // The group below the toggles is the one that acts rather than shows: both
+        // restarts and the way out. Restart visualizer sat with the checkmarks while it
+        // was the only thing between them and Exit, which put an action in the group
+        // that says what is on screen.
+        menu.Items.Add(restartVisualizer);
         menu.Items.Add(restart);
         menu.Items.Add(exit);
 
