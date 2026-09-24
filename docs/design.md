@@ -574,6 +574,18 @@ The sample in it is the real `Visualizer` control over the real backdrop estimat
 animating, rather than a screenshot. A picture would be wrong on a light theme, wrong
 at a different accent, and stale the first time the design moved.
 
+The welcome window used to be the whole of the first run, and that had a hole in it.
+Closed with nothing playing, it left the app with no presence but a tray icon, and
+since starting with Windows is off until asked for, a restart before the first song
+left no trace at all. Two things close it. **Start with Windows** is offered in the
+welcome window itself, still off, since the moment someone has just installed the app
+is when they know whether they want it every day, and the same switch at the bottom of
+the settings window is not somewhere anyone looks on their first visit. And **Get
+started** now opens the settings window, which gives a new user something to look
+around in and stays until they close it. The title bar's close button does not: that
+is someone dismissing the greeting, and answering a dismissal with another window is
+not listening.
+
 The advice about the Widgets button is shown only when `TaskbarDa` says the button is
 actually there. It does not depend on which end the widget is at: aligning the taskbar
 left moves Windows' own Widgets button to the far end too, so the two collide there

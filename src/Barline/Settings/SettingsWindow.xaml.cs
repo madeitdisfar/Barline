@@ -1803,16 +1803,7 @@ internal partial class SettingsWindow : Window
     {
         WithoutFeedback(() => AutoStartToggle.IsChecked = state == AutoStartState.Enabled);
 
-        string note = state switch
-        {
-            AutoStartState.BlockedByUser =>
-                "Turned off outside the app. Windows only allows it back on from Task Manager's Startup apps tab.",
-            AutoStartState.BlockedByPolicy =>
-                "Turned off by a system policy on this device.",
-            AutoStartState.Unavailable =>
-                "Windows would not report this setting, so the widget will not start on its own.",
-            _ => string.Empty,
-        };
+        string note = AutoStartService.Describe(state);
 
         AutoStartNote.Text = note;
         AutoStartNote.Visibility = note.Length == 0 ? Visibility.Collapsed : Visibility.Visible;

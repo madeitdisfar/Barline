@@ -22,6 +22,11 @@
     -->
 
     <Window.Resources>
+        <ResourceDictionary>
+        <ResourceDictionary.MergedDictionaries>
+            <ResourceDictionary Source="/Barline;component/Ui/ToggleSwitch.xaml" />
+        </ResourceDictionary.MergedDictionaries>
+
         <!-- Theme brushes, swapped wholesale by ApplyTheme on a system theme change.
              Values here are the dark-mode defaults so the designer and first load
              have something sane before ApplyTheme runs. -->
@@ -81,78 +86,6 @@
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="Padding" Value="16,14" />
             <Setter Property="SnapsToDevicePixels" Value="True" />
-        </Style>
-
-        <!-- WPF has no ToggleSwitch, so a CheckBox is retemplated as one: 40x20
-             track, 12px knob, 4px inset. The knob slides rather than jumping —
-             an instant snap is the tell that a switch is hand-made. -->
-        <Style x:Key="ToggleSwitch" TargetType="CheckBox">
-            <Setter Property="VerticalAlignment" Value="Center" />
-            <Setter Property="Cursor" Value="Hand" />
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="CheckBox">
-                        <Grid Width="40" Height="20" Background="Transparent">
-                            <Border x:Name="Track"
-                                    CornerRadius="10"
-                                    Background="{DynamicResource ControlAltFillBrush}"
-                                    BorderBrush="{DynamicResource ControlStrongStrokeBrush}"
-                                    BorderThickness="1"
-                                    SnapsToDevicePixels="True" />
-                            <Ellipse x:Name="Knob"
-                                     Width="12" Height="12"
-                                     HorizontalAlignment="Left"
-                                     Margin="4,0,0,0"
-                                     Fill="{DynamicResource ControlStrongStrokeBrush}">
-                                <Ellipse.RenderTransform>
-                                    <TranslateTransform x:Name="KnobShift" X="0" />
-                                </Ellipse.RenderTransform>
-                            </Ellipse>
-                        </Grid>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsChecked" Value="True">
-                                <Setter TargetName="Track" Property="Background"
-                                        Value="{DynamicResource AccentFillBrush}" />
-                                <Setter TargetName="Track" Property="BorderBrush"
-                                        Value="Transparent" />
-                                <Setter TargetName="Knob" Property="Fill"
-                                        Value="{DynamicResource TextOnAccentBrush}" />
-                                <Trigger.EnterActions>
-                                    <BeginStoryboard>
-                                        <Storyboard>
-                                            <DoubleAnimation
-                                                Storyboard.TargetName="KnobShift"
-                                                Storyboard.TargetProperty="X"
-                                                To="20" Duration="0:0:0.15">
-                                                <DoubleAnimation.EasingFunction>
-                                                    <CubicEase EasingMode="EaseInOut" />
-                                                </DoubleAnimation.EasingFunction>
-                                            </DoubleAnimation>
-                                        </Storyboard>
-                                    </BeginStoryboard>
-                                </Trigger.EnterActions>
-                                <Trigger.ExitActions>
-                                    <BeginStoryboard>
-                                        <Storyboard>
-                                            <DoubleAnimation
-                                                Storyboard.TargetName="KnobShift"
-                                                Storyboard.TargetProperty="X"
-                                                To="0" Duration="0:0:0.15">
-                                                <DoubleAnimation.EasingFunction>
-                                                    <CubicEase EasingMode="EaseInOut" />
-                                                </DoubleAnimation.EasingFunction>
-                                            </DoubleAnimation>
-                                        </Storyboard>
-                                    </BeginStoryboard>
-                                </Trigger.ExitActions>
-                            </Trigger>
-                            <Trigger Property="IsEnabled" Value="False">
-                                <Setter Property="Opacity" Value="0.36" />
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
         </Style>
 
         <!-- Color-mode option. Checked state fills the ring with the accent and puts
@@ -936,6 +869,7 @@
                 </Setter.Value>
             </Setter>
         </Style>
+        </ResourceDictionary>
     </Window.Resources>
 
     <ScrollViewer Style="{StaticResource OverlayScrollViewer}">

@@ -199,7 +199,16 @@ public partial class App : Application
         // widget is hidden and the taskbar looks untouched. Without this the app is
         // indistinguishable from one that failed to start.
         if (settings.IsFirstRun || DevOverride.IsSet("BARLINE_WELCOME"))
-            Transient(new WelcomeWindow(theme, settings));
+        {
+            var welcome = new WelcomeWindow(theme, settings, autoStart);
+
+            // Settings next, so the greeting is not the last the user sees of the app.
+            // See WelcomeWindow.GetStarted.
+            welcome.GetStarted += (_, _) =>
+                ShowSettings(theme, settings, autoStart, window, media, lyrics, license, updates, version);
+
+            Transient(welcome);
+        }
 
         // Only reachable by buying the add-on, which cannot be done on demand, so it
         // gets the same escape hatch the welcome window has.

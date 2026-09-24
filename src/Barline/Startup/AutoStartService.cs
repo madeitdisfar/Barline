@@ -125,6 +125,26 @@ internal sealed class AutoStartService
         }
     }
 
+    /// <summary>
+    /// What to tell the user about a state, or an empty string when there is nothing
+    /// to say.
+    /// </summary>
+    /// <remarks>
+    /// Here rather than in either window, because the settings window and the welcome
+    /// window both show this switch, and Windows refusing it has to read the same in
+    /// both. A toggle that stays off with no reason given looks broken.
+    /// </remarks>
+    public static string Describe(AutoStartState state) => state switch
+    {
+        AutoStartState.BlockedByUser =>
+            "Turned off outside the app. Windows only allows it back on from Task Manager's Startup apps tab.",
+        AutoStartState.BlockedByPolicy =>
+            "Turned off by a system policy on this device.",
+        AutoStartState.Unavailable =>
+            "Windows would not report this setting, so the widget will not start on its own.",
+        _ => string.Empty,
+    };
+
     private static AutoStartState Translate(StartupTaskState state) => state switch
     {
         StartupTaskState.Enabled or StartupTaskState.EnabledByPolicy => AutoStartState.Enabled,

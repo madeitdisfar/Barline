@@ -5,6 +5,7 @@ using System.Windows.Media;
 using Barline.Diagnostics;
 using Barline.Platform;
 using Barline.Settings;
+using Barline.Startup;
 using Barline.Ui;
 
 namespace Barline.Shell;
@@ -16,6 +17,13 @@ internal partial class WelcomeWindow : Window
 {
     private readonly Theme _theme;
     private readonly BarColorResolver _bars;
+    private readonly AutoStartService _autoStart;
+
+    /// <summary>
+    /// Set while the switch is being moved to match what Windows reported, so that
+    /// moving it does not read as the user asking for the change all over again.
+    /// </summary>
+    private bool _syncing;
 
     /// <summary>
     /// The cover the sample track is showing, kept so the bar color can be resolved
@@ -23,9 +31,28 @@ internal partial class WelcomeWindow : Window
     /// </summary>
     private readonly ImageSource _sampleArt;
 
-    public WelcomeWindow(Theme theme, SettingsStore settings)
+    /// <summary>
+    /// Raised when the window is closed with its own button rather than the title bar.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// The app answers it by opening the settings window. Closing this one used to
+    /// leave nothing on screen at all, since the widget is hidden until something
+    /// plays, so the last thing a new user saw of the app was it disappearing. The
+    /// settings window is something to look around in, and it stays until they close
+    /// it themselves.
+    /// </para>
+    /// <para>
+    /// Not raised for the title bar's close button. That is someone dismissing the
+    /// greeting, and answering a dismissal with another window is not listening.
+    /// </para>
+    /// </remarks>
+    public event EventHandler? GetStarted;
+
+    public WelcomeWindow(Theme theme, SettingsStore settings, AutoStartService autoStart)
     {
         _theme = theme;
+        _autoStart = autoStart;
 
         // Its own resolver, for the same reason the settings preview has one: two
         // controls sharing an animated brush fight over it.
@@ -71,7 +98,20 @@ internal partial class WelcomeWindow : Window
             TaskbarSettingsButton.Click += (_, _) => OpenTaskbarSettings();
         }
 
-        CloseButton.Click += (_, _) => Close();
+        CloseButton.Click += (_, _) =>
+        {
+            // Closed first, so the settings window opens onto a desktop this one has
+            // already left and takes the focus rather than sharing it.
+            Close();
+            GetStarted?.Invoke(this, EventArgs.Empty);
+        };
+
+        AutoStartToggle.Checked += (_, _) => OnAutoStartToggled(true);
+        AutoStartToggle.Unchecked += (_, _) => OnAutoStartToggled(false);
+
+        // Read rather than assumed off. Somebody reinstalling may have left it on, and
+        // a switch that disagrees with Windows is worse than no switch.
+        _ = RefreshAutoStartAsync();
 
         ApplyTheme();
         _theme.Changed += OnThemeChanged;
@@ -84,6 +124,30 @@ internal partial class WelcomeWindow : Window
             // it would keep a closed window's control ticking for the life of the app.
             SampleBars.IsActive = false;
         };
+    }
+
+    private async void OnAutoStartToggled(bool enabled)
+    {
+        if (_syncing) return;
+
+        // Set from what Windows did rather than what was asked, which for a packaged
+        // app are not always the same. See AutoStartService.
+        ApplyAutoStartState(await _autoStart.SetEnabledAsync(enabled));
+    }
+
+    private async Task RefreshAutoStartAsync() =>
+        ApplyAutoStartState(await _autoStart.GetStateAsync());
+
+    private void ApplyAutoStartState(AutoStartState state)
+    {
+        bool previous = _syncing;
+        _syncing = true;
+        try { AutoStartToggle.IsChecked = state == AutoStartState.Enabled; }
+        finally { _syncing = previous; }
+
+        string note = AutoStartService.Describe(state);
+        AutoStartNote.Text = note;
+        AutoStartNote.Visibility = note.Length == 0 ? Visibility.Collapsed : Visibility.Visible;
     }
 
     private void OpenTaskbarSettings()
@@ -141,6 +205,7 @@ internal partial class WelcomeWindow : Window
         Resources["CardBackgroundBrush"] = _theme.CardBackground;
         Resources["CardStrokeBrush"] = _theme.CardStroke;
         Resources["ControlAltFillBrush"] = _theme.ControlAltFill;
+        Resources["ControlStrongStrokeBrush"] = _theme.ControlStrongStroke;
         Resources["AccentFillBrush"] = _theme.AccentFill;
         Resources["TextOnAccentBrush"] = _theme.TextOnAccent;
         Resources["SubtleHoverBrush"] = _theme.SubtleHover;

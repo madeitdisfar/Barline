@@ -26,6 +26,11 @@
     -->
 
     <Window.Resources>
+        <ResourceDictionary>
+        <ResourceDictionary.MergedDictionaries>
+            <ResourceDictionary Source="/Barline;component/Ui/ToggleSwitch.xaml" />
+        </ResourceDictionary.MergedDictionaries>
+
         <!-- Dark defaults, replaced wholesale by ApplyTheme. -->
         <SolidColorBrush x:Key="WindowBackgroundBrush" Color="#FF202020" />
         <SolidColorBrush x:Key="TextPrimaryBrush" Color="#FFFFFFFF" />
@@ -34,6 +39,7 @@
         <SolidColorBrush x:Key="CardBackgroundBrush" Color="#0DFFFFFF" />
         <SolidColorBrush x:Key="CardStrokeBrush" Color="#1A000000" />
         <SolidColorBrush x:Key="ControlAltFillBrush" Color="#1A000000" />
+        <SolidColorBrush x:Key="ControlStrongStrokeBrush" Color="#8BFFFFFF" />
         <SolidColorBrush x:Key="AccentFillBrush" Color="#FF0078D4" />
         <SolidColorBrush x:Key="TextOnAccentBrush" Color="#FFFFFFFF" />
         <SolidColorBrush x:Key="SubtleHoverBrush" Color="#0FFFFFFF" />
@@ -123,6 +129,7 @@
                 </Setter.Value>
             </Setter>
         </Style>
+        </ResourceDictionary>
     </Window.Resources>
 
     <StackPanel Margin="28,24,28,24">
@@ -221,6 +228,43 @@
                 <TextBlock Style="{StaticResource StepBody}"
                            Text="Colors, lyrics, fonts and more. The same menu is on the Barline icon in the notification area, which is where to find it while the widget is hidden." />
             </StackPanel>
+        </Grid>
+
+        <!--
+            Offered here rather than left at the bottom of the settings window, because
+            this is the one moment it matters most. The widget is invisible until
+            something plays, so an install that is never followed by music leaves no
+            trace on the taskbar, and without this it does not come back after a
+            restart either. That is how an app gets forgotten.
+
+            Off until asked, the same as everywhere else: starting with Windows is for
+            the user to choose, not for installing to decide.
+        -->
+        <Grid Margin="0,0,0,18">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Grid.Column="0" Style="{StaticResource Glyph}" Text="&#xE7E8;" />
+            <StackPanel Grid.Column="1" Margin="0,0,16,0">
+                <TextBlock Style="{StaticResource StepTitle}" Text="Start with Windows" />
+                <TextBlock Style="{StaticResource StepBody}"
+                           Text="Barline is ready whenever music plays, without you opening it after every restart. You can change this later in settings." />
+                <!-- Windows can refuse this, and when it does the switch has to say
+                     so rather than sit there looking set. -->
+                <TextBlock x:Name="AutoStartNote"
+                           Style="{StaticResource StepBody}"
+                           Margin="0,4,0,0"
+                           Foreground="{DynamicResource TextTertiaryBrush}"
+                           Visibility="Collapsed" />
+            </StackPanel>
+            <CheckBox x:Name="AutoStartToggle"
+                      Grid.Column="2"
+                      VerticalAlignment="Top"
+                      Margin="0,2,0,0"
+                      AutomationProperties.Name="Start with Windows"
+                      Style="{StaticResource ToggleSwitch}" />
         </Grid>
 
         <!-- Only when Windows is actually showing its own button. Collapsed otherwise,
