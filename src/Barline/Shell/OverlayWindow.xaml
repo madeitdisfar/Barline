@@ -46,11 +46,22 @@
         <!-- Solid transport glyphs as vector geometry rather than icon-font glyphs.
              The Segoe Fluent media glyphs are outline style; these filled shapes
              match the requested look and render crisply at any DPI. Drawn in a
-             ~14x14 box, filled via the button Foreground. -->
-        <PathGeometry x:Key="PrevGeometry" Figures="M2,1 H4 V13 H2 Z M12,1 L4.5,7 L12,13 Z" />
-        <PathGeometry x:Key="NextGeometry" Figures="M2,1 L9.5,7 L2,13 Z M10,1 H12 V13 H10 Z" />
-        <PathGeometry x:Key="PlayGeometry" Figures="M2.5,1 L12.5,7 L2.5,13 Z" />
-        <PathGeometry x:Key="PauseGeometry" Figures="M2.5,1 H5.5 V13 H2.5 Z M8.5,1 H11.5 V13 H8.5 Z" />
+             ~14x14 box, filled via the button Foreground.
+
+             Each shape is its intended outline pulled 1 unit inward, and
+             TransportGlyph traces it with a 2-wide round-jointed stroke in the same
+             brush. The stroke pushes the edges back out to where they were, and
+             every corner comes back as a 1-unit arc, which is how Windows 11 draws
+             its own filled media glyphs. Rounding by stroke rather than by arcs in
+             the geometry keeps these four lines readable, and changing the radius
+             is one number here and one in the style.
+
+             The skip bars were 2 wide, so pulled in by 1 they are lines with no
+             width, and the stroke turns them into pills. -->
+        <PathGeometry x:Key="PrevGeometry" Figures="M3,2 L3,12 Z M11,3.08 L6.1,7 L11,10.92 Z" />
+        <PathGeometry x:Key="NextGeometry" Figures="M3,3.08 L7.9,7 L3,10.92 Z M11,2 L11,12 Z" />
+        <PathGeometry x:Key="PlayGeometry" Figures="M3.5,2.77 L10.56,7 L3.5,11.23 Z" />
+        <PathGeometry x:Key="PauseGeometry" Figures="M3.5,2 H4.5 V12 H3.5 Z M9.5,2 H10.5 V12 H9.5 Z" />
 
         <!-- Win11 subtle button: no chrome at rest, a faint rounded fill on hover,
              slightly stronger when pressed. The glyph is a filled Path whose Fill
@@ -97,6 +108,16 @@
             <Setter Property="VerticalAlignment" Value="Center" />
             <Setter Property="Fill"
                     Value="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
+
+            <!-- The rounding. See the note on the geometries for why the stroke is
+                 half of what the shapes were pulled in by, and why it is the same
+                 brush as the fill. Caps as well as joins, for the skip bars. -->
+            <Setter Property="Stroke"
+                    Value="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
+            <Setter Property="StrokeThickness" Value="2" />
+            <Setter Property="StrokeLineJoin" Value="Round" />
+            <Setter Property="StrokeStartLineCap" Value="Round" />
+            <Setter Property="StrokeEndLineCap" Value="Round" />
         </Style>
     </Window.Resources>
 
