@@ -19,6 +19,12 @@ internal static class Motion
     /// <summary>Fluent "normal" — used for content changes like a new track's color.</summary>
     public const int NormalMs = 250;
 
+    /// <summary>
+    /// For a whole page moving the width of its window, where the normal duration
+    /// moves the text too fast to follow.
+    /// </summary>
+    public const int PageMs = 350;
+
     /// <summary>The Fluent standard easing curve, cubic-bezier(0.33, 0, 0.67, 1).</summary>
     public static readonly KeySpline Standard = CreateStandard();
 

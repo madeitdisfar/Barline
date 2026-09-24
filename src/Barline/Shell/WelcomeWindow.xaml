@@ -83,6 +83,7 @@
                                 Padding="{TemplateBinding Padding}"
                                 SnapsToDevicePixels="True">
                             <TextBlock Text="{TemplateBinding Content}"
+                                       HorizontalAlignment="Center"
                                        FontFamily="Segoe UI Variable Text, Segoe UI"
                                        FontSize="12"
                                        Foreground="{DynamicResource TextPrimaryBrush}" />
@@ -107,12 +108,17 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
+                        <!-- An invisible border the same width as the flat button's,
+                             so the two are the same height when they sit side by side. -->
                         <Border x:Name="Fill"
                                 CornerRadius="4"
                                 Background="{DynamicResource AccentFillBrush}"
+                                BorderBrush="Transparent"
+                                BorderThickness="1"
                                 Padding="{TemplateBinding Padding}"
                                 SnapsToDevicePixels="True">
                             <TextBlock Text="{TemplateBinding Content}"
+                                       HorizontalAlignment="Center"
                                        FontFamily="Segoe UI Variable Text, Segoe UI"
                                        FontSize="12"
                                        Foreground="{DynamicResource TextOnAccentBrush}" />
@@ -128,6 +134,15 @@
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
+        </Style>
+
+        <!-- Dimmed by default; the current page's dot is lit in code. -->
+        <Style x:Key="PageDot" TargetType="Ellipse">
+            <Setter Property="Width" Value="6" />
+            <Setter Property="Height" Value="6" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Fill" Value="{DynamicResource TextPrimaryBrush}" />
+            <Setter Property="Opacity" Value="0.3" />
         </Style>
         </ResourceDictionary>
     </Window.Resources>
@@ -203,116 +218,179 @@
                 Margin="0,20"
                 Background="{DynamicResource CardStrokeBrush}" />
 
-        <!-- The thing that actually confuses people, so it goes first. -->
-        <Grid Margin="0,0,0,18">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="Auto" />
-                <ColumnDefinition Width="*" />
-            </Grid.ColumnDefinitions>
-            <TextBlock Grid.Column="0" Style="{StaticResource Glyph}" Text="&#xE8D6;" />
-            <StackPanel Grid.Column="1">
-                <TextBlock Style="{StaticResource StepTitle}" Text="Play something to see it" />
-                <TextBlock Style="{StaticResource StepBody}"
-                           Text="With nothing playing the widget stays hidden, so your taskbar looks untouched. Start a track in any app and it appears." />
-            </StackPanel>
-        </Grid>
+        <!--
+            Two pages in one window, with everything above this line staying put.
 
-        <Grid Margin="0,0,0,18">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="Auto" />
-                <ColumnDefinition Width="*" />
-            </Grid.ColumnDefinitions>
-            <TextBlock Grid.Column="0" Style="{StaticResource Glyph}" Text="&#xE713;" />
-            <StackPanel Grid.Column="1">
-                <TextBlock Style="{StaticResource StepTitle}" Text="Right-click it for settings" />
-                <TextBlock Style="{StaticResource StepBody}"
-                           Text="Colors, lyrics, fonts and more. The same menu is on the Barline icon in the notification area, which is where to find it while the widget is hidden." />
+            Split because the second half used to arrive all at once. On a machine
+            showing the Widgets button the window carried four blocks of instructions
+            and a switch, which is the length at which people close a window without
+            reading it. The first page is what the app is; the second is what to set
+            up, and it is a page of its own because there is something to decide.
+
+            Both pages share one grid cell, so the window is sized for the taller of
+            them and does not change height as they swap. The pager reaches out into
+            the window's margins so a page sliding out is clipped at the window's
+            edge rather than at an invisible line 28 pixels inside it, and each page
+            puts the margin back.
+        -->
+        <Grid x:Name="Pager" Margin="-28,0" ClipToBounds="True">
+
+            <StackPanel x:Name="IntroPage" Margin="28,0" VerticalAlignment="Top">
+                <StackPanel.RenderTransform>
+                    <TranslateTransform x:Name="IntroShift" />
+                </StackPanel.RenderTransform>
+
+                <!-- The thing that actually confuses people, so it goes first. -->
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Grid.Column="0" Style="{StaticResource Glyph}" Text="&#xE8D6;" />
+                    <StackPanel Grid.Column="1">
+                        <TextBlock Style="{StaticResource StepTitle}" Text="Play something to see it" />
+                        <TextBlock Style="{StaticResource StepBody}"
+                                   Text="With nothing playing the widget stays hidden, so your taskbar looks untouched. Start a track in any app and it appears." />
+                    </StackPanel>
+                </Grid>
+
+                <Grid Margin="0,18,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Grid.Column="0" Style="{StaticResource Glyph}" Text="&#xE713;" />
+                    <StackPanel Grid.Column="1">
+                        <TextBlock Style="{StaticResource StepTitle}" Text="Right-click it for settings" />
+                        <TextBlock Style="{StaticResource StepBody}"
+                                   Text="Colors, lyrics, fonts and more. The same menu is on the Barline icon in the notification area, which is where to find it while the widget is hidden." />
+                    </StackPanel>
+                </Grid>
+            </StackPanel>
+
+            <!-- Hidden rather than collapsed while off screen: it still has to take up
+                 its room, or the window would be sized for the first page alone. -->
+            <StackPanel x:Name="SetupPage"
+                        Margin="28,0"
+                        VerticalAlignment="Top"
+                        Visibility="Hidden">
+                <StackPanel.RenderTransform>
+                    <TranslateTransform x:Name="SetupShift" />
+                </StackPanel.RenderTransform>
+
+                <!--
+                    Offered here rather than left at the bottom of the settings window,
+                    because this is the one moment it matters most. The widget is
+                    invisible until something plays, so an install that is never
+                    followed by music leaves no trace on the taskbar, and without this
+                    it does not come back after a restart either. That is how an app
+                    gets forgotten.
+
+                    Off until asked, the same as everywhere else: starting with Windows
+                    is for the user to choose, not for installing to decide.
+                -->
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Grid.Column="0" Style="{StaticResource Glyph}" Text="&#xE7E8;" />
+                    <StackPanel Grid.Column="1" Margin="0,0,16,0">
+                        <TextBlock Style="{StaticResource StepTitle}" Text="Start with Windows" />
+                        <TextBlock Style="{StaticResource StepBody}"
+                                   Text="Barline is ready whenever music plays, without you opening it after every restart. You can change this later in settings." />
+                        <!-- Windows can refuse this, and when it does the switch has to
+                             say so rather than sit there looking set. -->
+                        <TextBlock x:Name="AutoStartNote"
+                                   Style="{StaticResource StepBody}"
+                                   Margin="0,4,0,0"
+                                   Foreground="{DynamicResource TextTertiaryBrush}"
+                                   Visibility="Collapsed" />
+                    </StackPanel>
+                    <CheckBox x:Name="AutoStartToggle"
+                              Grid.Column="2"
+                              VerticalAlignment="Top"
+                              Margin="0,2,0,0"
+                              AutomationProperties.Name="Start with Windows"
+                              Style="{StaticResource ToggleSwitch}" />
+                </Grid>
+
+                <!-- Only when Windows is actually showing its own button. Collapsed
+                     otherwise, so nobody is told to undo something they never did. -->
+                <Border x:Name="WidgetsNotice"
+                        Visibility="Collapsed"
+                        CornerRadius="4"
+                        Padding="14,12"
+                        Margin="0,18,0,0"
+                        Background="{DynamicResource CardBackgroundBrush}"
+                        BorderBrush="{DynamicResource CardStrokeBrush}"
+                        BorderThickness="1">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Style="{StaticResource Glyph}" Text="&#xE7BA;" />
+                        <StackPanel Grid.Column="1">
+                            <TextBlock Style="{StaticResource StepTitle}" Text="Turn off the Widgets button" />
+                            <TextBlock Style="{StaticResource StepBody}"
+                                       Text="Windows is showing its weather button in the same corner, so the two will overlap. Switch off Widgets under Taskbar items." />
+                            <Button x:Name="TaskbarSettingsButton"
+                                    Style="{StaticResource FlatButton}"
+                                    HorizontalAlignment="Left"
+                                    Margin="0,12,0,0"
+                                    Content="Open taskbar settings" />
+                        </StackPanel>
+                    </Grid>
+                </Border>
             </StackPanel>
         </Grid>
 
         <!--
-            Offered here rather than left at the bottom of the settings window, because
-            this is the one moment it matters most. The widget is invisible until
-            something plays, so an install that is never followed by music leaves no
-            trace on the taskbar, and without this it does not come back after a
-            restart either. That is how an app gets forgotten.
-
-            Off until asked, the same as everywhere else: starting with Windows is for
-            the user to choose, not for installing to decide.
+            Twice the 20 either side of the divider above, so the guide ends with the
+            same deliberate pause it starts with. Tighter than that, a page whose
+            content is the taller of the two runs its last line almost into the
+            buttons, which is how the window looks on every machine without the
+            Widgets advice.
         -->
-        <Grid Margin="0,0,0,18">
+        <Grid Margin="0,40,0,0">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
-            <TextBlock Grid.Column="0" Style="{StaticResource Glyph}" Text="&#xE7E8;" />
-            <StackPanel Grid.Column="1" Margin="0,0,16,0">
-                <TextBlock Style="{StaticResource StepTitle}" Text="Start with Windows" />
-                <TextBlock Style="{StaticResource StepBody}"
-                           Text="Barline is ready whenever music plays, without you opening it after every restart. You can change this later in settings." />
-                <!-- Windows can refuse this, and when it does the switch has to say
-                     so rather than sit there looking set. -->
-                <TextBlock x:Name="AutoStartNote"
-                           Style="{StaticResource StepBody}"
-                           Margin="0,4,0,0"
+
+            <!-- Where you are, and that there is somewhere else to be. The button's
+                 label says the same, but only to someone who has read it. -->
+            <StackPanel Grid.Column="0"
+                        Orientation="Horizontal"
+                        VerticalAlignment="Center">
+                <Ellipse x:Name="IntroDot" Style="{StaticResource PageDot}" />
+                <Ellipse x:Name="SetupDot" Style="{StaticResource PageDot}" Margin="6,0,0,0" />
+                <TextBlock Margin="14,0,0,0"
+                           FontSize="11"
+                           VerticalAlignment="Center"
                            Foreground="{DynamicResource TextTertiaryBrush}"
-                           Visibility="Collapsed" />
+                           Text="This only shows once." />
             </StackPanel>
-            <CheckBox x:Name="AutoStartToggle"
-                      Grid.Column="2"
-                      VerticalAlignment="Top"
-                      Margin="0,2,0,0"
-                      AutomationProperties.Name="Start with Windows"
-                      Style="{StaticResource ToggleSwitch}" />
-        </Grid>
 
-        <!-- Only when Windows is actually showing its own button. Collapsed otherwise,
-             so nobody is told to undo something they never did. -->
-        <Border x:Name="WidgetsNotice"
-                Visibility="Collapsed"
-                CornerRadius="4"
-                Padding="14,12"
-                Margin="0,0,0,18"
-                Background="{DynamicResource CardBackgroundBrush}"
-                BorderBrush="{DynamicResource CardStrokeBrush}"
-                BorderThickness="1">
-            <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="*" />
-                </Grid.ColumnDefinitions>
-                <TextBlock Grid.Column="0" Style="{StaticResource Glyph}" Text="&#xE7BA;" />
-                <StackPanel Grid.Column="1">
-                    <TextBlock Style="{StaticResource StepTitle}" Text="Turn off the Widgets button" />
-                    <TextBlock Style="{StaticResource StepBody}"
-                               Text="Windows is showing its weather button in the same corner, so the two will overlap. Switch off Widgets under Taskbar items." />
-                    <Button x:Name="TaskbarSettingsButton"
-                            Style="{StaticResource FlatButton}"
-                            HorizontalAlignment="Left"
-                            Margin="0,12,0,0"
-                            Content="Open taskbar settings" />
-                </StackPanel>
-            </Grid>
-        </Border>
+            <StackPanel Grid.Column="1" Orientation="Horizontal">
+                <Button x:Name="BackButton"
+                        Style="{StaticResource FlatButton}"
+                        Margin="0,0,8,0"
+                        MinWidth="88"
+                        Visibility="Collapsed"
+                        Content="Back" />
 
-        <Grid>
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="Auto" />
-            </Grid.ColumnDefinitions>
-
-            <TextBlock Grid.Column="0"
-                       FontSize="11"
-                       VerticalAlignment="Center"
-                       Foreground="{DynamicResource TextTertiaryBrush}"
-                       Text="This only shows once." />
-
-            <Button x:Name="CloseButton"
-                    Grid.Column="1"
-                    Style="{StaticResource AccentButton}"
-                    IsDefault="True"
-                    Content="Get started" />
+                <!-- One button for both pages, so the default action is always in the
+                     same spot and Enter always moves forward. Wide enough for either
+                     label, so it does not change width when it changes words. -->
+                <Button x:Name="NextButton"
+                        Style="{StaticResource AccentButton}"
+                        MinWidth="112"
+                        IsDefault="True"
+                        Content="Next" />
+            </StackPanel>
         </Grid>
     </StackPanel>
 </Window>

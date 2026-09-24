@@ -586,6 +586,14 @@ around in and stays until they close it. The title bar's close button does not: 
 is someone dismissing the greeting, and answering a dismissal with another window is
 not listening.
 
+The window is two pages, with the heading and the live sample fixed above them. With
+the Widgets advice showing, one page held four blocks of instructions and a switch,
+which is the length at which people close a window without reading it. So the first
+page says what the app is, and the second, reached with **Next**, holds what there is
+to set up. Both pages share one grid cell, so the window is sized for the taller and
+keeps that height as they swap, and they slide rather than cut, both moving together
+on the app's shared curve so the change reads as one strip pulled sideways.
+
 The advice about the Widgets button is shown only when `TaskbarDa` says the button is
 actually there. It does not depend on which end the widget is at: aligning the taskbar
 left moves Windows' own Widgets button to the far end too, so the two collide there

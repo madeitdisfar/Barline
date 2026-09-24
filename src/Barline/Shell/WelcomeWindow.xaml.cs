@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Windows;
 using System.Windows.Interop;
 using System.Windows.Media;
+using System.Windows.Media.Animation;
 using Barline.Diagnostics;
 using Barline.Platform;
 using Barline.Settings;
@@ -25,6 +26,11 @@ internal partial class WelcomeWindow : Window
     /// </summary>
     private bool _syncing;
 
+    /// <summary>Which page is showing: the introduction, or the setup after it.</summary>
+    private Page _page = Page.Intro;
+
+    private enum Page { Intro, Setup }
+
     /// <summary>
     /// The cover the sample track is showing, kept so the bar color can be resolved
     /// against it again whenever the theme moves.
@@ -32,7 +38,8 @@ internal partial class WelcomeWindow : Window
     private readonly ImageSource _sampleArt;
 
     /// <summary>
-    /// Raised when the window is closed with its own button rather than the title bar.
+    /// Raised when the window is closed with its own button rather than the title bar,
+    /// which on the last page reads Get started.
     /// </summary>
     /// <remarks>
     /// <para>
@@ -98,12 +105,28 @@ internal partial class WelcomeWindow : Window
             TaskbarSettingsButton.Click += (_, _) => OpenTaskbarSettings();
         }
 
-        CloseButton.Click += (_, _) =>
+        NextButton.Click += (_, _) =>
         {
+            if (_page == Page.Intro)
+            {
+                ShowPage(Page.Setup, animate: true);
+                return;
+            }
+
             // Closed first, so the settings window opens onto a desktop this one has
             // already left and takes the focus rather than sharing it.
             Close();
             GetStarted?.Invoke(this, EventArgs.Empty);
+        };
+
+        BackButton.Click += (_, _) => ShowPage(Page.Intro, animate: true);
+
+        // The second page starts one pager-width to the right, which is only known
+        // once the window has been laid out. Only the width matters: the height is
+        // settled by the taller page, and the window never changes it afterwards.
+        Pager.SizeChanged += (_, e) =>
+        {
+            if (e.WidthChanged) ShowPage(_page, animate: false);
         };
 
         AutoStartToggle.Checked += (_, _) => OnAutoStartToggled(true);
@@ -124,6 +147,98 @@ internal partial class WelcomeWindow : Window
             // it would keep a closed window's control ticking for the life of the app.
             SampleBars.IsActive = false;
         };
+    }
+
+    /// <summary>
+    /// Brings a page into view, sliding the other one out the way it would go.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Both pages move, rather than one sliding over the other, so what is on screen
+    /// always reads as one strip being pulled sideways: forward to the left, back to
+    /// the right. The curve is the app's shared one; the duration is longer than the
+    /// usual quarter second because the distance is the whole window, and at the
+    /// normal speed the text crosses it too fast to be seen going.
+    /// </para>
+    /// <para>
+    /// A page that has left is hidden once it is off screen, so the keyboard cannot
+    /// tab into controls nobody can see. Hidden rather than collapsed, since it still
+    /// holds the window at the taller page's height.
+    /// </para>
+    /// </remarks>
+    private void ShowPage(Page page, bool animate)
+    {
+        _page = page;
+        bool setup = page == Page.Setup;
+        double width = Pager.ActualWidth;
+
+        BackButton.Visibility = setup ? Visibility.Visible : Visibility.Collapsed;
+        NextButton.Content = setup ? "Get started" : "Next";
+        IntroDot.Opacity = setup ? DotDim : DotLit;
+        SetupDot.Opacity = setup ? DotLit : DotDim;
+
+        double introTo = setup ? -width : 0d;
+        double setupTo = setup ? 0d : width;
+
+        // Honors the Windows setting for turning animations off, which is also the
+        // only kind of slide nobody is inconvenienced by skipping.
+        if (!animate || width <= 0d || !SystemParameters.ClientAreaAnimation)
+        {
+            Place(IntroShift, introTo);
+            Place(SetupShift, setupTo);
+            HideTheOtherPage();
+            return;
+        }
+
+        IntroPage.Visibility = Visibility.Visible;
+        SetupPage.Visibility = Visibility.Visible;
+
+        Move(IntroShift, introTo, null);
+        Move(SetupShift, setupTo, HideTheOtherPage);
+    }
+
+    private const double DotLit = 0.9d;
+    private const double DotDim = 0.3d;
+
+    private void HideTheOtherPage()
+    {
+        IntroPage.Visibility = _page == Page.Intro ? Visibility.Visible : Visibility.Hidden;
+        SetupPage.Visibility = _page == Page.Setup ? Visibility.Visible : Visibility.Hidden;
+    }
+
+    private static void Place(TranslateTransform shift, double x)
+    {
+        shift.BeginAnimation(TranslateTransform.XProperty, null);
+        shift.X = x;
+    }
+
+    private void Move(TranslateTransform shift, double to, Action? done)
+    {
+        var move = new DoubleAnimationUsingKeyFrames();
+
+        // One frame, so it sets off from wherever the page is now. A second click while
+        // the first swipe is still under way turns it around mid-flight rather than
+        // snapping it to either end first.
+        move.KeyFrames.Add(new SplineDoubleKeyFrame(
+            to,
+            KeyTime.FromTimeSpan(TimeSpan.FromMilliseconds(Motion.PageMs)),
+            Motion.Standard));
+
+        move.FillBehavior = FillBehavior.HoldEnd;
+
+        if (done is not null)
+        {
+            // Only if the swipe that finished is still the one wanted. Back pressed
+            // part way through starts a new one, and the old one finishing must not
+            // hide the page that is now on its way in.
+            var target = _page;
+            move.Completed += (_, _) =>
+            {
+                if (_page == target) done();
+            };
+        }
+
+        shift.BeginAnimation(TranslateTransform.XProperty, move);
     }
 
     private async void OnAutoStartToggled(bool enabled)
