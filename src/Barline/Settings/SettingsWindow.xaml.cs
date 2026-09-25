@@ -1376,7 +1376,8 @@ internal partial class SettingsWindow : Window
         _updates.Changed += OnUpdateAvailability;
         ShowUpdate();
 
-        if (!_version.Updated) return;
+        // The first settings window after the update says so, and later ones do not.
+        if (!_version.TakeNews()) return;
 
         UpdatedCard.Visibility = Visibility.Visible;
         UpdatedLabel.Text = $"Barline updated to {AppInfo.Version}";

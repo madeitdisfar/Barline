@@ -19,6 +19,11 @@ namespace Barline.Platform;
 /// before the next restart never hears about it, which is the right amount of
 /// insistence for news that keeps for nobody.
 /// </para>
+/// <para>
+/// And it is said once within the session too, through <see cref="TakeNews"/>. The
+/// widget runs for weeks, so a card on every opening of the settings window would
+/// outstay the news by a long way.
+/// </para>
 /// </remarks>
 internal sealed class VersionChange
 {
@@ -39,6 +44,19 @@ internal sealed class VersionChange
 
     /// <summary>Whether this run follows an update of the app.</summary>
     public bool Updated { get; }
+
+    private bool _told;
+
+    /// <summary>
+    /// Whether there is an update to announce, true only the first time it is asked.
+    /// </summary>
+    public bool TakeNews()
+    {
+        if (!Updated || _told) return false;
+
+        _told = true;
+        return true;
+    }
 
     /// <summary>
     /// Whether going from one version to the other counts as an update.
