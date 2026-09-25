@@ -144,9 +144,9 @@ internal sealed class TrayIcon : IDisposable
     /// A dot is also as loud as this deserves to be: nothing is wrong, and the app the
     /// user already has keeps working.
     /// </remarks>
-    public void SetUpdateAvailable(bool available, string? version)
+    public void SetUpdateAvailable(bool available)
     {
-        _menu.SetUpdateAvailable(available, version);
+        _menu.SetUpdateAvailable(available);
 
         if (available == _update) return;
 

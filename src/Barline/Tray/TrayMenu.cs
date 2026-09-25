@@ -80,14 +80,14 @@ internal sealed class TrayMenu : IDisposable
     private bool _lyricsChecked;
 
     /// <summary>
-    /// The version waiting in the Store, or null when there is nothing to install.
+    /// Whether an update is waiting in the Store.
     /// </summary>
     /// <remarks>
     /// Kept here for the same reason as the checkmark: the menu is built fresh for each
-    /// opening, so the item that names the version has nowhere of its own to remember
-    /// it. An update that lands while the menu is open is picked up the next time it is.
+    /// opening, so the item has nowhere of its own to remember it. An update that lands
+    /// while the menu is open is picked up the next time it is.
     /// </remarks>
-    private string? _update;
+    private bool _update;
 
     private ContextMenu? _open;
 
@@ -255,26 +255,13 @@ internal sealed class TrayMenu : IDisposable
     public void SetLyricsChecked(bool enabled) => _lyricsChecked = enabled;
 
     /// <summary>
-    /// Says whether an update is waiting, and which one.
+    /// Says whether an update is waiting.
     /// </summary>
     /// <remarks>
-    /// A version that could not be read still counts as an update. What matters to the
-    /// person reading the menu is that there is one, and the item can say so without
-    /// naming it.
+    /// Without a version: the Store does not say which one is on offer. See
+    /// <see cref="Platform.StoreUpdates.Available"/>.
     /// </remarks>
-    public void SetUpdateAvailable(bool available, string? version) =>
-        _update = available ? version ?? string.Empty : null;
-
-    /// <summary>
-    /// What the update item says.
-    /// </summary>
-    /// <remarks>
-    /// The version is worth naming when there is one: it is the difference between an
-    /// item that tells you something and an item that tells you to click it. An empty
-    /// string is the update whose version could not be read, which is still an update.
-    /// </remarks>
-    internal static string UpdateLabel(string version) =>
-        version.Length == 0 ? "Update Barline" : $"Update to {version}";
+    public void SetUpdateAvailable(bool available) => _update = available;
 
     /// <summary>
     /// Builds the flyout.
@@ -330,11 +317,11 @@ internal sealed class TrayMenu : IDisposable
 
         // First, and only while there is one. It is the only item here that is not
         // always true, and the only one that goes away by being used.
-        if (_update is { } waiting)
+        if (_update)
         {
             var update = Item(
                 menu,
-                UpdateLabel(waiting),
+                "Update Barline",
                 itemStyle,
                 () => UpdateRequested?.Invoke(this, EventArgs.Empty));
 

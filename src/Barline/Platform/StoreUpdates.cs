@@ -84,10 +84,13 @@ internal sealed class StoreUpdates
     private const double DownloadShare = 0.8d;
 
     /// <summary>Whether a newer version is waiting.</summary>
+    /// <remarks>
+    /// Whether, and not which. <c>StorePackageUpdate.Package</c> describes the package
+    /// installed now rather than the one on offer: observed on 2.2.0 with 2.3.0
+    /// waiting, the version read from it was 2.2.0. Nothing else on the Store context
+    /// gives the number, so no surface names one.
+    /// </remarks>
     public bool Available { get; private set; }
-
-    /// <summary>The version that is waiting, for the wording that names it.</summary>
-    public string? Version { get; private set; }
 
     /// <summary>Raised when the answer changes, never when it is merely re-confirmed.</summary>
     public event EventHandler? Changed;
@@ -101,9 +104,9 @@ internal sealed class StoreUpdates
     /// </param>
     public async Task CheckAsync(IntPtr owner)
     {
-        if (Override() is { } forced)
+        if (Override() is not null)
         {
-            Publish(true, forced);
+            Publish(true);
             return;
         }
 
@@ -113,7 +116,7 @@ internal sealed class StoreUpdates
         {
             var updates = await UpdatesAsync(owner);
 
-            Publish(updates.Count > 0, Newest(updates));
+            Publish(updates.Count > 0);
         }
         catch (Exception ex)
         {
@@ -163,7 +166,7 @@ internal sealed class StoreUpdates
 
             if (updates.Count == 0)
             {
-                Publish(false, null);
+                Publish(false);
                 return UpdateOutcome.NothingToDo;
             }
 
@@ -217,44 +220,19 @@ internal sealed class StoreUpdates
     private static async Task<IReadOnlyList<StorePackageUpdate>> UpdatesAsync(IntPtr owner) =>
         await ContextFor(owner).GetAppAndOptionalStorePackageUpdatesAsync();
 
-    /// <summary>The highest version on offer, written the way a person reads one.</summary>
-    /// <remarks>
-    /// Highest rather than first, because the list can hold optional packages as well
-    /// as the app itself, and what the user is being told about is the app.
-    /// </remarks>
-    private static string? Newest(IReadOnlyList<StorePackageUpdate> updates)
+    private void Publish(bool available)
     {
-        string? newest = null;
-        var highest = new Version(0, 0, 0);
+        if (available == Available) return;
 
-        foreach (var update in updates)
-        {
-            var id = update.Package.Id.Version;
-            var version = new Version(id.Major, id.Minor, id.Build);
-
-            if (version <= highest) continue;
-
-            highest = version;
-            newest = version.ToString();
-        }
-
-        return newest;
-    }
-
-    private void Publish(bool available, string? version)
-    {
-        if (available == Available && version == Version) return;
-
-        DebugLog.Write($"updates: available={available} version={version ?? "?"}");
+        DebugLog.Write($"updates: available={available}");
 
         Available = available;
-        Version = version;
 
         Changed?.Invoke(this, EventArgs.Empty);
     }
 
     /// <summary>
-    /// A version to pretend is waiting, so the surfaces can be looked at.
+    /// Pretends an update is waiting when set, so the surfaces can be looked at.
     /// </summary>
     /// <remarks>
     /// The alternative is publishing a release to the Store and waiting for it to reach

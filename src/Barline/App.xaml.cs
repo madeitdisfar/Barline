@@ -114,7 +114,7 @@ public partial class App : Application
         tray.UpdateRequested += (_, _) =>
             ShowSettings(theme, settings, autoStart, window, media, lyrics, license, updates, version);
 
-        updates.Changed += (_, _) => tray.SetUpdateAvailable(updates.Available, updates.Version);
+        updates.Changed += (_, _) => tray.SetUpdateAvailable(updates.Available);
         window.ContextMenuRequested += (_, _) => tray.ShowContextMenu();
 
         // The widget holds the top of the z-order against everything except the menu

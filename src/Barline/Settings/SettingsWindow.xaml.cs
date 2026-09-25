@@ -1397,9 +1397,9 @@ internal partial class SettingsWindow : Window
 
         if (!_updates.Available) return;
 
-        UpdateLabel.Text = _updates.Version is { } version
-            ? $"Barline {version} is available"
-            : "An update is available";
+        // Not named: the Store does not say which version is on offer. See
+        // StoreUpdates.Available.
+        UpdateLabel.Text = "A new version of Barline is available";
 
         // What happens next, in the words it will happen in. The Store closes the app
         // to replace the package it is running from, and whether anything starts it
