@@ -48,17 +48,13 @@ internal enum UpdateOutcome
 /// moot.
 /// </para>
 /// <para>
-/// Nothing here promises the app comes back. The installer closes it to replace the
-/// package it is running from, and whether anything starts it again is the installer's
-/// decision: Microsoft's own sample calls that step <c>IsNowAGoodTimeToRestartApp</c>
-/// and warns that installing "may cause the application to exit".
-/// <c>RegisterApplicationRestart</c> was tried and taken out again. It asks Windows to
-/// run the executable's command line afresh, which is not the case
-/// <see cref="AppRestart"/> measured: that one works because the successor is a child
-/// and inherits this process's package identity. A fresh launch has nothing to inherit,
-/// and a Barline that came back without identity would read the portable data folder
-/// and look to its owner like it had thrown their settings away. Not worth risking for
-/// a relaunch that may not happen anyway.
+/// The installer closes the app to replace the package it is running from, and
+/// <see cref="UpdateRelaunch"/> is what brings it back. Measured with an update
+/// registered over a running copy with <c>ForceTargetApplicationShutdown</c>: the new
+/// version was running, with package identity, about a second after the old one was
+/// shut down, where the same update over 2.3.0 left nothing running. The Store's own
+/// install has not been measured doing the same, so the wording still promises only
+/// that the app closes.
 /// </para>
 /// <para>
 /// What is worth doing is the case where the install finishes and this process is

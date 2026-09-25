@@ -59,6 +59,14 @@ public partial class App : Application
     {
         base.OnStartup(e);
 
+        // Before the instance lock and before any data is read: a relaunch without
+        // package identity starts the real app and leaves. See UpdateRelaunch.
+        if (UpdateRelaunch.HandOver(e.Args))
+        {
+            Shutdown();
+            return;
+        }
+
         _instanceMutex = new Mutex(initiallyOwned: true, InstanceMutexName, out bool isFirstInstance);
         if (!isFirstInstance && !WaitForPredecessor(_instanceMutex))
         {
@@ -72,6 +80,9 @@ public partial class App : Application
             Shutdown();
             return;
         }
+
+        // Only once this is known to be the instance that stays.
+        UpdateRelaunch.Register();
 
         var settings = new SettingsStore();
 
