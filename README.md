@@ -103,7 +103,8 @@ purchase unlocks some extra customization.
 
 Because Barline runs from sign-in until shutdown, an update the Store has downloaded
 cannot replace it while it is running. So it says when one is waiting, with a dot on the
-notification-area icon and a card in **Settings** that installs it.
+notification-area icon and a card in **Settings** that installs it and starts Barline
+again.
 
 <p>
   <a href="https://apps.microsoft.com/detail/9MVWJBV9SBC4?cid=readme-install">

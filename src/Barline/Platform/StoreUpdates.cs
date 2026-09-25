@@ -49,17 +49,16 @@ internal enum UpdateOutcome
 /// </para>
 /// <para>
 /// The installer closes the app to replace the package it is running from, and
-/// <see cref="UpdateRelaunch"/> is what brings it back. Measured with an update
-/// registered over a running copy with <c>ForceTargetApplicationShutdown</c>: the new
-/// version was running, with package identity, about a second after the old one was
-/// shut down, where the same update over 2.3.0 left nothing running. The Store's own
-/// install has not been measured doing the same, so the wording still promises only
-/// that the app closes.
+/// <see cref="UpdateRelaunch"/> is what brings it back. Measured both ways: with an
+/// update registered over a running copy with <c>ForceTargetApplicationShutdown</c>,
+/// and through the Store itself going from 2.3.1 to 2.3.2 in a package flight. Each
+/// time the new version came back on its own, where the same update over 2.3.0 left
+/// nothing running. That is what lets the wording say the app restarts.
 /// </para>
 /// <para>
-/// What is worth doing is the case where the install finishes and this process is
-/// somehow still alive, which leaves the old code running against a replaced package.
-/// <see cref="AppRestart"/> covers that one properly, and the caller uses it.
+/// The other case is the install finishing with this process somehow still alive,
+/// which leaves the old code running against a replaced package.
+/// <see cref="AppRestart"/> covers that one, and the caller uses it.
 /// </para>
 /// <para>
 /// Nothing here runs on an unpackaged build. There is no Store to ask, and a portable

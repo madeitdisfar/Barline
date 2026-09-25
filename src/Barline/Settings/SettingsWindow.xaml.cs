@@ -1403,10 +1403,9 @@ internal partial class SettingsWindow : Window
         UpdateLabel.Text = "A new version of Barline is available";
 
         // What happens next, in the words it will happen in. The Store closes the app
-        // to replace the package it is running from, and whether anything starts it
-        // again afterwards is the installer's decision rather than ours, so this
-        // promises only the part that is certain.
-        Say(UpdateDescription, "Barline closes to install it.");
+        // to replace the package it is running from, and UpdateRelaunch starts it
+        // again, which a Store update in a package flight confirmed.
+        Say(UpdateDescription, "Barline restarts to install it.");
     }
 
     private async Task UpdateAsync()
@@ -1459,7 +1458,7 @@ internal partial class SettingsWindow : Window
         UpdateBar.Value = step.Fraction;
 
         Say(UpdateDescription, step.Installing
-            ? "Installing. Barline closes to finish."
+            ? "Installing. Barline restarts to finish."
             : $"Downloading… {step.Fraction:P0}");
     }
 

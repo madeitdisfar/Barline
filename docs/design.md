@@ -612,8 +612,8 @@ its processes are running, and this one runs from sign-in until shutdown.
 
 Observed on a machine a release had been published to: the silent update never applied
 while the widget was up. Driving it by hand from the Store downloaded the payload,
-finished, and then offered a **Retry** — the registration could not complete with the
-app holding the package. Retry closed Barline and the update landed. Nothing started
+finished, and then offered a **Retry**, since the registration could not complete with
+the app holding the package. Retry closed Barline and the update landed. Nothing started
 the app again afterwards.
 
 So the update waits for a restart, which on a laptop that only sleeps can be weeks
@@ -629,11 +629,16 @@ starting; daily, because nothing about a release clearing certification is urgen
 
 Three surfaces, none of them a notification. A dot drawn into the tray icon, which is
 the only part of the app that is on screen whether or not anything is playing and the
-only one a user who never opens settings will see. An item at the top of the tray menu,
-naming the version. And a card at the top of the settings window, with the button that
+only one a user who never opens settings will see. An item at the top of the tray menu.
+And a card at the top of the settings window, with the button that
 does it. A toast was considered and rejected: it would arrive at sign-in, about
 something that is not wrong, into the one channel people have learned to resent, and
 Focus Assist would swallow it half the time anyway.
+
+None of them name the version on offer, because the Store does not say. The update
+list's `StorePackageUpdate.Package` looks like it would, and describes the package
+installed now instead: tested going from 2.2.0 to 2.3.0, the menu offered an update to
+2.2.0.
 
 What the install itself looks like is the OS's decision, and it is documented: Windows
 puts up a dialog asking permission to download, and a second one after the download
@@ -649,23 +654,32 @@ onto a bar it would stop at 80% to ask a question, which reads as stuck, so it i
 at the documented boundary into two waits that each fill the bar once, and the line
 underneath says which one is running.
 
-The install closes the app, and the wording says exactly that and no more. Nothing in
-the documentation promises it comes back: the sample calls that step
-`IsNowAGoodTimeToRestartApp` and warns that installing "may cause the application to
-exit".
+The install closes the app, and nothing in the documentation promises it comes back:
+the sample calls that step `IsNowAGoodTimeToRestartApp` and warns that installing "may
+cause the application to exit". Up to 2.3.0 nothing did. The update from 2.2.0 to 2.3.0
+landed and the widget simply went away until the next sign-in.
 
-`RegisterApplicationRestart` was tried and taken out again, and the reason is worth
-keeping. It asks Windows to run the executable's command line afresh, which is not the
-case the restart after a purchase measured: that one works because the successor is a
-*child* and inherits the package identity of the process that started it. A fresh
-launch has nothing to inherit, and identity is what decides where the app's data lives,
-so a Barline that came back without it would read the portable folder and look to its
-owner like it had thrown their settings away. That is not a risk worth taking for a
-relaunch the installer may not perform anyway.
+So the app registers with `RegisterApplicationRestart` at startup, which asks Windows to
+start it again after it is shut down for an update. Crashes, hangs and reboots are
+excluded: a crash loop is worse than a crash, and a reboot is what the startup task is
+for. It was tried once before and taken out untested, over one worry worth keeping. It
+runs the executable's command line afresh rather than activating the app, which is not
+the case the restart after a purchase measured: that one works because the successor is
+a *child* and inherits the package identity of the process that started it. A fresh
+launch might have nothing to inherit, and identity is what decides where the app's data
+lives, so a Barline that came back without it would read the portable folder and look
+to its owner like it had thrown their settings away.
 
-Nothing else can wait for us either: any process started from inside the package
-inherits its identity, so a helper watching for our exit would hold the package open
-and block the update it was waiting for.
+The command line answers that worry. It carries the app's own user model id, and a
+relaunch that finds itself without identity hands over to the app model with it and
+exits before reading anything, since the app model always starts the packaged app. In
+practice the handover has not been needed: measured by registering a newer package over
+a running copy with `ForceTargetApplicationShutdown`, the new version came back about a
+second later with its identity and its settings. Going from 2.3.1 to 2.3.2 through the
+Store itself, in a package flight, it came back on its own too. The same local update
+over unmodified 2.3.0 left nothing running, which is what makes the settings card free to say the app restarts
+rather than only that it closes. Windows only does this for a process that has been up
+for a minute, which the widget always has by the time anyone clicks the button.
 
 What is left is the case where the install finishes and the process is somehow still
 alive, which leaves old code running against a package that has been replaced
@@ -676,7 +690,9 @@ cannot be waiting and finished at once. The version that last ran is kept in the
 settings file and compared at startup, and the file is rewritten straight away, so the
 answer lives for that session and no longer. Somebody who does not open the settings
 window before the next restart never hears about it, which is the right amount of
-insistence for news that keeps for nobody.
+insistence for news that keeps for nobody. Within the session it is said once: the
+first settings window after an update carries the card and later ones do not, since
+the widget runs for weeks and a card on every opening would outstay the news.
 
 Three things are deliberately not an update. A first run, which has nothing to have
 updated from and where the welcome window is already talking. The same version again.

@@ -895,7 +895,7 @@
                                    Text="Update available" />
                         <TextBlock x:Name="UpdateDescription"
                                    Style="{StaticResource CardDescription}"
-                                   Text="Barline closes to install it." />
+                                   Text="Barline restarts to install it." />
 
                         <!-- Shown once something is actually being waited for. The
                              Store's own dialogs come and go around this; the bar is
